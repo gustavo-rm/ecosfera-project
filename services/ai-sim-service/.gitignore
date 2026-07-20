@@ -1,0 +1,101 @@
+=========================
+Python
+=========================
+Byte-compiled / cache
+pycache/
+*.py[cod]
+*$py.class
+
+C extensions
+*.so
+
+Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+.egg
+MANIFEST
+
+Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+Test / coverage
+.pytest_cache/
+.coverage
+.coverage.
+htmlcov/
+.tox/
+.nox/
+
+Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+=========================
+Virtual environments
+=========================
+.venv/
+venv/
+env/
+ENV/
+
+=========================
+Jupyter Notebook
+=========================
+.ipynb_checkpoints/
+
+=========================
+IDEs
+=========================
+VS Code
+.vscode/
+
+PyCharm
+.idea/
+
+=========================
+Environment variables
+=========================
+.env
+.env.*
+!.env.example
+
+=========================
+Logs
+=========================
+*.log
+
+=========================
+OS generated files
+=========================
+.DS_Store
+Thumbs.db
+
+=========================
+Local databases
+=========================
+*.sqlite3
+*.db
+
+=========================
+Temporary files
+=========================
+*.tmp
+*.temp
+*.bak
