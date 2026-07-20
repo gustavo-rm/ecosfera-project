@@ -1,0 +1,112 @@
+# ECOSFERA — infraestrutura de desenvolvimento local.
+# Sobe apenas os stores/serviços de apoio; front (Next) e back (Nest/FastAPI)
+# rodam no host durante o dev. Uso:
+#   cp infra/compose/.env.example infra/compose/.env   # e edite as senhas
+#   docker compose -f infra/compose/dev.yml --env-file infra/compose/.env up -d
+name: ecosfera-dev
+
+services:
+  # ── PostgreSQL (+pgvector): relacional autoritativo + vetores do RAG ────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # scripts *.sql/*.sh rodam SOMENTE na 1ª inicialização (volume vazio)
+      - ../docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── MongoDB: estado do planeta, espécies, ecossistema, event_log, telemetria ─
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo-data:/data/db
+      - ../docker/mongo/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Redis: cache, pub/sub de WebSocket e filas de jobs ──────────────────────
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── MinIO: object storage S3-compatível (assets, exports, datasets) ─────────
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped
+
+  # ── Criação idempotente dos buckets (roda e encerra) ────────────────────────
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do
+        echo 'aguardando minio...'; sleep 2;
+      done;
+      mc mb --ignore-existing local/assets;
+      mc mb --ignore-existing local/exports;
+      mc mb --ignore-existing local/datasets;
+      exit 0;
+      "
+
+  # ── Ollama: runtime de LLM local para o tutor/RAG ───────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    # Após subir, baixe um modelo:
+    #   docker compose -f infra/compose/dev.yml exec ollama ollama pull llama3.1
+
+volumes:
+  postgres-data:
+  mongo-data:
+  redis-data:
+  minio-data:
+  ollama-data:
