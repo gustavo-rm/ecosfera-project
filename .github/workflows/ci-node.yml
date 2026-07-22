@@ -1,0 +1,29 @@
+name: CI (Node)
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  lint-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint, build and test
+        run: pnpm turbo run lint build test

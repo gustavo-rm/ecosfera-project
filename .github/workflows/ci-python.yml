@@ -1,0 +1,32 @@
+name: CI (Python)
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+defaults:
+  run:
+    working-directory: services/ai-sim-service
+
+jobs:
+  lint-typecheck-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Type check (mypy)
+        run: uv run mypy
+
+      - name: Test (pytest)
+        run: uv run pytest
