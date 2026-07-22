@@ -1,0 +1,34 @@
+"""Configuração via variáveis de ambiente (12-factor), com Pydantic Settings."""
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="ECOSFERA_", env_file=".env", extra="ignore")
+
+    app_name: str = "ecosfera-ai-sim-service"
+    environment: str = Field(default="dev")  # dev | staging | prod
+    log_level: str = Field(default="INFO")
+    log_json: bool = Field(default=False)  # True em staging/prod
+
+    api_v1_prefix: str = "/ai/api/v1"
+
+    # Regras causais versionadas (dados, não código)
+    causal_rules_path: Path = Field(default=Path("configs/causal_rules.yaml"))
+
+    # Ativação de features por incremento (feature flags — TBD/rollout gradual)
+    llm_enabled: bool = Field(default=False)  # ligado no Inc 6
+    ollama_base_url: str = Field(default="http://localhost:11434")
+    llm_model: str = Field(default="llama3")
+
+    request_timeout_s: float = Field(default=3.0)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

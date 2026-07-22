@@ -1,0 +1,35 @@
+# Ambiente local do ai-sim-service. Postgres+pgvector, Mongo e Redis já entram
+# aqui (Inc 0/1); o serviço só passa a usá-los quando os adaptadores reais forem
+# ativados. Ollama fica em profile 'ai' (Inc 6) para não pesar no MVP.
+services:
+  ai-sim-service:
+    build: .
+    ports: ["8000:8000"]
+    env_file: [.env]
+    depends_on: [postgres, mongo, redis]
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ecosfera
+      POSTGRES_PASSWORD: ecosfera
+      POSTGRES_DB: ecosfera
+    ports: ["5432:5432"]
+    volumes: ["pg:/var/lib/postgresql/data"]
+
+  mongo:
+    image: mongo:7
+    ports: ["27017:27017"]
+    volumes: ["mongo:/data/db"]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ai"]   # docker compose --profile ai up
+    ports: ["11434:11434"]
+    volumes: ["ollama:/root/.ollama"]
+
+volumes: { pg: {}, mongo: {}, ollama: {} }

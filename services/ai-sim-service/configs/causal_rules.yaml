@@ -1,0 +1,30 @@
+# Regras causais do MVP (Dossiê §2.1). Dados versionados, não código.
+# same_direction: true  => causa↑ implica efeito↑
+# same_direction: false => causa↑ implica efeito↓
+version: 1
+rules:
+  - id: R-CO2-TEMP
+    cause: co2
+    effect: temperature
+    same_direction: true
+    template: "Quando o {cause} aumenta, o planeta segura mais calor e a {effect} sobe."
+  - id: R-TEMP-ICE
+    cause: temperature
+    effect: ice_cover
+    same_direction: false
+    template: "Com a {cause} mais alta, o gelo derrete e a cobertura de gelo ({effect}) diminui."
+  - id: R-ICE-ALBEDO
+    cause: ice_cover
+    effect: albedo
+    same_direction: true
+    template: "Menos gelo ({cause}) reflete menos luz do Sol, então o {effect} cai."
+  - id: R-TEMP-WATER
+    cause: temperature
+    effect: evaporation
+    same_direction: true
+    template: "A {cause} maior faz a água evaporar mais rápido ({effect} sobe)."
+  - id: R-EVAP-RAIN
+    cause: evaporation
+    effect: rainfall
+    same_direction: true
+    template: "Mais {cause} carrega água para o céu e aumenta a chuva ({effect})."
