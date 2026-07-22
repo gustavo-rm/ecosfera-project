@@ -1,0 +1,1 @@
+"""Inbound adapters (HTTP/gRPC routers and DTOs) exposing the bounded contexts to the outside world."""
