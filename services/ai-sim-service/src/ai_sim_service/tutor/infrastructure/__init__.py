@@ -1,1 +1,1 @@
-"""Concrete adapters for the tutor context: Ollama/LLM client, pgvector repository, Redis repository."""
+"""Concrete adapters for the tutor context: Ollama/LLM client, pgvector and Redis repositories."""

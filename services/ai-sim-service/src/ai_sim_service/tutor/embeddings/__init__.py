@@ -1,1 +1,5 @@
-"""Embedding model configuration and wrapper — isolates model choice from the schema migration that defines vector dimension."""
+"""Embedding model configuration and wrapper.
+
+Isolates the choice of embedding model from the schema migration that
+defines the vector dimension.
+"""
