@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { AdditiveBlending, type Group } from 'three';
+import { AdditiveBlending, type Group, type Texture } from 'three';
 import { PlanetMesh } from './PlanetMesh';
 import { CloudLayer } from './CloudLayer';
 import { Atmosphere } from './Atmosphere';
 import { LifeEffects } from './LifeEffects';
+import { LifeEmergence } from './LifeEmergence';
 import { AtmosphericDust } from './AtmosphericDust';
 import { usePlanetRotation } from '@/hooks/usePlanetRotation';
 import {
   createCloudTexture,
+  createLifeSymbolTexture,
   generatePlanetTextures,
 } from '@/lib/three/textures';
 import { palette } from '@/lib/three/colors';
@@ -19,7 +21,6 @@ import {
   PLANET_TILT,
   type QualitySettings,
 } from '@/lib/three/config';
-import type { Texture } from 'three';
 
 interface PlanetSystemProps {
   radialTexture: Texture;
@@ -32,6 +33,7 @@ interface PlanetSystemProps {
 export function PlanetSystem({ radialTexture, quality, animate }: PlanetSystemProps) {
   const surfaceRef = useRef<Group>(null);
   const cloudRef = useRef<Group>(null);
+  const emissiveBoostRef = useRef(0);
 
   const planet = useMemo(
     () => generatePlanetTextures(quality.textureSize),
@@ -41,6 +43,7 @@ export function PlanetSystem({ radialTexture, quality, animate }: PlanetSystemPr
     () => createCloudTexture(quality.textureSize),
     [quality.textureSize],
   );
+  const symbolTexture = useMemo(() => createLifeSymbolTexture(128), []);
 
   const speed = animate ? 1 : 0.12;
   usePlanetRotation(surfaceRef, PLANET_ROTATION_PERIOD_S, speed);
@@ -50,9 +53,11 @@ export function PlanetSystem({ radialTexture, quality, animate }: PlanetSystemPr
     () => () => {
       planet.surface.dispose();
       planet.emissive.dispose();
+      planet.roughness.dispose();
       cloudTexture.dispose();
+      symbolTexture.dispose();
     },
-    [planet, cloudTexture],
+    [planet, cloudTexture, symbolTexture],
   );
 
   return (
@@ -72,9 +77,18 @@ export function PlanetSystem({ radialTexture, quality, animate }: PlanetSystemPr
         <PlanetMesh
           surface={planet.surface}
           emissive={planet.emissive}
+          roughnessMap={planet.roughness}
           segments={quality.sphereSegments}
+          emissiveBoostRef={emissiveBoostRef}
         />
         <LifeEffects landPoints={planet.landPoints} texture={radialTexture} animate={animate} />
+        <LifeEmergence
+          landPoints={planet.landPoints}
+          symbolTexture={symbolTexture}
+          haloTexture={radialTexture}
+          emissiveBoostRef={emissiveBoostRef}
+          animate={animate}
+        />
       </group>
 
       <group ref={cloudRef}>

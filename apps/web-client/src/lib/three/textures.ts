@@ -1,5 +1,6 @@
 import {
   CanvasTexture,
+  LinearSRGBColorSpace,
   RepeatWrapping,
   SRGBColorSpace,
   Vector3,
@@ -104,6 +105,7 @@ function createCanvas(width: number, height: number): {
 export interface PlanetTextures {
   surface: CanvasTexture;
   emissive: CanvasTexture;
+  roughness: CanvasTexture;
   landPoints: Vector3[];
 }
 
@@ -116,10 +118,13 @@ export function generatePlanetTextures(size: number): PlanetTextures {
 
   const surfaceLayer = createCanvas(width, height);
   const emissiveLayer = createCanvas(width, height);
+  const roughnessLayer = createCanvas(width, height);
   const surfaceImg = surfaceLayer.ctx.createImageData(width, height);
   const emissiveImg = emissiveLayer.ctx.createImageData(width, height);
+  const roughnessImg = roughnessLayer.ctx.createImageData(width, height);
   const sd = surfaceImg.data;
   const ed = emissiveImg.data;
+  const rd = roughnessImg.data;
 
   const elevation = makeValueNoise3D(1337);
   const detail = makeValueNoise3D(7919);
@@ -180,6 +185,14 @@ export function generatePlanetTextures(size: number): PlanetTextures {
       sd[idx + 2] = b;
       sd[idx + 3] = 255;
 
+      // Oceanos são lisos (baixa rugosidade → reflexos intensos do Sol); a
+      // terra é fosca. Alimenta o `roughnessMap`.
+      const rough = e < seaLevel ? 46 : 235;
+      rd[idx] = rough;
+      rd[idx + 1] = rough;
+      rd[idx + 2] = rough;
+      rd[idx + 3] = 255;
+
       if (e >= seaLevel + 0.02 && polar < 0.8) {
         const vn = fbm(veins, dx * 3.6 + 11, dy * 3.6 + 11, dz * 3.6 + 11, 4);
         const ridged = 1 - Math.abs(vn * 2 - 1);
@@ -206,6 +219,7 @@ export function generatePlanetTextures(size: number): PlanetTextures {
 
   surfaceLayer.ctx.putImageData(surfaceImg, 0, 0);
   emissiveLayer.ctx.putImageData(emissiveImg, 0, 0);
+  roughnessLayer.ctx.putImageData(roughnessImg, 0, 0);
 
   const surface = new CanvasTexture(surfaceLayer.canvas);
   surface.colorSpace = SRGBColorSpace;
@@ -216,11 +230,53 @@ export function generatePlanetTextures(size: number): PlanetTextures {
   emissive.colorSpace = SRGBColorSpace;
   emissive.wrapS = RepeatWrapping;
 
+  // Mapa de dados (não é cor) → espaço linear.
+  const roughness = new CanvasTexture(roughnessLayer.canvas);
+  roughness.colorSpace = LinearSRGBColorSpace;
+  roughness.wrapS = RepeatWrapping;
+
   if (landPoints.length === 0) {
     landPoints.push(new Vector3(0.3, 0.2, 0.9).normalize());
   }
 
-  return { surface, emissive, landPoints };
+  return { surface, emissive, roughness, landPoints };
+}
+
+/** Ícone de "vida": uma silhueta humana simples (símbolo universal de vida),
+ *  branca sobre fundo transparente e tingida via `material.color`. */
+export function createLifeSymbolTexture(size = 128): CanvasTexture {
+  const { canvas, ctx } = createCanvas(size, size);
+  const s = size / 128;
+  ctx.clearRect(0, 0, size, size);
+
+  const drawFigure = () => {
+    ctx.beginPath();
+    ctx.arc(64 * s, 40 * s, 15 * s, 0, TWO_PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(64 * s, 58 * s);
+    ctx.bezierCurveTo(87 * s, 58 * s, 90 * s, 98 * s, 85 * s, 116 * s);
+    ctx.lineTo(43 * s, 116 * s);
+    ctx.bezierCurveTo(38 * s, 98 * s, 41 * s, 58 * s, 64 * s, 58 * s);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  // Aura escura suave: garante contraste da silhueta sobre nuvens claras.
+  ctx.fillStyle = 'rgba(3, 18, 22, 0.8)';
+  ctx.shadowColor = 'rgba(3, 18, 22, 0.85)';
+  ctx.shadowBlur = 12 * s;
+  drawFigure();
+
+  // Figura luminosa (verde-esmeralda claro) por cima.
+  ctx.shadowColor = 'rgba(150, 255, 220, 0.95)';
+  ctx.shadowBlur = 6 * s;
+  ctx.fillStyle = '#aeffe8';
+  drawFigure();
+
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
 }
 
 /** Nuvens volumétricas em uma casca transparente, giradas independentemente. */

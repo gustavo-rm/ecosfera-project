@@ -18,13 +18,15 @@ interface Placement {
   scale: number;
 }
 
-/** Posição/escala do planeta por breakpoint. No mobile ele sobe para o topo
- *  (o card fica abaixo, no DOM); nos demais fica no canto inferior esquerdo. */
+/** Posição/escala do planeta por breakpoint. Ele é o elemento principal: fica
+ *  grande e deslocado para o canto inferior esquerdo (~35% da largura fora pela
+ *  esquerda, ~20% da altura abaixo da viewport), transmitindo a sensação de um
+ *  planeta muito maior. No mobile sobe para o topo (o card fica abaixo, no DOM). */
 const PLACEMENT: Record<Breakpoint, Placement> = {
-  desktop: { position: [-3.7, -3.4, 0], scale: 1.18 },
-  notebook: { position: [-3.3, -3.4, 0], scale: 1.08 },
-  tablet: { position: [-2.1, -4, 0], scale: 1 },
-  mobile: { position: [0, 2.9, 0], scale: 0.74 },
+  desktop: { position: [-6, -2, 0], scale: 1.35 },
+  notebook: { position: [-5.4, -2.15, 0], scale: 1.26 },
+  tablet: { position: [-3.3, -3.1, 0], scale: 1.16 },
+  mobile: { position: [0, 3.1, 0], scale: 0.85 },
 };
 
 function CameraParallax({
@@ -66,7 +68,7 @@ export function PlanetScene() {
       <Suspense fallback={null}>
         <Starfield count={quality.starCount} animate={animate} />
         <Nebula texture={nebulaTexture} animate={animate} />
-        <PlanetLights />
+        <PlanetLights animate={animate} />
         <group position={placement.position} scale={placement.scale}>
           <PlanetSystem radialTexture={radialTexture} quality={quality} animate={animate} />
         </group>
