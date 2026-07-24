@@ -13,6 +13,23 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // A camada 3D (react-three-fiber) é imperativa por natureza: a animação
+    // acontece mutando uniforms e refs dentro de `useFrame`. As regras do React
+    // Compiler (purity/immutability) pressupõem componentes puros e não se
+    // aplicam a esse loop de renderização do Three.js.
+    files: [
+      "src/components/planet/**/*.{ts,tsx}",
+      "src/hooks/useAtmospherePulse.ts",
+      "src/hooks/usePlanetRotation.ts",
+      "src/hooks/useLifeEvents.ts",
+      "src/hooks/useDustParticles.ts",
+    ],
+    rules: {
+      "react-hooks/immutability": "off",
+      "react-hooks/purity": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
