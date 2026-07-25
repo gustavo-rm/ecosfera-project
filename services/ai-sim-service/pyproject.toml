@@ -12,11 +12,13 @@ dependencies = [
     "prometheus-client>=0.20",
     "pyyaml>=6.0",
     "httpx>=0.27",
+    # Núcleo de simulação determinístico (Inc 2): RNG semeado e álgebra vetorial (RF-023).
+    "numpy>=1.26",
 ]
 
 [project.optional-dependencies]
-# Ativado no Inc 3/4 (simulação emergente)
-sim = ["numpy>=1.26", "scipy>=1.13", "deap>=1.4", "mesa>=2.3"]
+# Ativado no Inc 3/4 (simulação emergente: AG com DEAP, ABM com Mesa)
+sim = ["scipy>=1.13", "deap>=1.4", "mesa>=2.3"]
 # Ativado no Inc 6 (tutor LLM+RAG)
 ai = ["sentence-transformers>=3.0", "pgvector>=0.3", "langgraph>=0.2", "ollama>=0.3"]
 # Ativado no Inc 7 (stealth assessment)
