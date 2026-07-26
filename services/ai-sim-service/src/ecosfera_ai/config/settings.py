@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Regras causais versionadas (dados, não código)
     causal_rules_path: Path = Field(default=Path("configs/causal_rules.yaml"))
 
+    # Parâmetros do núcleo de simulação determinístico (dados, não código)
+    simulation_params_path: Path = Field(default=Path("configs/simulation_params.yaml"))
+
     # Ativação de features por incremento (feature flags — TBD/rollout gradual)
     llm_enabled: bool = Field(default=False)  # ligado no Inc 6
     ollama_base_url: str = Field(default="http://localhost:11434")

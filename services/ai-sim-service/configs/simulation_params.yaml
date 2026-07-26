@@ -1,0 +1,55 @@
+# Parâmetros do núcleo de simulação determinístico (Inc 2). Dados versionados,
+# não código: revisáveis por especialistas sem redeploy (ADR 0001/0003).
+# `version` permite evoluir o esquema com rastreabilidade.
+version: 1
+
+# Condições iniciais do planeta (RF-011/012). O estado inicial vem daqui, nunca
+# hardcoded; a semente do RNG controla apenas a estocasticidade dos ticks.
+initial_state:
+  temperature: 14.0   # °C, temperatura média global de partida
+  co2: 280.0          # ppm, nível de referência pré-industrial
+  water: 1.0          # estoque relativo de água líquida
+  ice_cover: 0.10     # fração [0,1] coberta por gelo
+  biomass: 0.0        # planeta ainda sem vida
+  energy: 0.0         # energia absorvida (diagnóstico, estabiliza no 1º tick)
+
+# Faixas físicas válidas (garantem sanidade científica — RF-014).
+bounds:
+  ice_cover: [0.0, 1.0]
+  water_min: 0.0
+  co2_min: 0.0
+  biomass_min: 0.0
+  energy_min: 0.0
+
+# Clima: balanço de energia + efeito estufa (energy balance model).
+climate:
+  insolation: 1.0            # energia solar incidente normalizada
+  base_albedo: 0.30         # refletividade base (sem gelo)
+  ice_albedo_coeff: 0.40    # o gelo aumenta o albedo (reflete mais luz)
+  greenhouse_coeff: 0.01    # forçamento radiativo por unidade de CO2
+  energy_to_temp: 30.0      # conversão de energia absorvida em °C de equilíbrio
+  equilibrium_offset: -5.0  # deslocamento base da temperatura de equilíbrio
+  thermal_inertia: 0.25     # fração do desvio corrigida por tick (0..1)
+  weather_variability: 0.05 # desvio-padrão do ruído meteorológico (°C)
+
+# Química: ciclos de carbono e água (estoques e fluxos).
+chemistry:
+  outgassing: 1.5           # fonte de CO2 por desgaseificação (vulcanismo)
+  carbon_uptake_coeff: 0.02 # absorção de CO2 pela biomassa (fotossíntese)
+  weathering_coeff: 0.002   # remoção de CO2 por intemperismo (~ ao estoque)
+  melt_coeff: 0.01          # taxa de degelo por °C acima do limiar
+  freeze_coeff: 0.008       # taxa de congelamento por °C abaixo do limiar
+  melt_threshold: 0.0       # °C acima do qual o gelo derrete
+  freeze_threshold: 0.0     # °C abaixo do qual a água congela
+  water_ice_exchange: 0.5   # conversão entre variação de gelo e de água
+
+# Vida: surgimento (abiogênese) e crescimento logístico. SEM AG/ABM (Inc 3/4).
+life:
+  optimal_temperature: 22.0   # °C ótimo para a vida
+  temperature_tolerance: 15.0 # largura da janela térmica habitável
+  water_requirement: 0.2      # água mínima para habitabilidade plena
+  abiogenesis_threshold: 0.35 # habitabilidade mínima para a vida surgir
+  emergence_amount: 0.001     # biomassa semeada na abiogênese
+  carrying_capacity: 100.0    # capacidade de suporte com habitabilidade plena
+  growth_rate: 0.15           # taxa intrínseca de crescimento logístico
+  growth_variability: 0.02    # desvio-padrão do ruído de crescimento

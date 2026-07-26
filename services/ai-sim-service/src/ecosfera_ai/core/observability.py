@@ -9,3 +9,6 @@ feedback_requests = Counter(
 telemetry_events = Counter(
     "ecosfera_telemetry_events_total", "Eventos de telemetria ingeridos", ["processed"]
 )
+simulation_ticks = Counter(
+    "ecosfera_simulation_ticks_total", "Ticks de simulação determinística executados"
+)
