@@ -1,7 +1,10 @@
 # Regras causais do MVP (Dossiê §2.1). Dados versionados, não código.
 # same_direction: true  => causa↑ implica efeito↑
 # same_direction: false => causa↑ implica efeito↓
-version: 1
+#
+# version 1 -> 2: entram as regras dos subsistemas physics/geology/ocean, para
+#   que os novos acoplamentos também sejam narráveis ao aluno (RF-033/039).
+version: 2
 rules:
   - id: R-CO2-TEMP
     cause: co2
@@ -28,3 +31,24 @@ rules:
     effect: rainfall
     same_direction: true
     template: "Mais {cause} carrega água para o céu e aumenta a chuva ({effect})."
+  # --- Subsistemas estendidos (física, geologia e oceano) ---
+  - id: R-VOLC-CO2
+    cause: volcanism
+    effect: co2
+    same_direction: true
+    template: "Mais vulcões em atividade ({cause}) lançam gases e o {effect} do ar sobe."
+  - id: R-SOLAR-TEMP
+    cause: solar_flux
+    effect: temperature
+    same_direction: true
+    template: "Quando o planeta recebe mais luz da estrela ({cause}), a {effect} sobe."
+  - id: R-TEMP-CURRENTS
+    cause: temperature
+    effect: ocean_circulation
+    same_direction: false
+    template: "Com a {cause} mais alta, o mar se mistura menos e as correntes ({effect}) enfraquecem."
+  - id: R-RELIEF-EROSION
+    cause: relief
+    effect: erosion
+    same_direction: true
+    template: "Montanhas mais altas ({cause}) são desgastadas mais rápido pela chuva ({effect})."

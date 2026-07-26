@@ -21,6 +21,7 @@ class ChemistryParams:
     """Parâmetros dos ciclos biogeoquímicos (dados versionados)."""
 
     outgassing: float
+    volcanism_sensitivity: float
     carbon_uptake_coeff: float
     weathering_coeff: float
     melt_coeff: float
@@ -40,9 +41,12 @@ class ChemistrySubsystem:
 
     def step(self, state: PlanetState, rng: np.random.Generator) -> StateDelta:
         # Carbono: fonte (desgaseificação) menos sumidouros (intemperismo + vida).
+        # A desgaseificação é escalada pelo vulcanismo que a geologia mantém — é
+        # por aqui que 'vulcanismo↑ => CO2↑' entra no ciclo do carbono.
+        outgassing = self._p.outgassing * (1.0 + self._p.volcanism_sensitivity * state.volcanism)
         uptake = self._p.carbon_uptake_coeff * state.biomass
         weathering = self._p.weathering_coeff * state.co2
-        d_co2 = self._p.outgassing - uptake - weathering
+        d_co2 = outgassing - uptake - weathering
 
         # Água: o gelo derrete acima do limiar; a água congela abaixo. A massa é
         # conservada trocando entre os estoques (gelo->água no degelo e vice-versa).
