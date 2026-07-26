@@ -1,26 +1,123 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design tokens do ECOSFERA. Espelham `lib/three/colors.ts` para que a camada
+ * DOM (Tailwind) e a cena 3D (Three.js) compartilhem a mesma identidade visual.
+ */
+@theme {
+  --color-space-void: #04060d;
+  --color-space-deep: #050b16;
+  --color-space-blue: #0d1628;
+
+  --color-atmo: #3b82f6;
+  --color-atmo-bright: #7cb2ff;
+  --color-cyan: #22d3ee;
+  --color-bio: #34d399;
+  --color-bio-bright: #8bffcf;
+  --color-soft: #f5f7fa;
+  --color-amber: #ffb765;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-logo-pulse: logo-pulse 4.5s ease-in-out infinite;
+  --animate-flare-breathe: flare-breathe 9s ease-in-out infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes logo-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: blur(6px);
+  }
+  50% {
+    opacity: 0.9;
+    filter: blur(9px);
   }
 }
 
+@keyframes flare-breathe {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+html {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Fallback imediato caso o WebGL ainda não tenha montado / não exista. */
+  background-color: var(--color-space-void);
+  overflow-x: hidden;
+}
+
+/* Trilho de rolagem discreto, coerente com o tema espacial. */
+::selection {
+  background: color-mix(in srgb, var(--color-cyan) 35%, transparent);
+  color: var(--color-soft);
+}
+
+/*
+ * Fundos decorativos complexos ficam em classes utilitárias (não em estilos
+ * inline) para manter o JSX limpo e evitar armadilhas de parsing de valores
+ * arbitrários do Tailwind com vírgulas.
+ */
+@layer components {
+  .space-backdrop {
+    background:
+      radial-gradient(
+        120% 120% at 86% 6%,
+        rgba(46, 76, 126, 0.6),
+        rgba(5, 11, 22, 0.15) 42%,
+        #04060d 78%
+      ),
+      radial-gradient(90% 70% at 12% 96%, rgba(18, 58, 80, 0.32), transparent 60%),
+      #04060d;
+  }
+
+  .space-vignette {
+    background: radial-gradient(120% 100% at 50% 45%, transparent 52%, rgba(0, 0, 0, 0.62));
+  }
+
+  .sun-halo {
+    background: radial-gradient(
+      circle,
+      rgba(255, 214, 150, 0.6),
+      rgba(255, 183, 101, 0.18) 40%,
+      transparent 72%
+    );
+  }
+
+  .sun-core {
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.95),
+      rgba(255, 222, 175, 0.55) 34%,
+      transparent 72%
+    );
+  }
+
+  .sun-streak-h {
+    background: linear-gradient(90deg, transparent, rgba(255, 222, 175, 0.5), transparent);
+  }
+
+  .sun-streak-v {
+    background: linear-gradient(180deg, transparent, rgba(255, 222, 175, 0.42), transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
