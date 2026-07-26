@@ -12,3 +12,11 @@ telemetry_events = Counter(
 simulation_ticks = Counter(
     "ecosfera_simulation_ticks_total", "Ticks de simulação determinística executados"
 )
+simulation_eras = Counter(
+    "ecosfera_simulation_eras_total", "Eras avançadas (checkpoints append-only gravados)"
+)
+simulation_replays = Counter(
+    "ecosfera_simulation_replays_total",
+    "Reconstruções de era executadas; 'matched' indica se bateram com o checkpoint",
+    ["matched"],
+)
