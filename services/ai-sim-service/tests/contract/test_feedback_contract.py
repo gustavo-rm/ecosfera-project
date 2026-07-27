@@ -16,8 +16,11 @@ def test_explain_endpoint_contract(client: TestClient) -> None:
 
 def test_telemetry_without_consent_returns_403(client: TestClient) -> None:
     payload = {
-        "student_id": "s1", "planet_id": "p1",
-        "action": "intervene", "payload": {}, "consent": False,
+        "student_id": "s1",
+        "planet_id": "p1",
+        "action": "intervene",
+        "payload": {},
+        "consent": False,
     }
     resp = client.post("/ai/api/v1/assessment/events", json=payload)
     assert resp.status_code == 403

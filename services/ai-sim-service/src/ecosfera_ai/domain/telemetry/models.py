@@ -4,6 +4,7 @@ A telemetria é a fundação do Stealth Assessment (Inc 7): cada ação vira Eve
 o Analytics normaliza em Evidência; a rede bayesiana infere competência. Por isso
 o esquema já nasce alinhado à Matriz de Evidências, mesmo antes do modelo bayesiano.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

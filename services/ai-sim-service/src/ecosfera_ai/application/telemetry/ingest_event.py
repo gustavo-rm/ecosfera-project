@@ -3,6 +3,7 @@
 MVP: persiste o evento e deriva uma Evidência heurística mínima. Inc 7 substitui a
 heurística pela inferência bayesiana (pgmpy) — sem alterar a interface de ingestão.
 """
+
 from __future__ import annotations
 
 from ecosfera_ai.application.ports.event_bus import EventBus

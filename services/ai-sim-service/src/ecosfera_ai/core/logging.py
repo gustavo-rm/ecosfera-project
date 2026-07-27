@@ -1,6 +1,7 @@
 """Logging estruturado (structlog). JSON em staging/prod, legível em dev.
 
 Correlação por trace_id fica pronta para o Inc 0 (observabilidade)."""
+
 from __future__ import annotations
 
 import logging
@@ -18,9 +19,7 @@ def configure_logging(*, level: str = "INFO", json_logs: bool = False) -> None:
         structlog.processors.TimeStamper(fmt="iso"),
     ]
     processors.append(
-        structlog.processors.JSONRenderer()
-        if json_logs
-        else structlog.dev.ConsoleRenderer()
+        structlog.processors.JSONRenderer() if json_logs else structlog.dev.ConsoleRenderer()
     )
     structlog.configure(
         processors=processors,

@@ -1,4 +1,5 @@
 """Composition root: injeta adaptadores nas portas. Único lugar que conhece concretos."""
+
 from __future__ import annotations
 
 from functools import lru_cache

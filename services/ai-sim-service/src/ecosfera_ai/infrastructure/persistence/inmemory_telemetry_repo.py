@@ -4,6 +4,7 @@ Substituível pelo adaptador MongoDB no Inc 1/7 sem tocar no domínio (a porta
 TelemetryRepository é o único contrato). Telemetria de alto volume e semi-estruturada
 justifica MongoDB (Dossiê §6.3); em memória serve para o walking skeleton e testes.
 """
+
 from __future__ import annotations
 
 from ecosfera_ai.domain.telemetry.models import Evidence, TelemetryEvent

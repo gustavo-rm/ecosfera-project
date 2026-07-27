@@ -1,4 +1,5 @@
 """LLM no-op usado até o Inc 6. Mantém a porta satisfeita sem dependência de Ollama."""
+
 from __future__ import annotations
 
 

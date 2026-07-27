@@ -1,4 +1,5 @@
 """Modelos de domínio do feedback causal. Puros: sem FastAPI, sem I/O."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

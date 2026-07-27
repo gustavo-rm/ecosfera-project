@@ -1,4 +1,5 @@
 """Carrega regras causais do YAML versionado (dados, não código)."""
+
 from __future__ import annotations
 
 from pathlib import Path

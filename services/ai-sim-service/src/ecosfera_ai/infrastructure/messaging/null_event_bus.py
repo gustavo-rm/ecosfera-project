@@ -1,4 +1,5 @@
 """Barramento no-op (MVP). Inc 1/7 troca por Redis Streams (fan-out simples)."""
+
 from __future__ import annotations
 
 from ecosfera_ai.core.logging import get_logger

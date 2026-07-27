@@ -1,4 +1,5 @@
 """Fábrica da aplicação FastAPI (ai-sim-service)."""
+
 from __future__ import annotations
 
 from fastapi import FastAPI

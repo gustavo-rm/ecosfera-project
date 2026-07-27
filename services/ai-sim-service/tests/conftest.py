@@ -11,7 +11,7 @@ os.environ.setdefault(
     "ECOSFERA_SIMULATION_PARAMS_PATH", str(Path("configs/simulation_params.yaml"))
 )
 
-from ecosfera_ai.main import create_app  # noqa: E402
+from ecosfera_ai.main import create_app
 
 
 @pytest.fixture

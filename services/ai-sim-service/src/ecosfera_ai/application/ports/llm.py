@@ -3,6 +3,7 @@
 Trocar de regras para LLM+RAG não altera as camadas superiores (Hexagonal): apenas
 se injeta outro adaptador desta porta.
 """
+
 from __future__ import annotations
 
 from typing import Protocol

@@ -60,12 +60,17 @@ def _run_migrations(async_url: str) -> None:
 @pytest.fixture(scope="module")
 def engine() -> Iterator[Any]:
     from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.pool import NullPool
     from testcontainers.postgres import PostgresContainer
 
     with PostgresContainer(POSTGRES_IMAGE, driver="asyncpg") as container:
         url = container.get_connection_url()
         _run_migrations(url)
-        created = create_async_engine(url)
+        created = create_async_engine(
+            url,
+            poolclass=NullPool,  # não reusa conexões entre event loops
+            connect_args={"statement_cache_size": 0},  # asyncpg sem prepared statements presos
+        )
         yield created
 
 

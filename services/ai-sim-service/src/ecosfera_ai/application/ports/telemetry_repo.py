@@ -1,4 +1,5 @@
 """Porta de saída para persistir telemetria/evidência (Repository + Ports&Adapters)."""
+
 from __future__ import annotations
 
 from typing import Protocol

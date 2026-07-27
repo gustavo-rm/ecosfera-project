@@ -6,6 +6,7 @@ hipótese pedagógica central H2 (aprender por causa-efeito). As regras são DAD
 versionados (configs/causal_rules.yaml), não código — permitem revisão pedagógica
 sem redeploy e preparam a ancoragem por RAG do Inc 6.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

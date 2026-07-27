@@ -1,4 +1,5 @@
 """Configuração via variáveis de ambiente (12-factor), com Pydantic Settings."""
+
 from __future__ import annotations
 
 from functools import lru_cache

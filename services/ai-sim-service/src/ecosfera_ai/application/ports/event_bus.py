@@ -1,4 +1,5 @@
 """Porta de saída para publicar eventos de domínio (EDA — pub/sub)."""
+
 from __future__ import annotations
 
 from typing import Protocol

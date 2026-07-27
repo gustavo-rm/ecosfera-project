@@ -1,4 +1,5 @@
 """Métricas Prometheus (técnicas e pedagógicas) desde o Inc 0 (Dossiê §16.2)."""
+
 from __future__ import annotations
 
 from prometheus_client import Counter

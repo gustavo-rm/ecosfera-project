@@ -14,12 +14,12 @@ import pytest
 
 pytest.importorskip("sqlalchemy", reason="extra `infra` não instalado")
 
-from ecosfera_ai.infrastructure.persistence.postgres_planet_repo import (  # noqa: E402
+from ecosfera_ai.infrastructure.persistence.postgres_planet_repo import (
     state_from_json,
     state_to_json,
 )
-from ecosfera_ai.simulation_engine.params import initial_state, load_params  # noqa: E402
-from ecosfera_ai.simulation_engine.state import PlanetSeed  # noqa: E402
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
+from ecosfera_ai.simulation_engine.state import PlanetSeed
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
 STATE = initial_state(PlanetSeed("p", 42), PARAMS)

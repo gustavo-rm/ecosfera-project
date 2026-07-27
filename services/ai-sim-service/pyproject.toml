@@ -2,7 +2,11 @@
 name = "ecosfera-ai-sim-service"
 version = "0.1.0"
 description = "ECOSFERA — serviço de simulação científica e IA (fronteira determinístico × IA)"
+readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Gustavo Raí Malacarne" }]
+keywords = ["education", "serious-game", "ai", "simulation", "ecosfera"]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
@@ -19,26 +23,33 @@ dependencies = [
 [project.optional-dependencies]
 # Ativado no Inc 3/4 (simulação emergente: AG com DEAP, ABM com Mesa)
 sim = ["scipy>=1.13", "deap>=1.4", "mesa>=2.3"]
-# Ativado no Inc 6 (tutor LLM+RAG)
-ai = ["sentence-transformers>=3.0", "pgvector>=0.3", "langgraph>=0.2", "ollama>=0.3"]
+# Ativado no Inc 6 (tutor LLM+RAG). pgvector vive no extra "infra" (persistência).
+ai = ["sentence-transformers>=3.0", "langgraph>=0.2", "ollama>=0.3"]
 # Ativado no Inc 7 (stealth assessment)
 assessment = ["pgmpy>=0.1.25", "scikit-learn>=1.5"]
-# Ativado no Inc 0/1 (persistência/mensageria reais)
+# Ativado no Inc 0/1/2 (persistência e mensageria reais).
+# Sem este extra, o serviço roda com adaptadores in-memory (walking skeleton).
 infra = [
+    # Mensageria e estado (Mongo/Redis/filas)
     "motor>=3.4",
     "redis>=5.0",
     "arq>=0.26",
     # Persistência real do núcleo determinístico (Inc 2+): SQLAlchemy async + Alembic.
-    "sqlalchemy[asyncio]>=2.0",
-    "asyncpg>=0.29",
-    "alembic>=1.13",
+    # O extra [asyncio] traz o greenlet, exigido pelo SQLAlchemy async.
+    "sqlalchemy[asyncio]>=2.0.51",
+    "alembic>=1.18.5",
+    # Drivers PostgreSQL: asyncpg (aplicação, async) e psycopg (Alembic, migrações sync).
+    "asyncpg>=0.31.0",
+    "psycopg[binary]>=3.3.4",
+    # Busca vetorial do RAG sobre o mesmo PostgreSQL.
+    "pgvector>=0.5.0",
 ]
 mlops = ["mlflow>=2.14"]
 
 [dependency-groups]
 dev = [
     "pytest>=8.2",
-    "pytest-asyncio>=0.23",
+    "pytest-asyncio>=0.24.0",
     "pytest-cov>=5.0",
     "ruff>=0.5",
     "mypy>=1.10",
@@ -56,26 +67,39 @@ packages = ["src/ecosfera_ai"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
+# Para exigir cobertura como no CI, use (ou rode só no pipeline):
+#   addopts = "-q --cov=ecosfera_ai --cov-report=term-missing --cov-fail-under=90"
 
 [tool.ruff]
 src = ["src", "tests"]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "ASYNC", "C4", "SIM"]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "C4", "SIM", "RUF", "TID", "PTH"]
+allowed-confusables = ["×"]
 
 [tool.ruff.lint.per-file-ignores]
 # Depends(...) como default de parâmetro é idioma do FastAPI, não bug real.
 "src/ecosfera_ai/interfaces/http/**" = ["B008"]
+# Testes podem usar caminhos e imports mais livres.
+"tests/**" = ["PTH", "TID252"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 mypy_path = "src"
 packages = ["ecosfera_ai"]
 strict = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
+warn_return_any = true
+warn_unreachable = true
+
+# Bibliotecas de terceiros sem stubs completos: evita quebrar o mypy --strict.
+[[tool.mypy.overrides]]
+module = ["testcontainers.*", "deap.*", "mesa.*", "pgmpy.*", "ollama.*", "arq.*"]
+ignore_missing_imports = true
