@@ -11,6 +11,12 @@ class CreatePlanetRequest(BaseModel):
 
 
 class PlanetStateOut(BaseModel):
+    """Estado do planeta exposto ao cliente.
+
+    As coordenadas orbitais ficam de fora: são estado interno do integrador. O
+    que o cliente precisa da física é a irradiância recebida (`solar_flux`).
+    """
+
     planet_id: str
     seed: int
     tick: int
@@ -20,6 +26,11 @@ class PlanetStateOut(BaseModel):
     ice_cover: float
     biomass: float
     energy: float
+    solar_flux: float
+    relief: float
+    volcanism: float
+    salinity: float
+    ocean_circulation: float
 
 
 class StateDeltaOut(BaseModel):
@@ -29,6 +40,11 @@ class StateDeltaOut(BaseModel):
     ice_cover: float
     biomass: float
     energy: float
+    solar_flux: float
+    relief: float
+    volcanism: float
+    salinity: float
+    ocean_circulation: float
 
 
 class TickResponse(BaseModel):

@@ -38,10 +38,19 @@ class ClimateSubsystem:
     def __init__(self, params: ClimateParams) -> None:
         self._p = params
 
+    def incident_flux(self, state: PlanetState) -> float:
+        """Irradiância incidente no topo da atmosfera.
+
+        Vem da física orbital (`solar_flux`) quando ela está ativa no pipeline;
+        na ausência dela usa-se a insolação de referência dos parâmetros, o que
+        permite exercitar o clima isoladamente nos testes de unidade.
+        """
+        return state.solar_flux if state.solar_flux > 0.0 else self._p.insolation
+
     def absorbed_energy(self, state: PlanetState) -> float:
         """Energia solar absorvida: insolação menos a parcela refletida (albedo)."""
         albedo = self._p.base_albedo + self._p.ice_albedo_coeff * state.ice_cover
-        return self._p.insolation * (1.0 - albedo)
+        return self.incident_flux(state) * (1.0 - albedo)
 
     def equilibrium_temperature(self, state: PlanetState) -> float:
         """Temperatura de equilíbrio: energia absorvida + forçamento do CO2."""

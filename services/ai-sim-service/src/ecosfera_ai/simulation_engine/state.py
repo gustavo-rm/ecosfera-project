@@ -15,6 +15,8 @@ from ecosfera_ai.domain.feedback.models import Observation
 
 # Variáveis de estado expostas como observações causais, na ordem canônica da
 # narrativa (co2 primeiro: é a alavanca pedagógica de 'CO2↑ -> temperatura↑').
+# As coordenadas orbitais ficam de fora de propósito: são estado interno do
+# integrador, não grandeza que o aluno interpreta.
 OBSERVABLE_VARIABLES: tuple[str, ...] = (
     "co2",
     "temperature",
@@ -22,6 +24,11 @@ OBSERVABLE_VARIABLES: tuple[str, ...] = (
     "water",
     "biomass",
     "energy",
+    "solar_flux",
+    "volcanism",
+    "relief",
+    "salinity",
+    "ocean_circulation",
 )
 
 
@@ -52,6 +59,14 @@ class StateBounds:
     co2_min: float = 0.0
     biomass_min: float = 0.0
     energy_min: float = 0.0
+    # Subsistemas estendidos (física/geologia/oceano)
+    solar_flux_min: float = 0.0
+    relief_min: float = 0.0
+    relief_max: float = 1.0
+    volcanism_min: float = 0.0
+    salinity_min: float = 0.0
+    ocean_circulation_min: float = 0.0
+    ocean_circulation_max: float = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +83,18 @@ class StateDelta:
     d_ice_cover: float = 0.0
     d_biomass: float = 0.0
     d_energy: float = 0.0
+    # Física orbital (integrador de Verlet) e irradiância incidente
+    d_orbital_x: float = 0.0
+    d_orbital_y: float = 0.0
+    d_orbital_vx: float = 0.0
+    d_orbital_vy: float = 0.0
+    d_solar_flux: float = 0.0
+    # Geologia
+    d_relief: float = 0.0
+    d_volcanism: float = 0.0
+    # Oceano
+    d_salinity: float = 0.0
+    d_ocean_circulation: float = 0.0
 
     def __add__(self, other: StateDelta) -> StateDelta:
         return StateDelta(
@@ -77,6 +104,15 @@ class StateDelta:
             d_ice_cover=self.d_ice_cover + other.d_ice_cover,
             d_biomass=self.d_biomass + other.d_biomass,
             d_energy=self.d_energy + other.d_energy,
+            d_orbital_x=self.d_orbital_x + other.d_orbital_x,
+            d_orbital_y=self.d_orbital_y + other.d_orbital_y,
+            d_orbital_vx=self.d_orbital_vx + other.d_orbital_vx,
+            d_orbital_vy=self.d_orbital_vy + other.d_orbital_vy,
+            d_solar_flux=self.d_solar_flux + other.d_solar_flux,
+            d_relief=self.d_relief + other.d_relief,
+            d_volcanism=self.d_volcanism + other.d_volcanism,
+            d_salinity=self.d_salinity + other.d_salinity,
+            d_ocean_circulation=self.d_ocean_circulation + other.d_ocean_circulation,
         )
 
 
@@ -98,6 +134,18 @@ class PlanetState:
     biomass: float  # estoque relativo de biomassa (vida)
     energy: float  # energia solar líquida absorvida (diagnóstico)
 
+    # Campos dos subsistemas estendidos. Têm default para que estados legados
+    # (e testes que só exercitam clima/química/vida) continuem construíveis.
+    orbital_x: float = 0.0  # UA, posição orbital (integrador de Verlet)
+    orbital_y: float = 0.0  # UA
+    orbital_vx: float = 0.0  # UA/tick, velocidade orbital
+    orbital_vy: float = 0.0  # UA/tick
+    solar_flux: float = 0.0  # irradiância incidente no topo da atmosfera
+    relief: float = 0.0  # rugosidade/relevo médio [0,1]
+    volcanism: float = 0.0  # atividade vulcânica (fonte de CO2)
+    salinity: float = 0.0  # salinidade média do oceano
+    ocean_circulation: float = 0.0  # índice de circulação termohalina [0,1]
+
     def value(self, variable: str) -> float:
         """Lê uma variável de estado pelo nome da linguagem ubíqua do domínio."""
         return float(getattr(self, variable))
@@ -116,6 +164,21 @@ class PlanetState:
             ),
             biomass=max(bounds.biomass_min, self.biomass + delta.d_biomass),
             energy=max(bounds.energy_min, self.energy + delta.d_energy),
+            # Órbita: sem recorte — a posição/velocidade são livres por construção
+            # (o integrador simplético é quem garante a estabilidade).
+            orbital_x=self.orbital_x + delta.d_orbital_x,
+            orbital_y=self.orbital_y + delta.d_orbital_y,
+            orbital_vx=self.orbital_vx + delta.d_orbital_vx,
+            orbital_vy=self.orbital_vy + delta.d_orbital_vy,
+            solar_flux=max(bounds.solar_flux_min, self.solar_flux + delta.d_solar_flux),
+            relief=_clamp(self.relief + delta.d_relief, bounds.relief_min, bounds.relief_max),
+            volcanism=max(bounds.volcanism_min, self.volcanism + delta.d_volcanism),
+            salinity=max(bounds.salinity_min, self.salinity + delta.d_salinity),
+            ocean_circulation=_clamp(
+                self.ocean_circulation + delta.d_ocean_circulation,
+                bounds.ocean_circulation_min,
+                bounds.ocean_circulation_max,
+            ),
         )
 
     def advanced(self) -> PlanetState:
@@ -131,6 +194,15 @@ class PlanetState:
             d_ice_cover=self.ice_cover - previous.ice_cover,
             d_biomass=self.biomass - previous.biomass,
             d_energy=self.energy - previous.energy,
+            d_orbital_x=self.orbital_x - previous.orbital_x,
+            d_orbital_y=self.orbital_y - previous.orbital_y,
+            d_orbital_vx=self.orbital_vx - previous.orbital_vx,
+            d_orbital_vy=self.orbital_vy - previous.orbital_vy,
+            d_solar_flux=self.solar_flux - previous.solar_flux,
+            d_relief=self.relief - previous.relief,
+            d_volcanism=self.volcanism - previous.volcanism,
+            d_salinity=self.salinity - previous.salinity,
+            d_ocean_circulation=self.ocean_circulation - previous.ocean_circulation,
         )
 
     def observe(self, previous: PlanetState, *, epsilon: float = 1e-9) -> list[Observation]:

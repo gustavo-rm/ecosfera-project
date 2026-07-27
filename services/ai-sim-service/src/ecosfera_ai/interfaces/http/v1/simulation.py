@@ -26,7 +26,7 @@ from ecosfera_ai.simulation_engine.state import PlanetSeed, PlanetState, StateDe
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
 
-def _state_out(state: PlanetState) -> PlanetStateOut:
+def state_out(state: PlanetState) -> PlanetStateOut:
     return PlanetStateOut(
         planet_id=state.planet_id,
         seed=state.seed,
@@ -37,10 +37,15 @@ def _state_out(state: PlanetState) -> PlanetStateOut:
         ice_cover=state.ice_cover,
         biomass=state.biomass,
         energy=state.energy,
+        solar_flux=state.solar_flux,
+        relief=state.relief,
+        volcanism=state.volcanism,
+        salinity=state.salinity,
+        ocean_circulation=state.ocean_circulation,
     )
 
 
-def _delta_out(delta: StateDelta) -> StateDeltaOut:
+def delta_out(delta: StateDelta) -> StateDeltaOut:
     return StateDeltaOut(
         temperature=delta.d_temperature,
         co2=delta.d_co2,
@@ -48,10 +53,15 @@ def _delta_out(delta: StateDelta) -> StateDeltaOut:
         ice_cover=delta.d_ice_cover,
         biomass=delta.d_biomass,
         energy=delta.d_energy,
+        solar_flux=delta.d_solar_flux,
+        relief=delta.d_relief,
+        volcanism=delta.d_volcanism,
+        salinity=delta.d_salinity,
+        ocean_circulation=delta.d_ocean_circulation,
     )
 
 
-def _explanation_out(explanation: CausalExplanation) -> ExplainResponse:
+def explanation_out(explanation: CausalExplanation) -> ExplainResponse:
     return ExplainResponse(
         planet_id=explanation.planet_id,
         summary=explanation.summary,
@@ -78,7 +88,7 @@ async def create_planet(
     """Cria e configura um planeta a partir de uma semente (RF-011/012)."""
     planet_id = req.planet_id or f"planet-{uuid4().hex[:12]}"
     state = await uc.execute(PlanetSeed(planet_id=planet_id, seed=req.seed))
-    return _state_out(state)
+    return state_out(state)
 
 
 @router.post("/planets/{planet_id}/tick", response_model=TickResponse)
@@ -90,9 +100,9 @@ async def run_tick(
     outcome = await uc.execute(planet_id)  # PlanetNotFoundError -> 404 (handler)
     simulation_ticks.inc()
     return TickResponse(
-        state=_state_out(outcome.state),
-        delta=_delta_out(outcome.delta),
-        explanation=_explanation_out(outcome.explanation),
+        state=state_out(outcome.state),
+        delta=delta_out(outcome.delta),
+        explanation=explanation_out(outcome.explanation),
     )
 
 
@@ -105,4 +115,4 @@ async def get_planet(
     state = await repo.load_latest(planet_id)
     if state is None:
         raise PlanetNotFoundError(planet_id)
-    return _state_out(state)
+    return state_out(state)
