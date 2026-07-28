@@ -6,7 +6,8 @@ contexto, ritmo e explicação; **nunca** falsifica a ciência que o aluno preci
 
 ## O que já roda
 Base do MVP / Inc 1 (walking skeleton) + **núcleo de simulação determinístico**
-com **linha do tempo, replay e persistência real**. Prefixo da API: `/ai/api/v1`.
+com **linha do tempo, replay e persistência real** + **ecossistemas emergentes**
+(evolução por AG e ecologia por ABM). Prefixo da API: `/ai/api/v1`.
 
 | Método | Rota | Descrição | RF |
 | --- | --- | --- | --- |
@@ -16,6 +17,10 @@ com **linha do tempo, replay e persistência real**. Prefixo da API: `/ai/api/v1
 | POST | `/simulation/planets/{planet_id}/advance-era` | Avança uma **era** inteira: checkpoint append-only + marcos + cadeia causal | RF-013/014/016 |
 | GET | `/simulation/planets/{planet_id}/timeline` | Lista as eras e seus metadados | RF-016 |
 | GET | `/simulation/planets/{planet_id}/eras/{era}` | **Reconstrói** o estado da era por replay determinístico | RF-016/023 |
+| GET | `/simulation/planets/{planet_id}/species` | **Códex** de espécies do planeta (GDD §11) | RF-031 |
+| GET | `/simulation/planets/{planet_id}/species/{species_id}` | **Genoma inspecionável** de uma espécie | RF-031 |
+| GET | `/simulation/planets/{planet_id}/ecology` | Snapshot populacional + capacidade de suporte | RF-032 |
+| GET | `/simulation/jobs/{job_id}` | Status do job de evolução (backend assíncrono) | RF-031 |
 | POST | `/ai/explain` | Explicação causal por **regras determinísticas** (vira LLM+RAG no Inc 6) | RF-033/039 |
 | POST | `/assessment/events` | Ingestão de **telemetria** com bloqueio de **consentimento** LGPD | RF-071 / RNF-009 |
 | GET | `/health` | Liveness do serviço | — |
@@ -39,6 +44,24 @@ physics -> chemistry -> climate -> geology -> ocean -> life
 não deriva) e entrega a irradiância; `geology` mantém o vulcanismo que alimenta a
 desgaseificação; `ocean` fecha o ciclo da água, dilui/concentra a salinidade e
 sequestra calor da superfície.
+
+### Camada emergente — biologia (Inc 3)
+Evolução (**AG/DEAP**) e ecologia (**ABM/Mesa**) vivem em
+`simulation_engine/biology/`, não em `ai_engine/`: são emergentes, mas são
+subsistemas de simulação (ADR 0006). Regra de ouro (Dossiê §8, GDD §10):
+
+> a IA governa o **emergente**, mas **nunca falsifica a ciência**.
+
+Na prática isso é uma regra de escrita — a biologia **lê** o `PlanetState` e a
+capacidade de suporte publicada pelo `life.py` determinístico, e **nunca os
+escreve**. Ligar ou desligar `ECOSFERA_BIOLOGY_ENABLED` não muda um bit da
+física, química, clima ou geologia para a mesma semente (verificado em
+`tests/unit/test_deterministic_layer_unaffected.py`).
+
+O comportamento é **emergente porém reproduzível por seed** (RF-023): cada era
+deriva sua semente de (semente do planeta, era), então o replay reconstrói o
+mesmo códex e as mesmas populações. As explicações causais dos resultados
+biológicos saem do **motor de regras** de sempre — sem LLM, que só chega no Inc 6.
 
 ## Rodar
 ```bash
@@ -70,6 +93,26 @@ ECOSFERA_PERSISTENCE_BACKEND=postgres \
 ECOSFERA_DATABASE_URL="$DATABASE_URL" \
   uv run uvicorn ecosfera_ai.main:app --app-dir src
 ```
+## Camada emergente e fila de jobs
+| Variável | Valores | Efeito |
+| --- | --- | --- |
+| `ECOSFERA_BIOLOGY_ENABLED` | `true` (default) / `false` | liga/desliga evolução e ecologia |
+| `ECOSFERA_JOB_BACKEND` | `inline` (default) / `arq` | onde o job pesado de evolução roda |
+
+Com `inline`, o `advance-era` resolve a biologia na hora e responde **200** com o
+resumo. Com `arq`, ele enfileira o job e responde **202** com a referência,
+consultável em `GET /simulation/jobs/{job_id}` (ADR 0007).
+
+```bash
+# Produção/staging: Redis + worker ARQ em outro processo
+docker compose up -d postgres redis
+uv sync --extra sim --extra infra
+uv run arq ecosfera_ai.infrastructure.jobs.worker.WorkerSettings   # o worker
+
+ECOSFERA_JOB_BACKEND=arq ECOSFERA_PERSISTENCE_BACKEND=postgres \
+  uv run uvicorn ecosfera_ai.main:app --app-dir src
+```
+
 As migrations do serviço vivem numa **única árvore** (`migrations/`) cobrindo os
 schemas `rag` (Inc 6) e `simulation`. Os testes de integração da persistência real
 usam Testcontainers e são **pulados automaticamente** quando não há Docker.
@@ -78,8 +121,9 @@ usam Testcontainers e são **pulados automaticamente** quando não há Docker.
 ```
 domain/            regra pura (motor de regras causais, modelos de telemetria)
 simulation_engine/ núcleo determinístico (estado, subsistemas, tick, timeline/replay)
+  biology/         camada EMERGENTE: genoma, aptidão, evolução (AG), ecologia (ABM), códex
 application/       casos de uso + portas (Protocols)
-infrastructure/    adaptadores de saída (persistência in-memory/Postgres, mensageria, LLM)
+infrastructure/    adaptadores de saída (persistência, mensageria, filas inline/ARQ, LLM)
 interfaces/        adaptadores de entrada (HTTP v1) + composition root
 configs/           regras causais e parâmetros de simulação versionados (dados)
 migrations/        Alembic — uma árvore para os schemas `rag` e `simulation`
