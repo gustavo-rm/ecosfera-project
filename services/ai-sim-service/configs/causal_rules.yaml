@@ -4,7 +4,10 @@
 #
 # version 1 -> 2: entram as regras dos subsistemas physics/geology/ocean, para
 #   que os novos acoplamentos também sejam narráveis ao aluno (RF-033/039).
-version: 2
+# version 2 -> 3: entram as regras da camada EMERGENTE (Inc 3), ligando pressão
+#   ambiental a extinção/prosperidade. Continuam sendo REGRAS determinísticas —
+#   nenhum LLM participa; o tutor LLM+RAG só entra no Inc 6 (ADR 0002).
+version: 3
 rules:
   - id: R-CO2-TEMP
     cause: co2
@@ -52,3 +55,26 @@ rules:
     effect: erosion
     same_direction: true
     template: "Montanhas mais altas ({cause}) são desgastadas mais rápido pela chuva ({effect})."
+  # --- Camada emergente (Inc 3): pressão ambiental -> biologia ---
+  # A temperatura é a pressão seletiva mais legível para o aluno: quando ela sai
+  # da tolerância da espécie, a extinção deixa de ser azar e vira consequência.
+  - id: R-TEMP-EXTINCTION
+    cause: temperature
+    effect: extinction
+    same_direction: true
+    template: "A {cause} passou do que algumas espécies aguentam e elas foram extintas ({effect})."
+  - id: R-EXTINCTION-BIODIVERSITY
+    cause: extinction
+    effect: biodiversity
+    same_direction: false
+    template: "Cada {cause} tira um fio da teia da vida, então a {effect} do planeta cai."
+  - id: R-WATER-BIODIVERSITY
+    cause: water
+    effect: biodiversity
+    same_direction: true
+    template: "Com mais água disponível ({cause}), mais espécies encontram lugar para viver e a {effect} cresce."
+  - id: R-BIODIVERSITY-BIOMASS
+    cause: biodiversity
+    effect: biomass
+    same_direction: true
+    template: "Mais espécies convivendo ({cause}) aproveitam melhor os recursos e a {effect} total sobe."

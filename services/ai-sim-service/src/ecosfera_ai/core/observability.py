@@ -16,6 +16,18 @@ simulation_ticks = Counter(
 simulation_eras = Counter(
     "ecosfera_simulation_eras_total", "Eras avançadas (checkpoints append-only gravados)"
 )
+biology_generations = Counter(
+    "ecosfera_biology_generations_total", "Gerações evoluídas pelo AG (DEAP)"
+)
+biology_speciations = Counter(
+    "ecosfera_biology_speciations_total", "Espécies surgidas por especiação"
+)
+biology_extinctions = Counter(
+    "ecosfera_biology_extinctions_total", "Espécies extintas por pressão ambiental"
+)
+biology_jobs = Counter(
+    "ecosfera_biology_jobs_total", "Jobs de evolução executados", ["backend", "outcome"]
+)
 simulation_replays = Counter(
     "ecosfera_simulation_replays_total",
     "Reconstruções de era executadas; 'matched' indica se bateram com o checkpoint",

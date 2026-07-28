@@ -9,9 +9,11 @@ determinismo (RF-023) numa garantia observável em produção, não só nos test
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
+from ecosfera_ai.application.simulation.evolve_biology import EvolveBiologyUseCase
+from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord
 from ecosfera_ai.simulation_engine.orchestrator import TickOrchestrator
 from ecosfera_ai.simulation_engine.state import PlanetState
 from ecosfera_ai.simulation_engine.timeline import replay
@@ -28,12 +30,22 @@ class ReplayOutcome:
     era: int
     state: PlanetState
     matches_checkpoint: bool
+    # Biologia reconstruída da era (Inc 3). É re-DERIVADA do motor semeado, não
+    # lida do códex corrente: é isso que prova que a vida emergente também é
+    # reprodutível (RF-016/023).
+    species: list[SpeciesRecord] = field(default_factory=list)
 
 
 class ReplayStateUseCase:
-    def __init__(self, repo: PlanetRepository, orchestrator: TickOrchestrator) -> None:
+    def __init__(
+        self,
+        repo: PlanetRepository,
+        orchestrator: TickOrchestrator,
+        biology: EvolveBiologyUseCase | None = None,
+    ) -> None:
         self._repo = repo
         self._orchestrator = orchestrator
+        self._biology = biology
 
     async def execute(self, planet_id: str, era: int) -> ReplayOutcome:
         target = await self._repo.load_checkpoint(planet_id, era)
@@ -53,4 +65,29 @@ class ReplayStateUseCase:
             self._orchestrator,
             self._orchestrator.bounds,
         )
-        return ReplayOutcome(era=era, state=rebuilt, matches_checkpoint=rebuilt == target.state)
+        return ReplayOutcome(
+            era=era,
+            state=rebuilt,
+            matches_checkpoint=rebuilt == target.state,
+            species=await self._replay_biology(planet_id, era),
+        )
+
+    async def _replay_biology(self, planet_id: str, era: int) -> list[SpeciesRecord]:
+        """Reconstrói o códex reexecutando a biologia de TODAS as eras até `era`.
+
+        Não basta reproduzir a última era: a evolução é cumulativa, então o
+        replay parte do vazio e reaplica era a era, exatamente como aconteceu.
+        Como cada era é semeada por (semente do planeta, era), o resultado é
+        idêntico ao original — sem nunca ler o códex persistido.
+        """
+        if self._biology is None:
+            return []
+        catalog: list[SpeciesRecord] = []
+        for step in range(1, era + 1):
+            checkpoint = await self._repo.load_checkpoint(planet_id, step)
+            if checkpoint is None:
+                break
+            catalog = self._biology.run(
+                catalog, checkpoint.state, planet_id=planet_id, era=step
+            ).catalog
+        return catalog

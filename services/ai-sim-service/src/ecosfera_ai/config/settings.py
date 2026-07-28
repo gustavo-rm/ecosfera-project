@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     # banco) ou 'postgres' (staging/prod). Trocar a flag troca só o adaptador da
     # porta PlanetRepository; nenhuma camada acima muda (ADR 0001/0005).
     persistence_backend: str = Field(default="inmemory")  # inmemory | postgres
+
+    # Camada emergente (Inc 3). `biology_enabled` é o gate da fronteira
+    # determinístico × IA: desligá-la deixa o serviço 100% determinístico, sem
+    # alterar nenhum campo físico do estado (ADR 0006).
+    biology_enabled: bool = Field(default=True)
+    # Fila do job pesado de evolução: inline (dev/testes) ou arq (Redis).
+    job_backend: str = Field(default="inline")  # inline | arq
+    redis_dsn: str = Field(default="redis://localhost:6379")
     database_url: str = Field(
         default="postgresql+asyncpg://ecosfera:ecosfera@localhost:5432/ecosfera"
     )
