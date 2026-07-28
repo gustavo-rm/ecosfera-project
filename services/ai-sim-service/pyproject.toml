@@ -22,7 +22,9 @@ dependencies = [
 
 [project.optional-dependencies]
 # Ativado no Inc 3/4 (simulação emergente: AG com DEAP, ABM com Mesa)
-sim = ["scipy>=1.13", "deap>=1.4", "mesa>=2.3"]
+# Mesa 3.x: a API mudou (sem mesa.time/scheduler; Model(seed=...), AgentSet).
+# O modelo ecológico deste serviço é escrito contra a 3.x.
+sim = ["scipy>=1.13", "deap>=1.4", "mesa>=3.0"]
 # Ativado no Inc 6 (tutor LLM+RAG). pgvector vive no extra "infra" (persistência).
 ai = ["sentence-transformers>=3.0", "langgraph>=0.2", "ollama>=0.3"]
 # Ativado no Inc 7 (stealth assessment)
