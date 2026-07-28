@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord
 from ecosfera_ai.simulation_engine.state import PlanetState
 from ecosfera_ai.simulation_engine.timeline import EraCheckpoint, EraSummary, EventLogEntry
 
@@ -30,3 +31,11 @@ class PlanetRepository(Protocol):
         self, planet_id: str, from_tick: int, to_tick: int
     ) -> list[EventLogEntry]: ...
     async def get_timeline(self, planet_id: str) -> list[EraSummary]: ...
+
+    # --- Códex de espécies e eventos biológicos (Inc 3) ------------------------
+    # O códex é a projeção corrente das espécies (upsert por species_id); os
+    # eventos de especiação/extinção são append-only, como o resto da linha do
+    # tempo (ADR 0004/0006).
+    async def save_species(self, records: list[SpeciesRecord]) -> None: ...
+    async def load_species(self, planet_id: str) -> list[SpeciesRecord]: ...
+    async def load_species_by_id(self, planet_id: str, species_id: str) -> SpeciesRecord | None: ...

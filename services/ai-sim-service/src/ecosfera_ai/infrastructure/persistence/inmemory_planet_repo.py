@@ -8,6 +8,7 @@ Postgres disponível: os testes de unidade rodam sem banco nem container.
 
 from __future__ import annotations
 
+from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord
 from ecosfera_ai.simulation_engine.state import PlanetState
 from ecosfera_ai.simulation_engine.timeline import (
     EraCheckpoint,
@@ -22,6 +23,7 @@ class InMemoryPlanetRepository:
         self._history: dict[str, list[PlanetState]] = {}
         self._checkpoints: dict[str, list[EraCheckpoint]] = {}
         self._events: dict[str, list[EventLogEntry]] = {}
+        self._species: dict[str, dict[str, SpeciesRecord]] = {}
 
     # --- Estado corrente -------------------------------------------------------
     async def save_checkpoint(self, state: PlanetState) -> None:
@@ -65,3 +67,15 @@ class InMemoryPlanetRepository:
                 if checkpoint.start_tick < entry.tick <= checkpoint.end_tick
             )
         return summarize(checkpoints, counts)
+
+    # --- Códex de espécies (Inc 3) ---------------------------------------------
+    async def save_species(self, records: list[SpeciesRecord]) -> None:
+        for record in records:
+            self._species.setdefault(record.planet_id, {})[record.species_id] = record
+
+    async def load_species(self, planet_id: str) -> list[SpeciesRecord]:
+        catalog = self._species.get(planet_id, {})
+        return sorted(catalog.values(), key=lambda r: (r.emerged_era, r.species_id))
+
+    async def load_species_by_id(self, planet_id: str, species_id: str) -> SpeciesRecord | None:
+        return self._species.get(planet_id, {}).get(species_id)

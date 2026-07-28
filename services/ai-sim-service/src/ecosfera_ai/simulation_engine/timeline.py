@@ -42,7 +42,9 @@ class EventLogEntry:
     planet_id: str
     tick: int
     event_type: str
-    payload: Mapping[str, float]
+    # Aceita identificadores além de grandezas: os eventos biológicos carregam o
+    # `species_id` da espécie que surgiu ou se extinguiu (Inc 3).
+    payload: Mapping[str, float | str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +90,7 @@ class Stepper(Protocol):
     def tick(self, state: PlanetState) -> StepOutcome: ...
 
 
-def intervention_delta(payload: Mapping[str, float]) -> StateDelta:
+def intervention_delta(payload: Mapping[str, float | str]) -> StateDelta:
     """Converte o payload de uma intervenção em `StateDelta`.
 
     O payload usa a linguagem ubíqua ('co2', 'temperature'); chaves desconhecidas

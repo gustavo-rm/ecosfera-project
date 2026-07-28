@@ -27,6 +27,8 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord
+from ecosfera_ai.simulation_engine.biology.genome import Genome
 from ecosfera_ai.simulation_engine.state import PlanetState
 from ecosfera_ai.simulation_engine.timeline import (
     EraCheckpoint,
@@ -209,3 +211,90 @@ class PostgresPlanetRepository:
             EraSummary(era=row[0], start_tick=row[1], end_tick=row[2], event_count=row[3])
             for row in rows
         ]
+
+    # --- Códex de espécies (Inc 3) ---------------------------------------------
+    async def save_species(self, records: list[SpeciesRecord]) -> None:
+        """Upsert do códex: a espécie é a projeção corrente; a HISTÓRIA de
+        especiação/extinção vive no `event_log` append-only (ADR 0004/0006)."""
+        if not records:
+            return
+        async with self._engine.begin() as conn:
+            for record in records:
+                await conn.execute(
+                    text(
+                        """
+                        INSERT INTO simulation.species
+                            (species_id, planet_id, genome, emerged_era, extinct_era,
+                             ancestor_id, population, fitness)
+                        VALUES
+                            (:species_id, :planet_id, CAST(:genome AS jsonb), :emerged_era,
+                             :extinct_era, :ancestor_id, :population, :fitness)
+                        ON CONFLICT (planet_id, species_id) DO UPDATE
+                            SET genome = EXCLUDED.genome,
+                                extinct_era = EXCLUDED.extinct_era,
+                                population = EXCLUDED.population,
+                                fitness = EXCLUDED.fitness,
+                                updated_at = now()
+                        """
+                    ),
+                    {
+                        "species_id": record.species_id,
+                        "planet_id": record.planet_id,
+                        "genome": json.dumps(record.genome.to_dict()),
+                        "emerged_era": record.emerged_era,
+                        "extinct_era": record.extinct_era,
+                        "ancestor_id": record.ancestor_id,
+                        "population": record.population,
+                        "fitness": record.fitness,
+                    },
+                )
+
+    async def load_species(self, planet_id: str) -> list[SpeciesRecord]:
+        async with self._engine.connect() as conn:
+            rows = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT species_id, planet_id, genome, emerged_era, extinct_era,
+                               ancestor_id, population, fitness
+                        FROM simulation.species
+                        WHERE planet_id = :planet_id
+                        ORDER BY emerged_era, species_id
+                        """
+                    ),
+                    {"planet_id": planet_id},
+                )
+            ).all()
+        return [_species_from_row(row) for row in rows]
+
+    async def load_species_by_id(self, planet_id: str, species_id: str) -> SpeciesRecord | None:
+        async with self._engine.connect() as conn:
+            row = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT species_id, planet_id, genome, emerged_era, extinct_era,
+                               ancestor_id, population, fitness
+                        FROM simulation.species
+                        WHERE planet_id = :planet_id AND species_id = :species_id
+                        """
+                    ),
+                    {"planet_id": planet_id, "species_id": species_id},
+                )
+            ).first()
+        return _species_from_row(row) if row is not None else None
+
+
+def _species_from_row(row: Any) -> SpeciesRecord:
+    """Reconstrói o registro do códex a partir da linha do Postgres."""
+    genome = row[2] if isinstance(row[2], dict) else json.loads(row[2])
+    return SpeciesRecord(
+        species_id=row[0],
+        planet_id=row[1],
+        genome=Genome.from_dict(genome),
+        emerged_era=row[3],
+        extinct_era=row[4],
+        ancestor_id=row[5],
+        population=float(row[6]),
+        fitness=float(row[7]),
+    )
