@@ -15,6 +15,9 @@ from typing import Any
 
 import yaml
 
+from ecosfera_ai.simulation_engine.biology.ecology import EcologyParams
+from ecosfera_ai.simulation_engine.biology.evolution import EvolutionParams
+from ecosfera_ai.simulation_engine.biology.fitness import FitnessParams
 from ecosfera_ai.simulation_engine.orchestrator import TickOrchestrator
 from ecosfera_ai.simulation_engine.state import PlanetSeed, PlanetState, StateBounds
 from ecosfera_ai.simulation_engine.subsystems.base import Subsystem
@@ -68,6 +71,11 @@ class SimulationParams:
     geology: GeologyParams
     ocean: OceanParams
     life: LifeParams
+    # Camada emergente (Inc 3). Vive junto dos demais parâmetros porque a
+    # biologia é subsistema de simulação, não de IA aplicada (ADR 0006).
+    fitness: FitnessParams
+    evolution: EvolutionParams
+    ecology: EcologyParams
 
 
 def load_params(path: Path) -> SimulationParams:
@@ -114,6 +122,9 @@ def load_params(path: Path) -> SimulationParams:
         geology=GeologyParams(**_floats(raw["geology"])),
         ocean=OceanParams(**_floats(raw["ocean"])),
         life=LifeParams(**_floats(raw["life"])),
+        fitness=FitnessParams(**_floats(raw["fitness"])),
+        evolution=EvolutionParams(**_evolution_fields(raw["evolution"])),
+        ecology=EcologyParams(**_ecology_fields(raw["ecology"])),
     )
 
 
@@ -170,3 +181,17 @@ def build_orchestrator(params: SimulationParams) -> TickOrchestrator:
 
 def _floats(raw: dict[str, Any]) -> dict[str, float]:
     return {key: float(value) for key, value in raw.items()}
+
+
+# Alguns parâmetros da camada emergente são contagens (gerações, tetos), não
+# grandezas contínuas: convertê-los para int mantém os tipos honestos.
+_EVOLUTION_INTS = frozenset({"population_size", "generations", "tournament_size", "max_species"})
+_ECOLOGY_INTS = frozenset({"steps", "max_agents", "max_steps"})
+
+
+def _evolution_fields(raw: dict[str, Any]) -> dict[str, Any]:
+    return {k: (int(v) if k in _EVOLUTION_INTS else float(v)) for k, v in raw.items()}
+
+
+def _ecology_fields(raw: dict[str, Any]) -> dict[str, Any]:
+    return {k: (int(v) if k in _ECOLOGY_INTS else float(v)) for k, v in raw.items()}
