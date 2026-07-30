@@ -49,6 +49,18 @@ class LifeSubsystem:
             water_suitability = 1.0
         return temp_suitability * water_suitability
 
+    def carrying_capacity(self, state: PlanetState) -> float:
+        """Capacidade de suporte biótica do ambiente, em unidades de biomassa.
+
+        Publicada de propósito: é o ÚNICO acoplamento entre a camada
+        determinística e a biologia emergente do Inc 3 (ADR 0006). O motor de
+        evolução/ecologia consome esta capacidade como orçamento e distribui
+        espécies DENTRO dela, sem jamais escrever no `PlanetState` — por isso a
+        camada determinística continua bit-a-bit reproduzível com a biologia
+        ligada ou desligada.
+        """
+        return self._p.carrying_capacity * self.habitability(state)
+
     def step(self, state: PlanetState, rng: np.random.Generator) -> StateDelta:
         h = self.habitability(state)
         biomass = state.biomass

@@ -9,12 +9,16 @@ a fábrica que compõe os dados no `TickOrchestrator` (padrão Strategy).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from ecosfera_ai.shared_kernel.engine import TickBudget
+from ecosfera_ai.simulation_engine.biology.ecology import EcologyParams
+from ecosfera_ai.simulation_engine.biology.evolution import EvolutionParams
+from ecosfera_ai.simulation_engine.biology.fitness import FitnessParams
 from ecosfera_ai.simulation_engine.orchestrator import TickOrchestrator
 from ecosfera_ai.simulation_engine.state import PlanetSeed, PlanetState, StateBounds
 from ecosfera_ai.simulation_engine.subsystems.base import Subsystem
@@ -68,6 +72,14 @@ class SimulationParams:
     geology: GeologyParams
     ocean: OceanParams
     life: LifeParams
+    # Camada emergente (Inc 3). Vive junto dos demais parâmetros porque a
+    # biologia é subsistema de simulação, não de IA aplicada (ADR 0006).
+    fitness: FitnessParams
+    evolution: EvolutionParams
+    ecology: EcologyParams
+    # Moldura de Engines (M0). Leitura TOLERANTE: um YAML anterior a esta seção
+    # continua carregando, com o orçamento padrão do `TickBudget`.
+    engine_budget: TickBudget = field(default_factory=TickBudget)
 
 
 def load_params(path: Path) -> SimulationParams:
@@ -114,6 +126,21 @@ def load_params(path: Path) -> SimulationParams:
         geology=GeologyParams(**_floats(raw["geology"])),
         ocean=OceanParams(**_floats(raw["ocean"])),
         life=LifeParams(**_floats(raw["life"])),
+        fitness=FitnessParams(**_floats(raw["fitness"])),
+        evolution=EvolutionParams(**_evolution_fields(raw["evolution"])),
+        ecology=EcologyParams(**_ecology_fields(raw["ecology"])),
+        engine_budget=_engine_budget(raw.get("engines", {})),
+    )
+
+
+def _engine_budget(raw: dict[str, Any]) -> TickBudget:
+    """Lê o orçamento por tick da moldura, caindo no padrão quando ausente."""
+    budget = raw.get("budget", {})
+    default = TickBudget()
+    return TickBudget(
+        max_duration_s=float(budget.get("max_duration_s", default.max_duration_s)),
+        max_events=int(budget.get("max_events", default.max_events)),
+        max_entities=int(budget.get("max_entities", default.max_entities)),
     )
 
 
@@ -170,3 +197,17 @@ def build_orchestrator(params: SimulationParams) -> TickOrchestrator:
 
 def _floats(raw: dict[str, Any]) -> dict[str, float]:
     return {key: float(value) for key, value in raw.items()}
+
+
+# Alguns parâmetros da camada emergente são contagens (gerações, tetos), não
+# grandezas contínuas: convertê-los para int mantém os tipos honestos.
+_EVOLUTION_INTS = frozenset({"population_size", "generations", "tournament_size", "max_species"})
+_ECOLOGY_INTS = frozenset({"steps", "max_agents", "max_steps"})
+
+
+def _evolution_fields(raw: dict[str, Any]) -> dict[str, Any]:
+    return {k: (int(v) if k in _EVOLUTION_INTS else float(v)) for k, v in raw.items()}
+
+
+def _ecology_fields(raw: dict[str, Any]) -> dict[str, Any]:
+    return {k: (int(v) if k in _ECOLOGY_INTS else float(v)) for k, v in raw.items()}

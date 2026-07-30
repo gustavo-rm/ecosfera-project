@@ -3,7 +3,7 @@ name = "ecosfera-ai-sim-service"
 version = "0.1.0"
 description = "ECOSFERA — serviço de simulação científica e IA (fronteira determinístico × IA)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 license = { text = "MIT" }
 authors = [{ name = "Gustavo Raí Malacarne" }]
 keywords = ["education", "serious-game", "ai", "simulation", "ecosfera"]
@@ -22,7 +22,12 @@ dependencies = [
 
 [project.optional-dependencies]
 # Ativado no Inc 3/4 (simulação emergente: AG com DEAP, ABM com Mesa)
-sim = ["scipy>=1.13", "deap>=1.4", "mesa>=2.3"]
+# Mesa 3.x: a API mudou (sem mesa.time/scheduler; Model(seed=...), AgentSet).
+# O modelo ecológico deste serviço é escrito contra a 3.x.
+# networkx é dependência REAL da mesa >= 3.5 (discrete_space.network o importa
+# no topo), mas a mesa só a declara em extras opcionais. Declará-la aqui é o que
+# torna o extra `sim` instalável de fato.
+sim = ["scipy>=1.13", "deap>=1.4", "mesa>=3.0", "networkx>=3.0"]
 # Ativado no Inc 6 (tutor LLM+RAG). pgvector vive no extra "infra" (persistência).
 ai = ["sentence-transformers>=3.0", "langgraph>=0.2", "ollama>=0.3"]
 # Ativado no Inc 7 (stealth assessment)
@@ -54,6 +59,8 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "types-PyYAML>=6.0",
+    # Enforcement das fronteiras da moldura de Engines (ADR-ARCH-0001, Spec §8).
+    "import-linter>=2.0",
     # Postgres efêmero para os testes de integração da persistência real.
     "testcontainers[postgres]>=4.0",
 ]
@@ -103,3 +110,45 @@ warn_unreachable = true
 [[tool.mypy.overrides]]
 module = ["testcontainers.*", "deap.*", "mesa.*", "pgmpy.*", "ollama.*", "arq.*"]
 ignore_missing_imports = true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fronteiras da moldura de Engines, verificadas por import-linter.
+# A regra de ouro da Spec §2 ("um Engine não importa outro nem lê seu estado
+# interno") só é uma regra se algo a barrar — caso contrário é convenção, e
+# convenção não sobrevive a um PR apressado. Rode com: uv run lint-imports
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.importlinter]
+root_packages = ["ecosfera_ai"]
+
+[[tool.importlinter.contracts]]
+name = "Engines nao importam outros Engines"
+type = "independence"
+modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+
+[[tool.importlinter.contracts]]
+name = "O Planet Engine nao conhece Engine algum"
+type = "forbidden"
+source_modules = ["ecosfera_ai.engines.planet"]
+forbidden_modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+
+[[tool.importlinter.contracts]]
+name = "Moldura e Engines nao alcancam infraestrutura nem interfaces"
+type = "forbidden"
+source_modules = ["ecosfera_ai.shared_kernel", "ecosfera_ai.engines"]
+forbidden_modules = ["ecosfera_ai.infrastructure", "ecosfera_ai.interfaces"]
+
+[[tool.importlinter.contracts]]
+name = "A moldura comum nao depende de nenhum Engine"
+type = "forbidden"
+source_modules = ["ecosfera_ai.shared_kernel"]
+forbidden_modules = ["ecosfera_ai.engines"]
+
+[[tool.importlinter.contracts]]
+name = "Camadas hexagonais do servico"
+type = "layers"
+layers = [
+    "ecosfera_ai.interfaces",
+    "ecosfera_ai.infrastructure",
+    "ecosfera_ai.application",
+    "ecosfera_ai.domain",
+]

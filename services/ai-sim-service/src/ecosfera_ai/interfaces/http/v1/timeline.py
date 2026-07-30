@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
 from ecosfera_ai.application.simulation.advance_era import AdvanceEraUseCase
@@ -11,6 +11,7 @@ from ecosfera_ai.interfaces.http.deps import (
     get_planet_repo,
     get_replay_state_use_case,
 )
+from ecosfera_ai.interfaces.http.schemas.biology import BiologySummaryOut, JobRefOut
 from ecosfera_ai.interfaces.http.schemas.timeline import (
     AdvanceEraResponse,
     EraStateResponse,
@@ -26,11 +27,19 @@ router = APIRouter(prefix="/simulation", tags=["simulation"])
 @router.post("/planets/{planet_id}/advance-era", response_model=AdvanceEraResponse)
 async def advance_era(
     planet_id: str,
+    response: Response,
     uc: AdvanceEraUseCase = Depends(get_advance_era_use_case),
 ) -> AdvanceEraResponse:
-    """Avança uma era completa: checkpoint append-only + cadeia causal (RF-013/016)."""
+    """Avança uma era completa: checkpoint append-only + cadeia causal (RF-013/016).
+
+    Com a fila inline a biologia resolve na hora e a resposta é 200. Com o backend
+    ARQ o job de evolução é enfileirado e a resposta vira 202 + referência do job,
+    consultável em `/simulation/jobs/{job_id}` (ADR 0007).
+    """
     outcome = await uc.execute(planet_id)  # PlanetNotFoundError -> 404 (handler)
     simulation_eras.inc()
+    if outcome.job is not None:
+        response.status_code = 202
     return AdvanceEraResponse(
         era=outcome.era,
         start_tick=outcome.start_tick,
@@ -42,6 +51,14 @@ async def advance_era(
             for e in outcome.events
         ],
         explanation=explanation_out(outcome.explanation),
+        biology=(
+            BiologySummaryOut(**outcome.biology.to_dict()) if outcome.biology is not None else None
+        ),
+        job=(
+            JobRefOut(job_id=outcome.job.job_id, job_name=outcome.job.job_name)
+            if outcome.job is not None
+            else None
+        ),
     )
 
 

@@ -1,0 +1,68 @@
+name: ai-sim-service
+
+# Gate de PR do serviço Python. Roda o mesmo `make check` do dia a dia, de modo
+# que o que passa localmente passa aqui — inclusive o `import-linter`, que é o
+# que transforma a regra de ouro da moldura de Engines ("um Engine não importa
+# outro") em barreira efetiva, e não em convenção (ADR-ARCH-0001, Spec §8).
+#
+# Os testes de integração com Postgres/Redis usam Testcontainers e são PULADOS
+# quando não há Docker; subi-los aqui é trabalho do marco de infraestrutura (M5).
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "services/ai-sim-service/**"
+      - ".github/workflows/ai-sim-service.yml"
+  pull_request:
+    paths:
+      - "services/ai-sim-service/**"
+      - ".github/workflows/ai-sim-service.yml"
+
+defaults:
+  run:
+    working-directory: services/ai-sim-service
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ai-sim-service/uv.lock
+          # Pinado pelo .python-version do serviço. Sem isso o uv escolhe o
+          # Python mais novo disponível, e o uv.lock — que é universal — pode
+          # resolver um CONJUNTO DIFERENTE de pacotes por marcador de versão.
+          # Para um serviço que promete replay bit-a-bit, validar num
+          # interpretador que ninguém usa localmente é justamente o que não pode
+          # acontecer. Com requires-python >= 3.13 o lock tem uma resolução só,
+          # e este pin é o que garante que continue assim.
+          python-version-file: services/ai-sim-service/.python-version
+
+      - name: Sincronizar dependências
+        run: uv sync --extra sim --extra infra --group dev
+
+      - name: Registrar o ambiente resolvido
+        # Torna a deriva de versões visível no log em vez de silenciosa.
+        run: |
+          uv run python -VV
+          uv run python -c "import numpy, mesa; print('numpy', numpy.__version__, '| mesa', mesa.__version__)"
+
+      - name: Lint (ruff)
+        run: uv run ruff check src tests
+
+      - name: Formatação (ruff format)
+        run: uv run ruff format --check src tests
+
+      - name: Tipos (mypy --strict)
+        run: uv run mypy
+
+      - name: Fronteiras de importação (import-linter)
+        run: uv run lint-imports
+
+      - name: Testes com cobertura
+        run: uv run pytest --cov=ecosfera_ai --cov-report=term-missing

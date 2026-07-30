@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from ecosfera_ai.application.simulation.evolve_biology import SpeciesNotFoundError
 from ecosfera_ai.application.simulation.replay_state import EraNotFoundError
 from ecosfera_ai.application.simulation.run_tick import PlanetNotFoundError
 from ecosfera_ai.application.telemetry.ingest_event import ConsentRequiredError
@@ -65,5 +66,15 @@ def register_exception_handlers(app: FastAPI) -> None:
             "Era não encontrada",
             f"A era '{exc}' não existe na linha do tempo deste planeta.",
             "/errors/era-not-found",
+            str(request.url.path),
+        )
+
+    @app.exception_handler(SpeciesNotFoundError)
+    async def _species_not_found(request: Request, exc: SpeciesNotFoundError) -> JSONResponse:
+        return _problem(
+            404,
+            "Espécie não encontrada",
+            f"Nenhuma espécie '{exc}' no códex deste planeta.",
+            "/errors/species-not-found",
             str(request.url.path),
         )

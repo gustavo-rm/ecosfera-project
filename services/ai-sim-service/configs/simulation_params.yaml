@@ -3,7 +3,11 @@
 #
 # version 1 -> 2: entram os subsistemas physics/geology/ocean, a progressão de
 #   eras (timeline) e as faixas físicas das novas variáveis de estado.
-version: 2
+# version 2 -> 3: entra a camada EMERGENTE (Inc 3) — aptidão ambiental, evolução
+#   (AG/DEAP) e ecologia (ABM/Mesa). Estes parâmetros NÃO afetam a camada
+#   determinística: a biologia lê o estado e a capacidade de suporte, mas nunca
+#   escreve no PlanetState (ADR 0006).
+version: 3
 
 # Progressão de eras (Dossiê §9): quantos ticks fecham uma era e geram um
 # checkpoint append-only.
@@ -104,3 +108,55 @@ life:
   carrying_capacity: 100.0    # capacidade de suporte com habitabilidade plena
   growth_rate: 0.15           # taxa intrínseca de crescimento logístico
   growth_variability: 0.02    # desvio-padrão do ruído de crescimento
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CAMADA EMERGENTE (Inc 3) — evolução e ecologia.
+# Fronteira determinístico × IA (Dossiê §8): estes parâmetros governam apenas o
+# que EMERGE (espécies, populações). A física/química/clima/geologia continuam
+# bit-a-bit reproduzíveis com a biologia ligada ou desligada.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Aptidão ambiental: traduz o estado determinístico em pressão seletiva.
+fitness:
+  metabolism_cost: 0.40    # penalidade por unidade de metabolismo
+  size_cost: 0.05          # penalidade por corpo grande
+  energy_reference: 0.80   # irradiância de referência para produtores
+  crowding_weight: 0.50    # peso da competição ao lotar a capacidade
+
+# Evolução (AG com DEAP). Os tetos contêm o custo por era (RSK Inc 3).
+evolution:
+  population_size: 24         # indivíduos por geração
+  generations: 6              # gerações por era
+  mutation_rate: 0.20         # probabilidade de mutação por traço
+  mutation_sigma: 0.60        # desvio-padrão da mutação gaussiana
+  crossover_rate: 0.50        # probabilidade de cruzamento por par
+  tournament_size: 3          # pressão seletiva do torneio
+  speciation_threshold: 0.12  # distância genética que caracteriza espécie nova
+  extinction_fitness: 0.02    # aptidão mínima para a espécie se sustentar
+  extinction_population: 0.01 # população mínima viável
+  max_species: 12             # teto de espécies vivas simultâneas
+  founder_population: 1.0     # população inicial de uma espécie nova
+
+# Ecologia (ABM com Mesa). Predador-presa EMERGE das regras locais.
+ecology:
+  steps: 12                    # passos ecológicos por era
+  growth_rate: 0.35            # crescimento intrínseco dos produtores
+  predation_rate: 0.015        # eficiência de captura por unidade de predador
+  conversion_efficiency: 0.30  # fração da presa convertida em predador
+  mortality_rate: 0.12         # mortalidade natural dos consumidores
+  demographic_noise: 0.01      # ruído demográfico (semeado)
+  min_viable_population: 0.001 # abaixo disto a população colapsa
+  max_agents: 24               # teto de populações simuladas (custo)
+  max_steps: 50                # teto absoluto de passos por era (custo)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MOLDURA DE ENGINES (M0) — orçamento por tick (Spec §6, ADR-ARCH-0002).
+# Estourar um teto emite um DiagnosticEvent no Canal B e NÃO altera o resultado
+# da simulação: reagir ao tempo de execução faria a trajetória depender da carga
+# da máquina, e o replay bit-a-bit morreria com isso.
+# ─────────────────────────────────────────────────────────────────────────────
+engines:
+  budget:
+    max_duration_s: 0.25   # teto de tempo de um tick de um Engine
+    max_events: 500        # teto de domain events por Engine por tick
+    max_entities: 50000    # teto de células/coortes processadas por tick
