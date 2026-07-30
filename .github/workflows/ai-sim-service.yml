@@ -34,9 +34,22 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: services/ai-sim-service/uv.lock
+          # Pinado pelo .python-version do serviço. Sem isso o uv escolhe o
+          # Python mais novo disponível, e o uv.lock — que é universal — resolve
+          # um CONJUNTO DIFERENTE de pacotes por marcador de versão (mesa 3.3.1
+          # em <3.12, 3.5.1 em >=3.12; numpy 2.4.6 vs 2.5.1). Para um serviço que
+          # promete replay bit-a-bit, testar num interpretador que ninguém usa
+          # localmente é justamente o que não pode acontecer.
+          python-version-file: services/ai-sim-service/.python-version
 
       - name: Sincronizar dependências
         run: uv sync --extra sim --extra infra --group dev
+
+      - name: Registrar o ambiente resolvido
+        # Torna a deriva de versões visível no log em vez de silenciosa.
+        run: |
+          uv run python -VV
+          uv run python -c "import numpy, mesa; print('numpy', numpy.__version__, '| mesa', mesa.__version__)"
 
       - name: Lint (ruff)
         run: uv run ruff check src tests

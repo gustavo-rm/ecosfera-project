@@ -976,6 +976,7 @@ sim = [
     { name = "deap" },
     { name = "mesa", version = "3.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "mesa", version = "3.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "networkx" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
@@ -1004,6 +1005,7 @@ requires-dist = [
     { name = "mesa", marker = "extra == 'sim'", specifier = ">=3.0" },
     { name = "mlflow", marker = "extra == 'mlops'", specifier = ">=2.14" },
     { name = "motor", marker = "extra == 'infra'", specifier = ">=3.4" },
+    { name = "networkx", marker = "extra == 'sim'", specifier = ">=3.0" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "ollama", marker = "extra == 'ai'", specifier = ">=0.3" },
     { name = "pgmpy", marker = "extra == 'assessment'", specifier = ">=0.1.25" },

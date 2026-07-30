@@ -24,7 +24,11 @@ dependencies = [
 # Ativado no Inc 3/4 (simulação emergente: AG com DEAP, ABM com Mesa)
 # Mesa 3.x: a API mudou (sem mesa.time/scheduler; Model(seed=...), AgentSet).
 # O modelo ecológico deste serviço é escrito contra a 3.x.
-sim = ["scipy>=1.13", "deap>=1.4", "mesa>=3.0"]
+# networkx é dependência REAL da mesa >= 3.5 (discrete_space.network o importa
+# no topo), mas a mesa só a declara em extras opcionais. Em Python 3.11 o lock
+# resolve mesa 3.3.1, que não a importa — por isso a falta só aparecia em
+# ambientes com Python >= 3.12. Declarada aqui, vale para as duas resoluções.
+sim = ["scipy>=1.13", "deap>=1.4", "mesa>=3.0", "networkx>=3.0"]
 # Ativado no Inc 6 (tutor LLM+RAG). pgvector vive no extra "infra" (persistência).
 ai = ["sentence-transformers>=3.0", "langgraph>=0.2", "ollama>=0.3"]
 # Ativado no Inc 7 (stealth assessment)
