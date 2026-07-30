@@ -1,0 +1,54 @@
+name: ai-sim-service
+
+# Gate de PR do serviço Python. Roda o mesmo `make check` do dia a dia, de modo
+# que o que passa localmente passa aqui — inclusive o `import-linter`, que é o
+# que transforma a regra de ouro da moldura de Engines ("um Engine não importa
+# outro") em barreira efetiva, e não em convenção (ADR-ARCH-0001, Spec §8).
+#
+# Os testes de integração com Postgres/Redis usam Testcontainers e são PULADOS
+# quando não há Docker; subi-los aqui é trabalho do marco de infraestrutura (M5).
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "services/ai-sim-service/**"
+      - ".github/workflows/ai-sim-service.yml"
+  pull_request:
+    paths:
+      - "services/ai-sim-service/**"
+      - ".github/workflows/ai-sim-service.yml"
+
+defaults:
+  run:
+    working-directory: services/ai-sim-service
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ai-sim-service/uv.lock
+
+      - name: Sincronizar dependências
+        run: uv sync --extra sim --extra infra --group dev
+
+      - name: Lint (ruff)
+        run: uv run ruff check src tests
+
+      - name: Formatação (ruff format)
+        run: uv run ruff format --check src tests
+
+      - name: Tipos (mypy --strict)
+        run: uv run mypy
+
+      - name: Fronteiras de importação (import-linter)
+        run: uv run lint-imports
+
+      - name: Testes com cobertura
+        run: uv run pytest --cov=ecosfera_ai --cov-report=term-missing

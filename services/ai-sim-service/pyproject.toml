@@ -56,6 +56,8 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "types-PyYAML>=6.0",
+    # Enforcement das fronteiras da moldura de Engines (ADR-ARCH-0001, Spec §8).
+    "import-linter>=2.0",
     # Postgres efêmero para os testes de integração da persistência real.
     "testcontainers[postgres]>=4.0",
 ]
@@ -105,3 +107,45 @@ warn_unreachable = true
 [[tool.mypy.overrides]]
 module = ["testcontainers.*", "deap.*", "mesa.*", "pgmpy.*", "ollama.*", "arq.*"]
 ignore_missing_imports = true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fronteiras da moldura de Engines, verificadas por import-linter.
+# A regra de ouro da Spec §2 ("um Engine não importa outro nem lê seu estado
+# interno") só é uma regra se algo a barrar — caso contrário é convenção, e
+# convenção não sobrevive a um PR apressado. Rode com: uv run lint-imports
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.importlinter]
+root_packages = ["ecosfera_ai"]
+
+[[tool.importlinter.contracts]]
+name = "Engines nao importam outros Engines"
+type = "independence"
+modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+
+[[tool.importlinter.contracts]]
+name = "O Planet Engine nao conhece Engine algum"
+type = "forbidden"
+source_modules = ["ecosfera_ai.engines.planet"]
+forbidden_modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+
+[[tool.importlinter.contracts]]
+name = "Moldura e Engines nao alcancam infraestrutura nem interfaces"
+type = "forbidden"
+source_modules = ["ecosfera_ai.shared_kernel", "ecosfera_ai.engines"]
+forbidden_modules = ["ecosfera_ai.infrastructure", "ecosfera_ai.interfaces"]
+
+[[tool.importlinter.contracts]]
+name = "A moldura comum nao depende de nenhum Engine"
+type = "forbidden"
+source_modules = ["ecosfera_ai.shared_kernel"]
+forbidden_modules = ["ecosfera_ai.engines"]
+
+[[tool.importlinter.contracts]]
+name = "Camadas hexagonais do servico"
+type = "layers"
+layers = [
+    "ecosfera_ai.interfaces",
+    "ecosfera_ai.infrastructure",
+    "ecosfera_ai.application",
+    "ecosfera_ai.domain",
+]

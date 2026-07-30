@@ -1,4 +1,4 @@
-.PHONY: help install run test cov lint fmt fmt-check type check ci test-all up down
+.PHONY: help install run test cov lint fmt fmt-check type imports check ci test-all up down
 
 # Gate rápido do dia a dia:  make check   (não depende de Docker)
 # Gate completo (como o CI):  make ci      (sobe extra infra + roda integração e cobertura)
@@ -33,13 +33,16 @@ fmt-check:  ## Verifica formatação sem alterar arquivos (falha se algo estiver
 type:  ## Mypy strict
 	uv run mypy
 
-check: lint fmt-check type test  ## Gate local rápido (sem integração; não exige Docker)
+imports:  ## Fronteiras da moldura de Engines (import-linter, ADR-ARCH-0001)
+	uv run lint-imports
+
+check: lint fmt-check type imports test  ## Gate local rápido (sem integração; não exige Docker)
 
 test-all:  ## Sincroniza extra infra + roda a suíte COMPLETA com cobertura (exige Docker)
 	uv sync --extra infra --group dev
 	uv run pytest --cov=ecosfera_ai --cov-report=term-missing
 
-ci: lint fmt-check type test-all  ## Gate completo, como o CI roda (inclui integração)
+ci: lint fmt-check type imports test-all  ## Gate completo, como o CI roda (inclui integração)
 
 up:  ## Sobe infra local (compose)
 	docker compose -f infra/compose/dev.yml --env-file infra/compose/.env up -d
