@@ -63,11 +63,53 @@ deriva sua semente de (semente do planeta, era), então o replay reconstrói o
 mesmo códex e as mesmas populações. As explicações causais dos resultados
 biológicos saem do **motor de regras** de sempre — sem LLM, que só chega no Inc 6.
 
+## Moldura de Engines (M0)
+A arquitetura de Engines do Dossiê v3 §10.4 (ADR-ARCH-0001) está sendo adotada de
+dentro para fora. O **M0 entrega a moldura** — os contratos comuns a todo Engine
+— sem criar Engine científico algum (isso é M1+).
+
+```
+shared_kernel/     world-state e deltas (§3), envelope de evento (§4), porta
+                   Engine + contexto de tick (§5.2), RNG semeado, contrato de
+                   observabilidade (§6), replay (§7)
+engines/planet/    Planet Engine — o TickOrchestrator promovido a orquestrador
+engines/noop/      Engine trivial que prova a moldura (critério do M0, §8)
+engines/legacy/    adaptador TRANSITÓRIO do núcleo determinístico atual
+```
+
+**Dois canais**, nunca misturados: world-state + deltas por tick (Canal A,
+acoplamento físico contínuo) e domain events append-only (Canal B, ocorrências
+notáveis). Consumidores assinam **apenas** o Canal B.
+
+**O loop é síncrono; a borda de I/O é assíncrona** (ADR 0008). A fronteira
+síncrono/assíncrono é a mesma fronteira determinístico/observável — `async` no
+loop traria a ordem de escalonamento como variável oculta e o replay bit-a-bit
+deixaria de valer.
+
+**A observabilidade é lateral e nunca realimenta a simulação** (ADR 0009): o sink
+é acionado depois de o tick estar composto e fechado, e estourar o orçamento por
+tick emite um `DiagnosticEvent` sem alterar um bit do resultado.
+
+| Variável | Valores | Efeito |
+| --- | --- | --- |
+| `ECOSFERA_ENGINES_FRAMEWORK` | `off` (default) / `on` | roda o tick pelo Planet Engine |
+| `ECOSFERA_TRACING_ENABLED` | `false` (default) / `true` | spans da moldura (OTel adiado) |
+
+Com a flag ligada o resultado é **idêntico bit a bit** — o adaptador legado é o
+mesmo código de sempre atravessando a moldura
+(`tests/integration/test_legacy_adapter_parity.py`).
+
+```bash
+uv run lint-imports    # fronteiras: Engine não importa Engine (5 contratos)
+ECOSFERA_ENGINES_FRAMEWORK=on make run
+```
+
 ## Rodar
 ```bash
 uv sync            # cria .venv e instala deps (modo inmemory, sem banco)
 make run           # API em http://localhost:8000/docs
-make check         # lint + mypy + testes (espelha o CI)
+make check         # lint + fmt + mypy + import-linter + testes
+make imports       # só as fronteiras da moldura de Engines
 docker compose up  # infra local (postgres+pgvector, mongo, redis)
 ```
 
@@ -117,9 +159,11 @@ As migrations do serviço vivem numa **única árvore** (`migrations/`) cobrindo
 schemas `rag` (Inc 6) e `simulation`. Os testes de integração da persistência real
 usam Testcontainers e são **pulados automaticamente** quando não há Docker.
 
-## Estrutura (hexagonal — ADR 0001)
+## Estrutura (hexagonal — ADR 0001 — + moldura de Engines — ADR 0008)
 ```
 domain/            regra pura (motor de regras causais, modelos de telemetria)
+shared_kernel/     moldura comum a todo Engine (world-state, eventos, replay, sink)
+engines/           camada de Simulação: planet/ (orquestrador), noop/, legacy/
 simulation_engine/ núcleo determinístico (estado, subsistemas, tick, timeline/replay)
   biology/         camada EMERGENTE: genoma, aptidão, evolução (AG), ecologia (ABM), códex
 application/       casos de uso + portas (Protocols)
@@ -128,5 +172,20 @@ interfaces/        adaptadores de entrada (HTTP v1) + composition root
 configs/           regras causais e parâmetros de simulação versionados (dados)
 migrations/        Alembic — uma árvore para os schemas `rag` e `simulation`
 ```
+`engines/` e `simulation_engine/` convivem durante a migração: o segundo é a
+física já validada, o primeiro é a moldura que a receberá Engine a Engine
+(M1/M2). `platform/` e `consumers/` da Spec §1 nascem no M5/M6.
+
 Pastas `rag/ embeddings/ agents/ evaluation/ models/ pipelines/` estão vazias por
 design — cada uma é ativada em seu incremento (ver ROADMAP e ADR 0002).
+
+## Decisões arquiteturais
+Duas séries, separadas por escopo (ADR-ARCH-0001, sem fusão):
+
+| Série | Onde | Cobre |
+| --- | --- | --- |
+| projeto | `docs/architecture/adr/ADR-ARCH-*.md` | decisões transversais entre Engines/serviços |
+| serviço | `docs/adr/000N-*.md` | decisões internas a este serviço (0001…0009) |
+
+A especificação da moldura vive em
+`docs/architecture/ECOSFERA_Engine_Framework_Spec.md`.
