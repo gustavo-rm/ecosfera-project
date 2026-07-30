@@ -16,7 +16,15 @@ from ecosfera_ai.application.ports.job_queue import JobRef, JobResult, JobStatus
 if TYPE_CHECKING:  # pragma: no cover - só para tipagem
     from arq.connections import ArqRedis, RedisSettings
 
-# Tradução dos estados do ARQ para o vocabulário da porta.
+# Tradução dos estados do ARQ para o vocabulário da porta, indexada pelo VALOR
+# do enum do ARQ.
+#
+# `arq.jobs.JobStatus` é um `class JobStatus(str, Enum)`, não um `StrEnum`:
+# `str(JobStatus.queued)` devolve "JobStatus.queued", e não "queued". Consultar
+# este mapa com `str(...)` erra TODAS as chaves e faz `get_status` responder
+# sempre `None` — o defeito que o primeiro teste com Redis real expôs. Use
+# sempre `.value`; `test_arq_status_mapping.py` fixa o contrato sem exigir
+# Docker, para que a regressão apareça na suíte comum.
 _ARQ_STATUS = {
     "deferred": JobStatus.PENDING,
     "queued": JobStatus.PENDING,
@@ -59,7 +67,7 @@ class ArqJobQueue:
 
         pool = await self._connect()
         job = Job(job_id, pool)
-        status = _ARQ_STATUS.get(str(await job.status()), JobStatus.UNKNOWN)
+        status = _ARQ_STATUS.get(str((await job.status()).value), JobStatus.UNKNOWN)
         if status is JobStatus.UNKNOWN:
             return None
 

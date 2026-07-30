@@ -44,13 +44,15 @@ def redis_dsn() -> Iterator[str]:
 @pytest.mark.asyncio
 async def test_enqueue_and_worker_complete_the_job(redis_dsn: str) -> None:
     from arq import Worker
+    from arq.worker import func
 
     from ecosfera_ai.application.ports.job_queue import JobStatus
+    from ecosfera_ai.application.simulation.advance_era import JOB_RUN_EVOLUTION
     from ecosfera_ai.infrastructure.jobs.arq_job_queue import ArqJobQueue, redis_settings
 
     executed: list[dict[str, Any]] = []
 
-    async def run_evolution(ctx: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    async def handler(ctx: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
         """Substitui o corpo real: aqui o que se testa é o TRANSPORTE do job."""
         executed.append(payload)
         return {
@@ -61,9 +63,15 @@ async def test_enqueue_and_worker_complete_the_job(redis_dsn: str) -> None:
             "generations": 3,
         }
 
+    # `name=` é obrigatório: sem ele o ARQ registra a função pelo `__qualname__`,
+    # que numa função aninhada vira "test_....<locals>.handler" — e o worker
+    # nunca encontraria o job enfileirado. O worker de produção não precisa
+    # disso porque declara `run_evolution` no nível do módulo.
+    registered = func(handler, name=JOB_RUN_EVOLUTION)
+
     queue = ArqJobQueue(redis_dsn)
-    ref = await queue.enqueue("run_evolution", {"planet_id": "arq-planet", "era": 2})
-    assert ref.job_name == "run_evolution"
+    ref = await queue.enqueue(JOB_RUN_EVOLUTION, {"planet_id": "arq-planet", "era": 2})
+    assert ref.job_name == JOB_RUN_EVOLUTION
 
     # Estado antes de o worker rodar: pendente, ainda sem resultado.
     pending = await queue.get_status(ref.job_id)
@@ -71,7 +79,7 @@ async def test_enqueue_and_worker_complete_the_job(redis_dsn: str) -> None:
     assert pending.status in (JobStatus.PENDING, JobStatus.RUNNING)
 
     worker = Worker(
-        functions=[run_evolution],
+        functions=[registered],
         redis_settings=redis_settings(redis_dsn),
         burst=True,  # processa a fila e encerra
         poll_delay=0.01,
