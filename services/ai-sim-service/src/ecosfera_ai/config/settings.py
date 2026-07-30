@@ -41,6 +41,14 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://ecosfera:ecosfera@localhost:5432/ecosfera"
     )
 
+    # Moldura de Engines (M0). Desligada por padrão: com ela ligada o tick roda
+    # pelo Planet Engine em vez do TickOrchestrator direto. O resultado é o
+    # mesmo bit a bit (ADR 0008) — a flag existe para permitir rollback imediato
+    # enquanto os Engines científicos de M1/M2 não estabilizarem.
+    engines_framework: bool = Field(default=False)
+    # Spans de tracing da moldura (Pilar 4). No-op enquanto desligado.
+    tracing_enabled: bool = Field(default=False)
+
     # Ativação de features por incremento (feature flags — TBD/rollout gradual)
     llm_enabled: bool = Field(default=False)  # ligado no Inc 6
     ollama_base_url: str = Field(default="http://localhost:11434")

@@ -13,8 +13,8 @@ from dataclasses import dataclass
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
 from ecosfera_ai.domain.feedback.models import CausalExplanation
-from ecosfera_ai.simulation_engine.orchestrator import TickOrchestrator
 from ecosfera_ai.simulation_engine.state import PlanetState, StateDelta
+from ecosfera_ai.simulation_engine.ticker import Ticker
 
 
 class PlanetNotFoundError(Exception):
@@ -34,7 +34,7 @@ class RunTickUseCase:
     def __init__(
         self,
         repo: PlanetRepository,
-        orchestrator: TickOrchestrator,
+        orchestrator: Ticker,
         explain: ExplainCausalUseCase,
     ) -> None:
         self._repo = repo

@@ -148,3 +148,15 @@ ecology:
   min_viable_population: 0.001 # abaixo disto a população colapsa
   max_agents: 24               # teto de populações simuladas (custo)
   max_steps: 50                # teto absoluto de passos por era (custo)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MOLDURA DE ENGINES (M0) — orçamento por tick (Spec §6, ADR-ARCH-0002).
+# Estourar um teto emite um DiagnosticEvent no Canal B e NÃO altera o resultado
+# da simulação: reagir ao tempo de execução faria a trajetória depender da carga
+# da máquina, e o replay bit-a-bit morreria com isso.
+# ─────────────────────────────────────────────────────────────────────────────
+engines:
+  budget:
+    max_duration_s: 0.25   # teto de tempo de um tick de um Engine
+    max_events: 500        # teto de domain events por Engine por tick
+    max_entities: 50000    # teto de células/coortes processadas por tick

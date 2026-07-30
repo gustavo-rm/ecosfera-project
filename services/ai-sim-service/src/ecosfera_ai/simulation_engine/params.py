@@ -9,12 +9,13 @@ a fábrica que compõe os dados no `TickOrchestrator` (padrão Strategy).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from ecosfera_ai.shared_kernel.engine import TickBudget
 from ecosfera_ai.simulation_engine.biology.ecology import EcologyParams
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionParams
 from ecosfera_ai.simulation_engine.biology.fitness import FitnessParams
@@ -76,6 +77,9 @@ class SimulationParams:
     fitness: FitnessParams
     evolution: EvolutionParams
     ecology: EcologyParams
+    # Moldura de Engines (M0). Leitura TOLERANTE: um YAML anterior a esta seção
+    # continua carregando, com o orçamento padrão do `TickBudget`.
+    engine_budget: TickBudget = field(default_factory=TickBudget)
 
 
 def load_params(path: Path) -> SimulationParams:
@@ -125,6 +129,18 @@ def load_params(path: Path) -> SimulationParams:
         fitness=FitnessParams(**_floats(raw["fitness"])),
         evolution=EvolutionParams(**_evolution_fields(raw["evolution"])),
         ecology=EcologyParams(**_ecology_fields(raw["ecology"])),
+        engine_budget=_engine_budget(raw.get("engines", {})),
+    )
+
+
+def _engine_budget(raw: dict[str, Any]) -> TickBudget:
+    """Lê o orçamento por tick da moldura, caindo no padrão quando ausente."""
+    budget = raw.get("budget", {})
+    default = TickBudget()
+    return TickBudget(
+        max_duration_s=float(budget.get("max_duration_s", default.max_duration_s)),
+        max_events=int(budget.get("max_events", default.max_events)),
+        max_entities=int(budget.get("max_entities", default.max_entities)),
     )
 
 

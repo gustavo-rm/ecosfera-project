@@ -20,8 +20,8 @@ from ecosfera_ai.application.ports.planet_repo import PlanetRepository
 from ecosfera_ai.application.simulation.evolve_biology import BiologySummary
 from ecosfera_ai.application.simulation.run_tick import PlanetNotFoundError
 from ecosfera_ai.domain.feedback.models import CausalExplanation, Observation
-from ecosfera_ai.simulation_engine.orchestrator import TickOrchestrator
 from ecosfera_ai.simulation_engine.state import PlanetState, StateDelta
+from ecosfera_ai.simulation_engine.ticker import Ticker
 from ecosfera_ai.simulation_engine.timeline import (
     EraCheckpoint,
     EventLogEntry,
@@ -59,7 +59,7 @@ class AdvanceEraUseCase:
     def __init__(
         self,
         repo: PlanetRepository,
-        orchestrator: TickOrchestrator,
+        orchestrator: Ticker,
         explain: ExplainCausalUseCase,
         era_length: int,
         jobs: JobQueue | None = None,

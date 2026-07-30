@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
 from ecosfera_ai.application.simulation.evolve_biology import EvolveBiologyUseCase
 from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord
-from ecosfera_ai.simulation_engine.orchestrator import TickOrchestrator
 from ecosfera_ai.simulation_engine.state import PlanetState
+from ecosfera_ai.simulation_engine.ticker import Ticker
 from ecosfera_ai.simulation_engine.timeline import replay
 
 
@@ -40,7 +40,7 @@ class ReplayStateUseCase:
     def __init__(
         self,
         repo: PlanetRepository,
-        orchestrator: TickOrchestrator,
+        orchestrator: Ticker,
         biology: EvolveBiologyUseCase | None = None,
     ) -> None:
         self._repo = repo
