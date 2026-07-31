@@ -1,0 +1,26 @@
+# Geology Engine — parâmetros científicos versionados (Spec §5.1).
+#
+# Herdados do subsystem `geology` do núcleo determinístico SEM recalibração, mais
+# o termo de desgaseificação que veio do `chemistry` (ADR 0010: o carbono passa a
+# ter um dono só, e a FONTE é a geologia).
+version: 1
+
+tectonic_activity: 0.05    # desvio-padrão dos pulsos tectônicos (RNG semeado)
+volcanism_baseline: 1.0    # nível de vulcanismo de repouso
+volcanism_decay: 0.10      # relaxação do vulcanismo para a linha de base
+uplift_coeff: 0.004        # soerguimento do relevo por unidade de vulcanismo
+erosion_coeff: 0.010       # desgaste do relevo por unidade de água × relevo
+
+# Desgaseificação: fluxo de CO2 entregue à atmosfera por tick, em ppm.
+# Era `chemistry.outgassing` × (1 + `chemistry.volcanism_sensitivity` × vulcanismo).
+outgassing_base: 1.5
+volcanism_sensitivity: 0.5
+
+# O vulcanismo estabiliza em ~1.4 (relaxação × pulso médio). O limiar acima disso
+# faz da erupção um evento NOTÁVEL, não o ruído de todo tick — se toda a série
+# virasse evento, o Event Store deixaria de ser trilha e viraria log de debug.
+eruption_threshold: 1.5
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50
