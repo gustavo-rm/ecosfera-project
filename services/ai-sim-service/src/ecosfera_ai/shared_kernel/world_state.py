@@ -76,16 +76,28 @@ class AstronomySlice:
 
 @dataclass(frozen=True, slots=True)
 class GeologySlice:
-    """Relevo e atividade vulcânica."""
+    """Relevo, atividade vulcânica e o fluxo de CO2 desgaseificado.
+
+    `co2_flux` é a saída do Geology Engine para a atmosfera. Publicá-lo aqui, e
+    não escrever direto na `AtmosphereSlice`, é o que mantém a seta
+    vulcanismo->CO2 cruzando a fronteira SOMENTE pelo Canal A (Spec §2).
+    """
 
     relief: float = 0.0
     volcanism: float = 0.0
+    co2_flux: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
 class AtmosphereSlice:
-    """Composição e massa atmosférica (assumida pelo Atmosphere Engine em M1)."""
+    """Composição atmosférica e forçamento radiativo (Atmosphere Engine, M1).
 
+    `co2` é o ESTOQUE — dono único desde o M1. O ciclo do carbono inteiro
+    (desgaseificação, intemperismo e absorção biótica) vive no Atmosphere
+    Engine; o `chemistry` legado deixou de escrever carbono (ADR 0010).
+    """
+
+    co2: float = 0.0
     pressure: float = 0.0
     oxygen: float = 0.0
     greenhouse_forcing: float = 0.0
@@ -93,7 +105,12 @@ class AtmosphereSlice:
 
 @dataclass(frozen=True, slots=True)
 class ClimateSlice:
-    """Temperatura média, criosfera e balanço de energia absorvida."""
+    """Temperatura média, criosfera e balanço de energia absorvida.
+
+    No M1 o Climate Engine é dono de `temperature` e `energy`. `ice_cover`
+    continua com o ciclo água/gelo do `chemistry` legado e migra no M2, junto
+    com a hidrologia — por isso o Climate LÊ o gelo da fatia legada.
+    """
 
     temperature: float = 0.0
     ice_cover: float = 0.0
@@ -135,26 +152,26 @@ class BiotaSlice:
 
 @dataclass(frozen=True, slots=True)
 class LegacySlice:
-    """Espelho do `PlanetState` do núcleo determinístico atual (transitória).
+    """O que ainda NÃO tem Engine dono (transitória, encolhendo a cada marco).
 
-    Existe para que o núcleo já validado atravesse a moldura sem ter sua física
-    alterada. Cada campo migra para a fatia de domínio correspondente quando o
-    Engine dono for construído (M1/M2), e esta fatia desaparece.
+    O M1 tirou daqui `temperature`/`energy` (Climate), `co2` (Atmosphere) e
+    `relief`/`volcanism` (Geology). Tirá-los do TIPO, e não só parar de
+    escrevê-los, é o que torna a dupla autoria impossível por construção:
+    `apply_delta` rejeita campo inexistente, então um delta legado que tentasse
+    mexer em temperatura falharia no ato, em vez de divergir em silêncio.
+
+    Restam a hidrologia (água, gelo, salinidade, circulação), a astronomia
+    (órbita e irradiância) e a biomassa. Migram no M2/M3, e a fatia desaparece.
     """
 
-    temperature: float = 0.0
-    co2: float = 0.0
     water: float = 0.0
     ice_cover: float = 0.0
     biomass: float = 0.0
-    energy: float = 0.0
     orbital_x: float = 0.0
     orbital_y: float = 0.0
     orbital_vx: float = 0.0
     orbital_vy: float = 0.0
     solar_flux: float = 0.0
-    relief: float = 0.0
-    volcanism: float = 0.0
     salinity: float = 0.0
     ocean_circulation: float = 0.0
 
@@ -201,6 +218,25 @@ class WorldStateSnapshot:
     resource: ResourceSlice = ResourceSlice()
     biota: BiotaSlice = BiotaSlice()
     legacy: LegacySlice = LegacySlice()
+    # Proveniência causal: para cada fatia, os eventos que produziram o valor
+    # corrente dela. Vive AQUI, e não em atributo do Planet Engine, por uma razão
+    # de pureza: guardá-la fora do snapshot tornaria `tick()` dependente de
+    # chamadas anteriores, e o replay deixaria de ser função da semente. Como é
+    # derivada de um fluxo de eventos determinístico, ela é reproduzida idêntica
+    # — e é o que permite encadear `causation_id` ENTRE ticks (uma erupção no
+    # tick 12 explicando o forçamento que cruza o patamar no tick 40).
+    provenance: Mapping[SliceRef, tuple[str, ...]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "provenance", MappingProxyType(dict(self.provenance)))
+
+    def with_provenance(self, updates: Mapping[SliceRef, tuple[str, ...]]) -> WorldStateSnapshot:
+        """Novo snapshot com a proveniência das fatias tocadas atualizada."""
+        if not updates:
+            return self
+        merged = dict(self.provenance)
+        merged.update(updates)
+        return replace(self, provenance=merged)
 
     def slice_of(self, ref: SliceRef) -> Any:
         """Lê uma fatia pelo seu identificador (acesso somente leitura)."""
