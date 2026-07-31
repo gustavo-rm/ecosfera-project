@@ -6,6 +6,11 @@ from functools import lru_cache
 from typing import Any
 
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
+from ecosfera_ai.application.feedback.explain_from_events import (
+    EventTranslation,
+    ExplainFromEventsUseCase,
+    load_translation,
+)
 from ecosfera_ai.application.ports.job_queue import JobQueue
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
 from ecosfera_ai.application.simulation.advance_era import JOB_RUN_EVOLUTION, AdvanceEraUseCase
@@ -17,6 +22,9 @@ from ecosfera_ai.application.telemetry.ingest_event import IngestTelemetryUseCas
 from ecosfera_ai.config.settings import get_settings
 from ecosfera_ai.core.observability import biology_jobs
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
+from ecosfera_ai.engines.atmosphere.observability import AtmosphereMetricsSink
+from ecosfera_ai.engines.climate.observability import ClimateMetricsSink
+from ecosfera_ai.engines.geology.observability import GeologyMetricsSink
 from ecosfera_ai.engines.legacy.orchestrator import (
     FrameworkTickOrchestrator,
     build_planet_engine,
@@ -84,29 +92,54 @@ def get_event_store() -> InMemoryEventStore:
 
 @lru_cache
 def get_observability_sink() -> ObservabilitySink:
-    """Compõe os pilares: Event Store + métricas Prometheus + logs estruturados."""
+    """Compõe os pilares: Event Store + métricas + logs + contadores de domínio.
+
+    Os sinks por Engine (§5.1) entram AQUI, não dentro dos Engines: eles são
+    chamados depois do tick, o que é o que mantém a medição fora do caminho
+    determinístico (ADR-ARCH-0002).
+    """
     configure_tracing(enabled=get_settings().tracing_enabled)
-    return CompositeSink([get_event_store(), PrometheusMetricsSink(), StructlogSink()])
+    return CompositeSink(
+        [
+            get_event_store(),
+            PrometheusMetricsSink(),
+            StructlogSink(),
+            GeologyMetricsSink(),
+            AtmosphereMetricsSink(),
+            ClimateMetricsSink(),
+        ]
+    )
 
 
 @lru_cache
 def get_orchestrator() -> Ticker:
-    """Escolhe entre o tick direto e o tick pela moldura de Engines (M0).
+    """Caminho de simulação: a moldura de Engines por padrão desde o M1.
 
-    As duas rotas produzem o MESMO estado para a mesma semente — o que muda é
-    quem orquestra e se o Canal B é alimentado. A flag existe para rollback
-    imediato enquanto os Engines científicos não estabilizarem (ADR 0008).
+    Desligar a flag NÃO é um modo equivalente: volta ao TickOrchestrator
+    monolítico, com o efeito estufa linear e o carbono no `chemistry`. As duas
+    trajetórias divergem por construção — a moldura roda a ciência corrigida
+    (ADR 0010/0011). A flag existe como rollback de emergência.
     """
     params = get_simulation_params()
-    legacy = build_orchestrator(params)
     if not get_settings().engines_framework:
-        return legacy
+        return build_orchestrator(params)
     planet = build_planet_engine(
-        legacy,
+        params,
         budget=params.engine_budget,
         sink=get_observability_sink(),
     )
-    return FrameworkTickOrchestrator(legacy, planet)
+    return FrameworkTickOrchestrator(planet, params.bounds)
+
+
+@lru_cache
+def get_event_translation() -> EventTranslation:
+    """Tabela versionada evento -> observação (dados, não código)."""
+    return load_translation(get_settings().event_observations_path)
+
+
+def get_explain_from_events_use_case() -> ExplainFromEventsUseCase:
+    """Tutor embrionário: narra a cadeia a partir do Event Store, sem LLM."""
+    return ExplainFromEventsUseCase(get_explain_use_case(), get_event_translation())
 
 
 @lru_cache
@@ -192,9 +225,20 @@ def get_advance_era_use_case() -> AdvanceEraUseCase:
     )
 
 
+@lru_cache
+def get_replay_orchestrator() -> Ticker:
+    """Motor da reconstrução: mesmo cálculo, SEM publicar no Canal B.
+
+    Reconstruir uma era não é um novo acontecimento — reemitir duplicaria a
+    trilha do Event Store a cada consulta (ADR 0011).
+    """
+    ticker = get_orchestrator()
+    return ticker.for_replay() if isinstance(ticker, FrameworkTickOrchestrator) else ticker
+
+
 def get_replay_state_use_case() -> ReplayStateUseCase:
     return ReplayStateUseCase(
         get_planet_repo(),
-        get_orchestrator(),
+        get_replay_orchestrator(),
         get_evolve_biology_use_case() if get_settings().biology_enabled else None,
     )

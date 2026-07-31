@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Parâmetros do núcleo de simulação determinístico (dados, não código)
     simulation_params_path: Path = Field(default=Path("configs/simulation_params.yaml"))
 
+    # Tradução de Domain Events em observações para o motor de regras (ADR 0011)
+    event_observations_path: Path = Field(default=Path("configs/event_observations.yaml"))
+
     # Backend de persistência do planeta: 'inmemory' (default — testes e dev sem
     # banco) ou 'postgres' (staging/prod). Trocar a flag troca só o adaptador da
     # porta PlanetRepository; nenhuma camada acima muda (ADR 0001/0005).
@@ -41,11 +44,12 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://ecosfera:ecosfera@localhost:5432/ecosfera"
     )
 
-    # Moldura de Engines (M0). Desligada por padrão: com ela ligada o tick roda
-    # pelo Planet Engine em vez do TickOrchestrator direto. O resultado é o
-    # mesmo bit a bit (ADR 0008) — a flag existe para permitir rollback imediato
-    # enquanto os Engines científicos de M1/M2 não estabilizarem.
-    engines_framework: bool = Field(default=False)
+    # Moldura de Engines. LIGADA por padrão desde o M1 (ADR 0011): o caminho de
+    # simulação de produção é a moldura, com Geology/Atmosphere/Climate como
+    # Engines de verdade. Desligar volta ao TickOrchestrator monolítico, que
+    # roda a ciência ANTERIOR ao M1 — é rollback de emergência, não um modo
+    # equivalente: as duas trajetórias divergem por construção (ADR 0010).
+    engines_framework: bool = Field(default=True)
     # Spans de tracing da moldura (Pilar 4). No-op enquanto desligado.
     tracing_enabled: bool = Field(default=False)
 
