@@ -34,16 +34,20 @@ de feedback causal existente (que **explica** o delta) — mesmo contrato de
 motor a partir do checkpoint anterior e responde `matches_checkpoint`, indicando se a
 reconstrução bateu com o estado gravado na época.
 
-### Subsistemas do tick
-Estratégias plugáveis, rodadas nesta ordem de acoplamento (ADR 0004):
+### Ordem do tick
+Desde o M1 o tick roda pela moldura de Engines, nesta ordem de acoplamento
+(ADR 0010/0011):
 
 ```
-physics -> chemistry -> climate -> geology -> ocean -> life
+geology -> atmosphere -> climate -> legacy_planet
 ```
-`physics` integra a órbita por **velocity Verlet** (simplético: a energia orbital
-não deriva) e entrega a irradiância; `geology` mantém o vulcanismo que alimenta a
-desgaseificação; `ocean` fecha o ciclo da água, dilui/concentra a salinidade e
-sequestra calor da superfície.
+`legacy_planet` embrulha o que ainda não migrou: `physics` (órbita por **velocity
+Verlet** — simplético, a energia orbital não deriva), o ciclo água/gelo do
+`chemistry`, o `ocean` (salinidade e circulação) e o `life`.
+
+A ordem anterior (`physics -> chemistry -> climate -> geology -> ocean -> life`,
+ADR 0004) continua valendo **dentro** do adaptador legado e no caminho de
+rollback.
 
 ### Camada emergente — biologia (Inc 3)
 Evolução (**AG/DEAP**) e ecologia (**ABM/Mesa**) vivem em
@@ -63,19 +67,48 @@ deriva sua semente de (semente do planeta, era), então o replay reconstrói o
 mesmo códex e as mesmas populações. As explicações causais dos resultados
 biológicos saem do **motor de regras** de sempre — sem LLM, que só chega no Inc 6.
 
-## Moldura de Engines (M0)
-A arquitetura de Engines do Dossiê v3 §10.4 (ADR-ARCH-0001) está sendo adotada de
-dentro para fora. O **M0 entrega a moldura** — os contratos comuns a todo Engine
-— sem criar Engine científico algum (isso é M1+).
+## Moldura de Engines (M0) e a fatia vertical (M1)
+A arquitetura de Engines do Dossiê v3 §10.4 (ADR-ARCH-0001) foi adotada de dentro
+para fora. O M0 entregou a moldura; o **M1 entregou os três primeiros Engines
+científicos** e o primeiro feedback físico real, e promoveu a moldura a caminho
+principal (ADR 0011).
 
 ```
-shared_kernel/     world-state e deltas (§3), envelope de evento (§4), porta
-                   Engine + contexto de tick (§5.2), RNG semeado, contrato de
-                   observabilidade (§6), replay (§7)
-engines/planet/    Planet Engine — o TickOrchestrator promovido a orquestrador
-engines/noop/      Engine trivial que prova a moldura (critério do M0, §8)
-engines/legacy/    adaptador TRANSITÓRIO do núcleo determinístico atual
+shared_kernel/       world-state e deltas (§3), envelope de evento (§4), porta
+                     Engine + contexto de tick (§5.2), RNG semeado, contrato de
+                     observabilidade (§6), replay (§7)
+engines/planet/      Planet Engine — o TickOrchestrator promovido a orquestrador
+engines/geology/     vulcanismo, relevo e a FONTE de carbono            (M1)
+engines/atmosphere/  estoque de CO2 e forçamento radiativo logarítmico  (M1)
+engines/climate/     temperatura a partir do forçamento                 (M1)
+engines/noop/        Engine trivial que prova a moldura (critério do M0, §8)
+engines/legacy/      adaptador TRANSITÓRIO do que ainda não migrou
 ```
+
+### O feedback físico modelado (M1)
+```
+vulcanismo (geology) → +CO2 (atmosphere) → +forçamento (atmosphere) → +temperatura (climate)
+```
+Cada seta cruza fronteira de Engine **somente pelo world-state**. Nenhum Engine
+importa outro nem lê seu estado interno — verificado por teste e por
+`import-linter`. O aquecimento não está programado em lugar nenhum: **emerge** da
+composição, e é isso que `tests/integration/test_geo_atmo_climate_feedback.py`
+verifica.
+
+Ciência de referência (detalhada no README de cada Engine):
+
+| Fenômeno | Formulação | Referência |
+| --- | --- | --- |
+| Fonte de CO2 | desgaseificação ∝ vulcanismo | Walker, Hays & Kasting (1981) |
+| Termostato | intemperismo ∝ estoque | Walker, Hays & Kasting (1981) |
+| Forçamento | ΔF = 5,35·ln(C/C₀) | Myhre et al. (1998) |
+| Temperatura | balanço de energia de caixa única | Budyko (1969); Sellers (1969) |
+
+O forçamento **logarítmico** substituiu a relação linear do núcleo antigo: as
+bandas de absorção do CO2 saturam, então cada duplicação acrescenta o mesmo
+forçamento, não o dobro. Consequência assumida: **as trajetórias do caminho novo
+e do legado divergem por construção** — exigir paridade bit-a-bit seria exigir
+que a ciência não melhorasse (ADR 0010).
 
 **Dois canais**, nunca misturados: world-state + deltas por tick (Canal A,
 acoplamento físico contínuo) e domain events append-only (Canal B, ocorrências
@@ -92,16 +125,22 @@ tick emite um `DiagnosticEvent` sem alterar um bit do resultado.
 
 | Variável | Valores | Efeito |
 | --- | --- | --- |
-| `ECOSFERA_ENGINES_FRAMEWORK` | `off` (default) / `on` | roda o tick pelo Planet Engine |
+| `ECOSFERA_ENGINES_FRAMEWORK` | **`on` (default)** / `off` | tick pela moldura de Engines |
 | `ECOSFERA_TRACING_ENABLED` | `false` (default) / `true` | spans da moldura (OTel adiado) |
 
-Com a flag ligada o resultado é **idêntico bit a bit** — o adaptador legado é o
-mesmo código de sempre atravessando a moldura
-(`tests/integration/test_legacy_adapter_parity.py`).
+Desligar a flag é **rollback de emergência**, não um modo equivalente: volta ao
+`TickOrchestrator` monolítico, com o efeito estufa linear e o carbono no
+`chemistry`.
+
+### O que ainda roda pelo LegacyAdapter
+`physics`, o ciclo água/gelo do `chemistry`, o `ocean` (sem o sequestro de calor,
+que foi para o Climate) e o `life`. Migram no M2/M3, quando a `LegacySlice`
+desaparece. `geology` e `climate` **saíram** do adaptador no M1.
 
 ```bash
 uv run lint-imports    # fronteiras: Engine não importa Engine (5 contratos)
-ECOSFERA_ENGINES_FRAMEWORK=on make run
+make run               # já sobe pela moldura
+ECOSFERA_ENGINES_FRAMEWORK=off make run   # rollback para a ciência anterior
 ```
 
 ## Rodar
@@ -169,7 +208,8 @@ simulation_engine/ núcleo determinístico (estado, subsistemas, tick, timeline/
 application/       casos de uso + portas (Protocols)
 infrastructure/    adaptadores de saída (persistência, mensageria, filas inline/ARQ, LLM)
 interfaces/        adaptadores de entrada (HTTP v1) + composition root
-configs/           regras causais e parâmetros de simulação versionados (dados)
+configs/           regras causais, parâmetros e tradução evento->observação (dados)
+                   cada Engine tem AINDA o seu params.yaml co-locado (Spec §5.1)
 migrations/        Alembic — uma árvore para os schemas `rag` e `simulation`
 ```
 `engines/` e `simulation_engine/` convivem durante a migração: o segundo é a
