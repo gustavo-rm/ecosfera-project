@@ -1,0 +1,29 @@
+# Tradução de Domain Events (Canal B) em observações para o motor de regras
+# causais — dados versionados, não código (ADR 0002/0011).
+#
+# É aqui que a fronteira do ADR-ARCH-0001 se materializa: o consumidor conhece o
+# VOCABULÁRIO dos eventos (nomes e campos), nunca os módulos dos Engines. Um
+# Engine pode ser reescrito inteiro sem tocar neste arquivo, desde que continue
+# emitindo o mesmo envelope.
+#
+# `delta_from` diz como extrair a magnitude do `cause_detail`:
+#   field    -> usa o valor do campo, com o sinal que ele tiver
+#   minuend/subtrahend -> usa a diferença (travessia de faixa)
+version: 1
+
+mappings:
+  - event_type: VolcanicEruption
+    variable: volcanism
+    delta_from: { field: co2_flux }
+
+  - event_type: GreenhouseForcingChanged
+    variable: co2
+    delta_from: { minuend: band_to, subtrahend: band_from }
+
+  - event_type: TemperatureShift
+    variable: temperature
+    delta_from: { field: change }
+
+  - event_type: ClimateThresholdCrossed
+    variable: temperature
+    delta_from: { minuend: band_to, subtrahend: band_from }
