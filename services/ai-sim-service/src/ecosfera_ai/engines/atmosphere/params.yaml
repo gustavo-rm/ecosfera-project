@@ -1,0 +1,27 @@
+# Atmosphere Engine — parâmetros científicos versionados (Spec §5.1).
+#
+# Este Engine passou a ser o dono ÚNICO do ciclo do carbono (ADR 0010). Os
+# sumidouros vêm do `chemistry` legado sem recalibração; a fonte chega da
+# geologia pelo Canal A.
+version: 1
+
+reference_co2: 280.0        # ppm — nível pré-industrial, referência do forçamento
+weathering_coeff: 0.002     # remoção de CO2 por intemperismo (∝ estoque)
+carbon_uptake_coeff: 0.02   # absorção pela biomassa (fotossíntese)
+
+# Forçamento radiativo: ΔF = α · ln(C/C₀), com α = 5.35 W/m² (Myhre et al. 1998).
+# Substitui a relação LINEAR do subsystem climate (`greenhouse_coeff × CO2`), que
+# não satura: nela dobrar o CO2 dobrava o forçamento. Ver README e ADR 0010.
+forcing_coefficient: 5.35
+
+# Pressão parcial: contribuição do CO2 sobre a pressão de base (normalizada).
+base_pressure: 1.0
+co2_to_pressure: 0.0002
+
+# Faixas de forçamento (W/m²). O evento GreenhouseForcingChanged é emitido quando
+# o forçamento MUDA DE FAIXA — não a cada tick. 3.7 W/m² é ~1 duplicação de CO2.
+forcing_bands: [0.5, 1.85, 3.7, 5.55, 7.4]
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50
