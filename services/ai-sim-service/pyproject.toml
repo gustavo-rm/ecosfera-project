@@ -88,7 +88,10 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC", "C4", "SIM", "RUF", "TID", "PTH"]
-allowed-confusables = ["×"]
+# Notação científica legítima nas docstrings dos Engines (fórmulas de forçamento
+# radiativo, balanço de energia). Trocar α por 'a' ou − por '-' pioraria a
+# documentação de um serviço cujo produto é justamente explicar ciência.
+allowed-confusables = ["×", "−", "·", "α", "λ", "Δ", "₀"]
 
 [tool.ruff.lint.per-file-ignores]
 # Depends(...) como default de parâmetro é idioma do FastAPI, não bug real.

@@ -1,32 +1,21 @@
-"""Adaptador que faz o núcleo determinístico atual atravessar a moldura.
+"""Adaptador do que ainda NÃO virou Engine (hidrologia, astronomia, biomassa).
 
 ## Por que o adaptador embrulha o ORQUESTRADOR, e não cada subsistema
 
-O enunciado do M0 pede embrulhar `climate/chemistry/geology/ocean` "como
-Engines". Ao inspecionar o código, isso se mostrou impossível **sem alterar a
-física** — o que o próprio M0 proíbe. Duas razões concretas:
+`TickOrchestrator.tick` cria UM `Generator` por tick e o passa aos subsistemas em
+sequência: cada um consome sorteios de onde o anterior parou. A moldura,
+corretamente, dá a cada Engine um fluxo independente. Dividir os restantes em um
+Engine cada trocaria todos os sorteios sem nenhum ganho de fronteira — eles
+seguem compartilhando a fatia `LEGACY` até migrarem de vez.
 
-1. **Fluxo de RNG compartilhado.** `TickOrchestrator.tick` cria UM
-   `Generator` por tick (`SeedSequence([seed, tick])`) e o passa aos seis
-   subsistemas em sequência. Cada subsistema consome sorteios de onde o anterior
-   parou. A moldura, corretamente, dá a cada Engine um fluxo independente
-   (`rng_for(seed, engine_id, tick)`). Dividir os seis em seis Engines trocaria
-   todos os sorteios: mesma semente, trajetória diferente.
+## O que mudou no M1
 
-2. **Escrita através das fatias.** `chemistry` escreve `co2` (química),
-   `ice_cover` (clima) e `water` (hidrologia); `ocean` escreve `temperature`,
-   que é do clima. A regra "um Engine, uma fatia" (Spec §3) seria violada por
-   dois dos quatro. Separar exige refatorar a física — que é exatamente o
-   trabalho do M1/M2, não do M0.
-
-Portanto: **um Engine, `legacy_planet`, dono da fatia transitória `LEGACY`**. O
-comportamento é bit-a-bit o de hoje porque é literalmente o mesmo código. Cada
-migração de M1/M2 tira campos da `LegacySlice` e os entrega ao Engine dono, até
-a fatia desaparecer.
-
-O adaptador **ignora `ctx.rng` de propósito** — usá-lo mudaria os números. É a
-única exceção à regra "o Engine usa só o gerador recebido", ela é temporária, e
-morre junto com a `LegacySlice`.
+`geology` e `climate` saíram daqui: viraram Engines de verdade. Os dois
+subsistemas que restaram e cuja ciência foi PARCIALMENTE migrada rodam com os
+termos migrados **zerados nos parâmetros** (ver `orchestrator.reduced_params`),
+não apenas com o resultado descartado. A diferença importa: zerando na origem, o
+estado intermediário que `life` enxerga dentro do tick também fica correto, em
+vez de carregar um carbono fantasma que seria descartado só no fim.
 """
 
 from __future__ import annotations
@@ -43,22 +32,29 @@ LEGACY_ENGINE_ID = "legacy_planet"
 
 @dataclass(slots=True)
 class LegacySubsystemAdapter:
-    """Expõe o `TickOrchestrator` existente como um Engine da moldura."""
+    """Expõe os subsistemas ainda não migrados como um Engine da moldura."""
 
     orchestrator: TickOrchestrator
     engine_id: str = LEGACY_ENGINE_ID
-    reads: frozenset[SliceRef] = frozenset({SliceRef.LEGACY})
+    # Lê tudo o que os subsistemas restantes precisam: a temperatura de verdade
+    # (Climate) para o degelo, o CO2 (Atmosphere) e a geologia para a habitabilidade.
+    reads: frozenset[SliceRef] = frozenset(
+        {SliceRef.LEGACY, SliceRef.GEOLOGY, SliceRef.ATMOSPHERE, SliceRef.CLIMATE}
+    )
     lagged_reads: frozenset[SliceRef] = frozenset()
     writes: SliceRef = SliceRef.LEGACY
 
     @property
     def subsystem_names(self) -> tuple[str, ...]:
-        """Ordem de acoplamento herdada — as sementes dos Engines de M1/M2."""
+        """Quem ainda roda por aqui — encolhe a cada marco."""
         return self.orchestrator.subsystem_names
 
     def tick(self, ctx: TickContext) -> TickResult:
         state = planet_state_of(ctx.snapshot)
         result = self.orchestrator.tick(state)
+        # `difference` percorre apenas os campos da `LegacySlice`. Como
+        # temperatura, CO2, energia, relevo e vulcanismo não existem mais nela,
+        # é estruturalmente impossível este adaptador escrevê-los.
         values = difference(legacy_slice_of(state), legacy_slice_of(result.state))
         return TickResult(
             delta=StateDelta(
@@ -67,9 +63,5 @@ class LegacySubsystemAdapter:
                 writes=self.writes,
                 values=values,
             ),
-            # Sem eventos no M0: traduzir os marcos da timeline para o envelope
-            # §4 exige `cause_code`s científicos, e cada Engine declara os seus ao
-            # ser construído (M1/M2). Inventá-los aqui seria conhecimento de
-            # domínio dentro de um adaptador.
             entities_processed=len(self.orchestrator.subsystem_names),
         )

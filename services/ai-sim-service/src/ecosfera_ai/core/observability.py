@@ -50,6 +50,11 @@ engine_entities_processed = Counter(
     "Entidades (células/coortes/organismos) processadas, por Engine",
     ["engine"],
 )
+engine_domain_events = Counter(
+    "ecosfera_engine_domain_events_total",
+    "Domain events por Engine e por tipo (projeção do Event Store)",
+    ["engine", "event_type"],
+)
 engine_budget_exceeded = Counter(
     "ecosfera_engine_budget_exceeded_total",
     "Tetos de orçamento por tick estourados (gera DiagnosticEvent)",
