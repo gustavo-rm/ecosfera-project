@@ -35,6 +35,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ecosfera_ai.domain.feedback.models import Observation
+from ecosfera_ai.shared_kernel.events import DomainEvent
 from ecosfera_ai.simulation_engine.state import PlanetState, StateBounds, StateDelta
 from ecosfera_ai.simulation_engine.subsystems.base import Subsystem
 
@@ -53,11 +54,20 @@ SUBSYSTEM_ORDER: tuple[str, ...] = (
 
 @dataclass(frozen=True, slots=True)
 class TickResult:
-    """Resultado de um tick: novo estado, delta agregado e observações derivadas."""
+    """Resultado de um tick: novo estado, delta agregado e observações derivadas.
+
+    `events` é o Canal B do tick, e sai VAZIO por aqui: o `TickOrchestrator`
+    legado não emite domain events. Quem o preenche é o
+    `FrameworkTickOrchestrator`, repassando o que os Engines emitiram. É por este
+    campo que o feedback causal chega ao consumidor sem que ele precise vasculhar
+    o Event Store por planeta — os eventos vêm da execução daquele planeta
+    (ADR 0011).
+    """
 
     state: PlanetState
     delta: StateDelta
     observations: list[Observation]
+    events: tuple[DomainEvent, ...] = ()
 
 
 class TickOrchestrator:

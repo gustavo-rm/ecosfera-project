@@ -165,4 +165,8 @@ class FrameworkTickOrchestrator:
             state=new_state,
             delta=new_state.delta_from(state),
             observations=new_state.observe(state),
+            # Canal B do tick, repassado ao consumidor. Só a visão CIENTÍFICA: o
+            # diagnóstico técnico (orçamento, invariante) é do desenvolvedor e
+            # nunca chega ao aluno (ADR-ARCH-0002).
+            events=tuple(e for e in outcome.events if not e.is_diagnostic),
         )

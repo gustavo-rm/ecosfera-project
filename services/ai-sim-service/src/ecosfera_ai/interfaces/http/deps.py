@@ -222,6 +222,11 @@ def get_advance_era_use_case() -> AdvanceEraUseCase:
         biology_enabled=settings.biology_enabled,
         # Só a fila inline resolve na hora; com ARQ a rota responde 202.
         resolves_inline=settings.job_backend != "arq",
+        # Tutor embrionário: a era passa a ser narrada a partir da TRILHA DE
+        # EVENTOS quando ela existe, e não do world-state (ADR 0011). Só faz
+        # sentido com a moldura ligada — o TickOrchestrator legado não emite
+        # domain events.
+        explain_events=(get_explain_from_events_use_case() if settings.engines_framework else None),
     )
 
 

@@ -39,6 +39,20 @@ novos sem quebra — verificado em teste.
 observações para o motor de regras determinístico de sempre. Continua **sem
 LLM** — isso é o M6.
 
+`AdvanceEraUseCase` usa esse caminho em produção: os eventos do tick sobem pelo
+`TickResult` (que o `FrameworkTickOrchestrator` preenche e o orquestrador legado
+deixa vazio, porque não emite eventos) e a era é narrada a partir deles.
+
+**Recuo deliberado.** Quando a era não produz ocorrência notável alguma — o caso
+comum, já que o Canal B registra travessia de patamar e não o contínuo — a
+narração recai sobre o delta agregado. Devolver explicação vazia seria regressão
+pedagógica, e o delta agregado é estado PUBLICADO, não memória interna de Engine:
+o recuo não viola a fronteira do ADR-ARCH-0001.
+
+A resposta traz `narrated_from` (`events` | `state_delta`) como DADO. Sem ele,
+saber qual caminho foi usado exigiria heurística sobre o conteúdo da explicação —
+e auditabilidade por adivinhação não é auditabilidade.
+
 Duas fronteiras deliberadas: o consumidor **não importa nenhum Engine** (conhece
 o vocabulário dos eventos, que vem de `configs/event_observations.yaml`
 versionado, e isso é verificado por teste), e **não escreve prosa científica** —

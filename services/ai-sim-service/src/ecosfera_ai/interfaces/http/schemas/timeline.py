@@ -13,6 +13,16 @@ class EventOut(BaseModel):
     payload: dict[str, float | str] = Field(default_factory=dict)
 
 
+class CausalLinkOut(BaseModel):
+    """Um elo causa->efeito do rastro (projeção do Event Store — ADR 0011)."""
+
+    cause_event: str
+    cause_type: str
+    effect_event: str
+    effect_type: str
+    cause_code: str
+
+
 class AdvanceEraResponse(BaseModel):
     era: int
     start_tick: int
@@ -25,6 +35,12 @@ class AdvanceEraResponse(BaseModel):
     # quando a fila resolve inline (200) e `job` quando é assíncrona (202).
     biology: BiologySummaryOut | None = None
     job: JobRefOut | None = None
+    # Rastro causa->efeito da era, quando ela produziu ocorrências notáveis. É o
+    # "como chegamos aqui" que o Tutor precisa (ADR-ARCH-0002, Pilar 4).
+    causal_trace: list[CausalLinkOut] = Field(default_factory=list)
+    # "events" quando a era foi narrada a partir da trilha do Canal B;
+    # "state_delta" quando não houve ocorrência notável e o recuo foi acionado.
+    narrated_from: str = "state_delta"
 
 
 class EraSummaryOut(BaseModel):
