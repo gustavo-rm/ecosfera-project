@@ -1,7 +1,17 @@
-"""Fluxo HTTP com a biologia emergente ligada (backend de fila inline)."""
+"""Fluxo HTTP com o caminho de biologia POR ERA ligado (fila inline).
+
+Desde o M3 esse caminho está DESLIGADO por padrão (ADR 0017, tempo 1): ele roda o
+AG do DEAP sobre uma função de aptidão escalar, que a DEC-01 proíbe. Estes testes
+o exercitam, então precisam LIGÁ-LO explicitamente — herdar o padrão faria o
+arquivo testar silenciosamente outra coisa no dia em que o padrão mudasse (que é
+exatamente o que acabou de acontecer).
+
+O arquivo inteiro sai no tempo 3, junto com o caminho legado.
+"""
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -13,14 +23,43 @@ from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.ports.job_queue import JobRef, JobResult, JobStatus
 from ecosfera_ai.application.simulation.advance_era import AdvanceEraUseCase
 from ecosfera_ai.application.simulation.create_planet import CreatePlanetUseCase
+from ecosfera_ai.config.settings import get_settings
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
 from ecosfera_ai.infrastructure.persistence.inmemory_planet_repo import InMemoryPlanetRepository
+from ecosfera_ai.interfaces.http import deps
+from ecosfera_ai.main import create_app
 from ecosfera_ai.simulation_engine.params import load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
 
 BASE = "/ai/api/v1/simulation"
+
+
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """Cliente com o caminho de biologia por era LIGADO, explicitamente.
+
+    Sobrescreve a fixture global do `conftest`. As caches de composição são
+    limpas antes e depois: `get_settings` e os provedores de `deps` são
+    `lru_cache`, e um cliente montado com a flag desligada continuaria valendo
+    para os testes seguintes.
+    """
+    monkeypatch.setenv("ECOSFERA_BIOLOGY_ENABLED", "true")
+    _reset_composition_caches()
+    try:
+        yield TestClient(create_app())
+    finally:
+        monkeypatch.delenv("ECOSFERA_BIOLOGY_ENABLED", raising=False)
+        _reset_composition_caches()
+
+
+def _reset_composition_caches() -> None:
+    get_settings.cache_clear()
+    for name in dir(deps):
+        candidate = getattr(deps, name)
+        if hasattr(candidate, "cache_clear"):
+            candidate.cache_clear()
 
 
 def test_advance_era_returns_new_and_extinct_species(client: TestClient) -> None:
