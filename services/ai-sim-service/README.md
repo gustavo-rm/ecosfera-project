@@ -35,12 +35,15 @@ motor a partir do checkpoint anterior e responde `matches_checkpoint`, indicando
 reconstrução bateu com o estado gravado na época.
 
 ### Ordem do tick
-Desde o M2 o tick roda por **oito Engines**, sem adaptador nem fatia órfã
-(ADR 0012/0013/0014):
+Desde o M3 o tick roda por **nove Engines**, sem adaptador nem fatia órfã
+(ADR 0012/0013/0014/0016):
 
 ```
-astronomy -> geology -> chemistry -> atmosphere -> climate -> hydrology -> resource -> biota
+astronomy -> geology -> chemistry -> atmosphere -> climate -> hydrology -> resource -> evolution -> ecology
 ```
+
+`ENGINE_ORDER` é a **única** fonte dessa ordem: o registro é construído a partir
+dela, então trocar de posição muda o tick de verdade.
 
 A ordem original do núcleo monolítico (`physics -> chemistry -> climate ->
 geology -> ocean -> life`, ADR 0004) deixou de existir junto com o
@@ -67,18 +70,19 @@ deriva sua semente de (semente do planeta, era), então o replay reconstrói o
 mesmo códex e as mesmas populações. As explicações causais dos resultados
 biológicos saem do **motor de regras** de sempre — sem LLM, que só chega no Inc 6.
 
-## Moldura de Engines — o único caminho de simulação (M0 → M2)
+## Moldura de Engines — o único caminho de simulação (M0 → M3)
 A arquitetura de Engines do Dossiê v3 §10.4 (ADR-ARCH-0001) foi adotada de dentro
 para fora. O M0 entregou a moldura; o M1 entregou os três primeiros Engines
-científicos e o primeiro feedback físico real; o **M2 fechou os ciclos
-determinísticos e aposentou o caminho legado** (ADR 0012/0013/0014).
+científicos e o primeiro feedback físico real; o M2 fechou os ciclos
+determinísticos e aposentou o caminho legado (ADR 0012/0013/0014); o **M3 trocou
+o Biota provisório por evolução emergente e dinâmica trófica** (ADR 0016/0017).
 
 ```
 shared_kernel/         world-state e deltas (§3), envelope de evento (§4), porta
                        Engine + contexto de tick (§5.2), RNG semeado, contrato de
                        observabilidade (§6), replay (§7)
 engines/planet/        Planet Engine — orquestra, e não conhece Engine algum
-engines/composition.py registra os oito Engines na ordem de acoplamento
+engines/composition.py registra os nove Engines na ordem de acoplamento
 engines/bridge.py      tradução PlanetState <-> WorldStateSnapshot
 engines/astronomy/     órbita (Verlet) e irradiância incidente          (M2)
 engines/geology/       vulcanismo, relevo e a FONTE de carbono          (M1)
@@ -87,19 +91,21 @@ engines/atmosphere/    estoque de CO2 e forçamento radiativo log        (M1)
 engines/climate/       temperatura a partir do forçamento               (M1)
 engines/hydrology/     quatro reservatórios de água e a criosfera       (M2)
 engines/resource/      capacidade de suporte (lei do mínimo de Liebig)  (M2)
-engines/biota/         biomassa agregada — PROVISÓRIO até o M3          (M2)
+engines/evolution/     seleção local emergente, sem fitness global      (M3)
+engines/ecology/       níveis tróficos e predação (pirâmide de Elton)    (M3)
 engines/noop/          Engine trivial que prova a moldura (critério do M0, §8)
 ```
 
 ### Ordem de acoplamento
 ```
-astronomy → geology → chemistry → atmosphere → climate → hydrology → resource → biota
+astronomy → geology → chemistry → atmosphere → climate → hydrology → resource → evolution → ecology
 ```
 Cada posição tem razão física: a insolação é a entrada de energia de tudo abaixo,
 a geologia desgaseifica, a química publica a troca com o oceano, a atmosfera
 integra o carbono já debitado, o clima converte forçamento em temperatura, a água
 se move com o calor recém-resolvido, o recurso traduz o ambiente em capacidade de
-suporte, e a biota a gasta.
+suporte, a evolução decide quanto dele a comunidade ocupa, e a ecologia reparte
+essa ocupação entre níveis tróficos.
 
 A ordem é **verificada no boot**, não apenas documentada: `validate_graph` recusa
 qualquer leitura para trás que não esteja declarada em `lagged_reads`.
@@ -109,7 +115,9 @@ qualquer leitura para trás que não esteja declarada em `lagged_reads`.
 vulcanismo (geology) → +CO2 (atmosphere) → +forçamento → +temperatura (climate)
                             ↕ troca ar<->oceano (chemistry)
 temperatura → evaporação/degelo (hydrology) → albedo → temperatura   [defasado]
-água + nutriente + energia + calor → capacidade (resource) → biomassa (biota)
+água + nutriente + energia + calor → capacidade (resource) → biomassa (evolution)
+biomassa → repartição trófica e predação (ecology)
+predação → custo de sobrevivência (evolution)                        [defasado]
 biomassa → absorção de carbono (atmosphere)                          [defasado]
 ```
 Cada seta cruza fronteira de Engine **somente pelo world-state**. Nenhum Engine
@@ -182,12 +190,31 @@ uv run lint-imports    # fronteiras: Engine não importa Engine (6 contratos)
 make run               # sobe pela moldura — o único caminho
 ```
 
-### O Biota é PROVISÓRIO
-`engines/biota/` porta a física determinística do antigo `life` e nada mais:
-crescimento logístico, abiogênese por limiar, ruído demográfico. **Zero**
-evolução, especiação, genoma, mutação ou ABM — e nenhum import de `deap`, `mesa`
-ou `simulation_engine/biology/`, o que o import-linter transforma em erro de
-build. É substituído pela evolução emergente no M3 (ADR 0013).
+### A evolução EMERGE — não há função de aptidão global (M3)
+`engines/evolution/` implementa seleção **local**: cada coorte é avaliada contra o
+ambiente que encontra, nunca contra as concorrentes. Não há número maximizado,
+torneio, ranking nem população otimizada geração a geração.
+
+A cadeia da decisão: o **RF-031** pedia um AG com fitness global; o
+**ADR-ARCH-0001** o superou por ser teleológico (ensinaria que a evolução "mira"
+um ótimo, que é a concepção equivocada que a plataforma existe para desfazer); e
+o **M3** concluiu que, sem fitness global, o **DEAP não tem papel** — o que ele
+oferece é maquinário de otimização populacional, justamente o que foi proibido.
+Sobram ~50 linhas puras (ADR 0016).
+
+Um contrato de import-linter proíbe `deap` e `mesa` em `engines.evolution`, e
+`tests/unit/test_no_global_fitness.py` audita a FORMA do cálculo: nenhum
+vocabulário de otimização sobrevive, `local_suitability` não tem parâmetro por
+onde uma população pudesse entrar, e duas coortes não disputam posto em ranking
+algum.
+
+A `BiotaSlice` da Spec §3 virou **duas** fatias (`BiotaSlice` + `EcologySlice`)
+porque há dois Engines produtores e a moldura exige um dono por fatia. A
+divergência está registrada no ADR 0016.
+
+**Dívida do M3:** o caminho de biologia por era (`simulation_engine/biology/`,
+com AG e fitness global) ainda existe e alimenta o códex de espécies. Ele
+contradiz o ADR 0016 e precisa de decisão — ADR 0017, parte (3).
 
 ## Rodar
 ```bash
