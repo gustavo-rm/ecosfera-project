@@ -43,7 +43,7 @@ class ResourceEngineParams:
     max_carrying_capacity: float
     consumption_per_biomass: float
     capacity_event_threshold: float
-    scarcity_threshold: float
+    scarcity_fraction: float
     max_duration_s: float
     max_events: int
 

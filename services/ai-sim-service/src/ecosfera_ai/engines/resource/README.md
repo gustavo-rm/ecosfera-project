@@ -68,9 +68,11 @@ precisa da capacidade deste tick para crescer. Logo o consumo contabilizado aqui
 
 **Eventos.** `CarryingCapacityShift` compara a variação **relativa**, porque a
 escala absoluta é arbitrária: cinco unidades significam coisas opostas num
-planeta de capacidade 10 e num de capacidade 500. `ResourceScarcity` reporta
-quando o **limitante muda** — passa a existir, deixa de existir, ou troca de
-identidade. Um planeta pobre em fósforo é pobre em fósforo para sempre; dizer
+planeta de capacidade 10 e num de capacidade 500. `ResourceScarcity` mede a escassez em **fração do
+requisito** de cada recurso, não em valor absoluto — água, nutriente e energia
+vivem em escalas diferentes, e um limiar único declararia um deles
+permanentemente escasso num planeta normal. E reporta quando o **limitante
+muda**: passa a existir, deixa de existir, ou troca de identidade. Um planeta pobre em fósforo é pobre em fósforo para sempre; dizer
 isso a cada tick afogaria a trilha (ADR-ARCH-0002, Correção 2). E emite-se **um**
 evento, não três: a lei do mínimo diz que existe *um* limitante, e nomeá-lo é a
 informação pedagógica.

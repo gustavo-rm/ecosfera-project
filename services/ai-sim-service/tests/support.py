@@ -12,9 +12,26 @@ inevitavelmente ficaria para trás montando um motor que a produção não usa m
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
-from ecosfera_ai.engines.composition import FrameworkTickOrchestrator, build_planet_engine
+from ecosfera_ai.engines.astronomy.service import AstronomyEngine
+from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
+from ecosfera_ai.engines.biota.service import BiotaEngine
+from ecosfera_ai.engines.chemistry.service import ChemistryEngine
+from ecosfera_ai.engines.climate.service import ClimateEngine
+from ecosfera_ai.engines.composition import (
+    FrameworkTickOrchestrator,
+    build_planet_engine,
+    planet_invariants,
+)
+from ecosfera_ai.engines.geology.contracts import load_params as geology_params
+from ecosfera_ai.engines.geology.service import GeologyEngine
+from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
+from ecosfera_ai.engines.hydrology.service import HydrologyEngine
+from ecosfera_ai.engines.planet.registry import EngineRegistry
+from ecosfera_ai.engines.planet.service import PlanetEngine
+from ecosfera_ai.engines.resource.service import ResourceEngine
 from ecosfera_ai.shared_kernel.observability import ObservabilitySink
 from ecosfera_ai.simulation_engine.params import SimulationParams, load_params
 
@@ -32,3 +49,45 @@ def build_orchestrator(
     """O motor de produção: oito Engines na ordem canônica (ADR 0012/0013)."""
     planet = build_planet_engine(params, budget=params.engine_budget, sink=sink)
     return FrameworkTickOrchestrator(planet, params.bounds)
+
+
+def build_volcanic_planet(sink: ObservabilitySink | None = None) -> PlanetEngine:
+    """Um planeta VULCANICAMENTE ATIVO — cenário declarado, não sorteado.
+
+    A cadeia erupção→forçamento→clima é uma propriedade ESTRUTURAL (os Engines se
+    encadeiam por `causation_id` sem se conhecerem), mas só é OBSERVÁVEL quando os
+    três elos disparam. Esperar que a trajetória aleatória de um planeta calmo
+    produza os três é um sorteio: os pulsos tectônicos são estocásticos, e desde
+    que o oceano passou a amortecer o carbono (ADR 0012) as travessias de faixa de
+    forçamento ficaram raras na linha de base.
+
+    Declarar o cenário torna o teste determinístico quanto ao FENÔMENO, e não
+    apenas quanto à semente. É a mesma composição de produção — só os parâmetros
+    da geologia mudam, exatamente como num planeta diferente.
+    """
+    params = test_params()
+    engines = [
+        AstronomyEngine(),
+        GeologyEngine(
+            replace(
+                geology_params(),
+                tectonic_activity=0.35,
+                volcanism_baseline=2.0,
+                outgassing_base=9.0,
+            )
+        ),
+        ChemistryEngine(),
+        AtmosphereEngine(),
+        ClimateEngine(),
+        HydrologyEngine(),
+        ResourceEngine(),
+        BiotaEngine(),
+    ]
+    return PlanetEngine(
+        EngineRegistry.of(engines),
+        invariants=planet_invariants(
+            params.bounds, water_tolerance=hydrology_params().conservation_tolerance
+        ),
+        budget=params.engine_budget,
+        sink=sink,
+    )

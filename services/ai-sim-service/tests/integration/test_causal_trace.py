@@ -7,27 +7,16 @@ o world-state nem a ordem em que os eventos foram gravados.
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
+from tests.support import build_volcanic_planet
+
 from ecosfera_ai.application.feedback.explain_from_events import causal_trace
-from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.events import GREENHOUSE_FORCING_CHANGED
-from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
-from ecosfera_ai.engines.biota.service import BiotaEngine
 from ecosfera_ai.engines.bridge import snapshot_of
-from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.events import CLIMATE_THRESHOLD_CROSSED, TEMPERATURE_SHIFT
-from ecosfera_ai.engines.climate.service import ClimateEngine
-from ecosfera_ai.engines.composition import build_planet_engine, planet_invariants
-from ecosfera_ai.engines.geology.contracts import load_params as geology_params
+from ecosfera_ai.engines.composition import build_planet_engine
 from ecosfera_ai.engines.geology.events import VOLCANIC_ERUPTION
-from ecosfera_ai.engines.geology.service import GeologyEngine
-from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
-from ecosfera_ai.engines.hydrology.service import HydrologyEngine
-from ecosfera_ai.engines.planet.registry import EngineRegistry
-from ecosfera_ai.engines.planet.service import PlanetEngine
-from ecosfera_ai.engines.resource.service import ResourceEngine
 from ecosfera_ai.shared_kernel.events import DomainEvent
 from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
@@ -52,46 +41,8 @@ def _events(seed: int = 2027) -> list[DomainEvent]:
 
 
 def _volcanic_events(seed: int = 2027, ticks: int = TICKS) -> list[DomainEvent]:
-    """A mesma moldura, num planeta VULCANICAMENTE ATIVO.
-
-    A cadeia erupção→forçamento→clima é uma propriedade ESTRUTURAL (os Engines se
-    encadeiam por `causation_id` sem se conhecerem), mas só é observável quando os
-    três elos de fato disparam. Esperar que uma trajetória aleatória de um planeta
-    calmo produza os três é um sorteio: os pulsos tectônicos são estocásticos, e
-    desde que o oceano passou a amortecer o carbono (ADR 0012) as travessias de
-    faixa de forçamento ficaram raras num planeta de linha de base.
-
-    Aqui o cenário é declarado em vez de sorteado — vulcanismo forte e
-    desgaseificação alta —, o que torna o teste determinístico quanto ao FENÔMENO
-    e não apenas quanto à semente. É a mesma composição de produção; só os
-    parâmetros da geologia mudam, exatamente como um planeta diferente teria.
-    """
-    geology = GeologyEngine(
-        replace(
-            geology_params(),
-            tectonic_activity=0.35,
-            volcanism_baseline=2.0,
-            outgassing_base=9.0,
-        )
-    )
-    planet = PlanetEngine(
-        EngineRegistry.of(
-            [
-                AstronomyEngine(),
-                geology,
-                ChemistryEngine(),
-                AtmosphereEngine(),
-                ClimateEngine(),
-                HydrologyEngine(),
-                ResourceEngine(),
-                BiotaEngine(),
-            ]
-        ),
-        invariants=planet_invariants(
-            PARAMS.bounds, water_tolerance=hydrology_params().conservation_tolerance
-        ),
-        budget=PARAMS.engine_budget,
-    )
+    """A mesma moldura, num planeta VULCANICAMENTE ATIVO (ver `tests.support`)."""
+    planet = build_volcanic_planet()
     snapshot = snapshot_of(initial_state(PlanetSeed("volcanic", seed), PARAMS))
     collected: list[DomainEvent] = []
     for _ in range(ticks):
@@ -150,7 +101,7 @@ def test_causation_crosses_ticks() -> None:
 
 def test_the_trace_projection_inverts_causation() -> None:
     """`consequences` não é emitido pelo Engine — é projeção do Event Store."""
-    events = _events()
+    events = _volcanic_events()
     links = causal_trace(events)
 
     assert links

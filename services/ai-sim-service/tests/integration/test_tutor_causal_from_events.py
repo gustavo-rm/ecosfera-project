@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.support import build_volcanic_planet
+
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.feedback.explain_from_events import (
     ExplainFromEventsUseCase,
@@ -33,8 +35,16 @@ def _use_case() -> ExplainFromEventsUseCase:
 
 
 def _store(seed: int = 2027) -> InMemoryEventStore:
+    """Trilha de um planeta VULCANICAMENTE ATIVO (cenário declarado — `tests.support`).
+
+    O que este arquivo verifica é o TUTOR: que ele narra a partir do Canal B e não
+    do world-state. Para isso precisa de uma trilha que contenha uma cadeia — e um
+    planeta de linha de base, desde que o oceano passou a amortecer o carbono
+    (ADR 0012), pode atravessar 80 ticks sem encadear evento algum. Declarar o
+    cenário é o que separa "o tutor está quebrado" de "não houve o que narrar".
+    """
     store = InMemoryEventStore()
-    planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget, sink=store)
+    planet = build_volcanic_planet(sink=store)
     snapshot = snapshot_of(initial_state(PlanetSeed("tutor", seed), PARAMS))
     for _ in range(TICKS):
         snapshot = planet.tick(snapshot).snapshot

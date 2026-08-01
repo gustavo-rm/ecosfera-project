@@ -178,20 +178,40 @@ class ResourceEngine:
     def _limiting(
         self, availability: tuple[float, float, float]
     ) -> tuple[ResourceCauseCode, str, float] | None:
-        """O recurso mais escasso abaixo do limiar, ou nada.
+        """O recurso mais escasso frente ao PRÓPRIO requisito, ou nada.
+
+        A escassez é medida em fração do requisito, e não em valor absoluto: água,
+        nutriente e energia vivem em escalas diferentes, e um único limiar
+        absoluto declararia um deles permanentemente escasso num planeta normal.
 
         Devolve UM recurso, não três: o que a lei do mínimo diz é que existe um
         limitante, e nomear o limitante é a informação pedagógica. Três eventos
         simultâneos diriam ao aluno que há três problemas, quando há um.
         """
         water, nutrients, energy = availability
+        fraction = self.params.scarcity_fraction
         candidates = (
-            (water, ResourceCauseCode.WATER_SHORTAGE, "water"),
-            (nutrients, ResourceCauseCode.NUTRIENT_SHORTAGE, "nutrients"),
-            (energy, ResourceCauseCode.ENERGY_SHORTAGE, "energy"),
+            (
+                water / max(self.params.water_requirement, _EPS),
+                ResourceCauseCode.WATER_SHORTAGE,
+                "water",
+                water,
+            ),
+            (
+                nutrients / max(self.params.nutrient_requirement, _EPS),
+                ResourceCauseCode.NUTRIENT_SHORTAGE,
+                "nutrients",
+                nutrients,
+            ),
+            (
+                energy / max(self.params.energy_requirement, _EPS),
+                ResourceCauseCode.ENERGY_SHORTAGE,
+                "energy",
+                energy,
+            ),
         )
-        below = [c for c in candidates if c[0] < self.params.scarcity_threshold]
+        below = [c for c in candidates if c[0] < fraction]
         if not below:
             return None
-        value, cause, name = min(below, key=lambda c: c[0])
+        _, cause, name, value = min(below, key=lambda c: c[0])
         return cause, name, value

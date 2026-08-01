@@ -37,7 +37,11 @@ consumption_per_biomass: 0.001
 
 # Limiares de evento.
 capacity_event_threshold: 0.20  # variação relativa da capacidade que vira evento
-scarcity_threshold: 0.05        # abaixo disto o recurso é escasso
+# Escassez medida como FRAÇÃO DO REQUISITO de cada recurso, e não em valor
+# absoluto: água, nutriente e energia vivem em escalas diferentes (0,2 / 0,3 /
+# 0,04), e um único número absoluto declararia um deles permanentemente escasso
+# num planeta perfeitamente normal.
+scarcity_fraction: 0.50
 
 budget:
   max_duration_s: 0.05
