@@ -45,9 +45,14 @@ class AtmosphereEngine:
     def tick(self, ctx: TickContext) -> TickResult:
         current = ctx.snapshot.atmosphere
         inflow = ctx.snapshot.geology.co2_flux
-        biomass = ctx.snapshot.legacy.biomass
+        # Leitura DEFASADA: a Biota roda depois, então a biomassa que absorve
+        # carbono aqui é a do tick anterior.
+        biomass = ctx.snapshot.biota.biomass
+        # Troca ar<->oceano do MESMO tick, com a convenção de sinal da química:
+        # positivo = o oceano absorve, logo a atmosfera perde (ADR 0012).
+        air_sea = ctx.snapshot.chemistry.air_sea_flux
 
-        d_co2 = co2_change(current.co2, inflow, biomass, self.params)
+        d_co2 = co2_change(current.co2, inflow, biomass, air_sea, self.params)
         co2 = max(0.0, current.co2 + d_co2)
 
         forcing = radiative_forcing(co2, self.params)
@@ -83,6 +88,7 @@ class AtmosphereEngine:
                         "band_from": before,
                         "band_to": after,
                         "inflow": inflow,
+                        "air_sea_flux": air_sea,
                     },
                     # Encadeia com a erupção do MESMO tick, quando houve — a
                     # proveniência veio pelo Canal A, não por leitura do Canal B

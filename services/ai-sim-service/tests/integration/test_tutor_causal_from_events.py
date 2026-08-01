@@ -15,8 +15,8 @@ from ecosfera_ai.application.feedback.explain_from_events import (
     load_translation,
 )
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
-from ecosfera_ai.engines.legacy.bridge import snapshot_of
-from ecosfera_ai.engines.legacy.orchestrator import build_planet_engine
+from ecosfera_ai.engines.bridge import snapshot_of
+from ecosfera_ai.engines.composition import build_planet_engine
 from ecosfera_ai.shared_kernel.events import CoreCauseCode, EventEmitter
 from ecosfera_ai.shared_kernel.observability import InMemoryEventStore
 from ecosfera_ai.simulation_engine.params import initial_state, load_params
@@ -169,7 +169,7 @@ def test_an_era_without_notable_events_falls_back_instead_of_going_silent() -> N
 
 
 def _framework_ticker():
-    from ecosfera_ai.engines.legacy.orchestrator import FrameworkTickOrchestrator
+    from ecosfera_ai.engines.composition import FrameworkTickOrchestrator
 
     return FrameworkTickOrchestrator(
         build_planet_engine(PARAMS, budget=PARAMS.engine_budget), PARAMS.bounds

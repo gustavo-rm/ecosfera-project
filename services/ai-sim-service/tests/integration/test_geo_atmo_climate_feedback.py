@@ -12,19 +12,20 @@ from pathlib import Path
 
 import pytest
 
+from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
+from ecosfera_ai.engines.biota.service import BiotaEngine
+from ecosfera_ai.engines.bridge import snapshot_of
+from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.service import ClimateEngine
+from ecosfera_ai.engines.composition import build_planet_engine, planet_invariants
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
 from ecosfera_ai.engines.geology.service import GeologyEngine
-from ecosfera_ai.engines.legacy.adapter import LegacySubsystemAdapter
-from ecosfera_ai.engines.legacy.bridge import snapshot_of
-from ecosfera_ai.engines.legacy.orchestrator import (
-    build_legacy_orchestrator,
-    build_planet_engine,
-    m1_invariants,
-)
+from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
+from ecosfera_ai.engines.hydrology.service import HydrologyEngine
 from ecosfera_ai.engines.planet.registry import EngineRegistry
 from ecosfera_ai.engines.planet.service import PlanetEngine
+from ecosfera_ai.engines.resource.service import ResourceEngine
 from ecosfera_ai.shared_kernel.world_state import SliceRef, WorldStateSnapshot
 from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
@@ -81,13 +82,19 @@ def test_a_quiet_planet_does_not_warm() -> None:
     planet = PlanetEngine(
         EngineRegistry.of(
             [
+                AstronomyEngine(),
                 GeologyEngine(replace(geology_params(), outgassing_base=0.0)),
+                ChemistryEngine(),
                 AtmosphereEngine(),
                 ClimateEngine(),
-                LegacySubsystemAdapter(build_legacy_orchestrator(PARAMS)),
+                HydrologyEngine(),
+                ResourceEngine(),
+                BiotaEngine(),
             ]
         ),
-        invariants=m1_invariants(PARAMS.bounds),
+        invariants=planet_invariants(
+            PARAMS.bounds, water_tolerance=hydrology_params().conservation_tolerance
+        ),
     )
 
     snapshot = snapshot_of(initial_state(PlanetSeed("quiet", 2027), PARAMS))
@@ -103,11 +110,17 @@ def test_each_arrow_crosses_only_through_the_world_state() -> None:
     """Cada Engine escreve a própria fatia e nada além dela."""
     planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget)
     assert planet.registry.owned_slices == {
+        SliceRef.ASTRONOMY: "astronomy",
         SliceRef.GEOLOGY: "geology",
+        SliceRef.CHEMISTRY: "chemistry",
         SliceRef.ATMOSPHERE: "atmosphere",
         SliceRef.CLIMATE: "climate",
-        SliceRef.LEGACY: "legacy_planet",
+        SliceRef.HYDROLOGY: "hydrology",
+        SliceRef.RESOURCE: "resource",
+        SliceRef.BIOTA: "biota",
     }
+    # Desde o M2 nao sobra fatia sem dono: a `LegacySlice` deixou de existir.
+    assert set(planet.registry.owned_slices) == set(SliceRef)
 
 
 def test_the_feedback_is_reproducible_under_the_same_seed() -> None:
@@ -125,8 +138,14 @@ def test_the_planet_stays_physically_sane() -> None:
     for snapshot in _run():
         assert snapshot.atmosphere.co2 >= 0.0
         assert snapshot.geology.volcanism >= 0.0
-        assert 0.0 <= snapshot.legacy.ice_cover <= 1.0
+        assert 0.0 <= snapshot.hydrology.ice_fraction <= 1.0
         assert 0.0 <= snapshot.geology.relief <= 1.0
         assert snapshot.climate.temperature == pytest.approx(
             snapshot.climate.temperature
         )  # não é NaN
+        # Estoques do M2: nenhum reservatório pode ficar negativo.
+        for reservoir in ("ocean", "ice", "vapour", "freshwater"):
+            assert getattr(snapshot.hydrology, reservoir) >= 0.0
+        assert snapshot.chemistry.ocean_carbon >= 0.0
+        assert snapshot.resource.carrying_capacity >= 0.0
+        assert snapshot.biota.biomass >= 0.0

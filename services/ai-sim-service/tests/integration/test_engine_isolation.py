@@ -1,4 +1,4 @@
-"""A regra de ouro da Spec §2, verificada nos três Engines do M1.
+"""A regra de ouro da Spec §2, verificada nos OITO Engines.
 
 Nenhum deles importa outro nem lê estado interno alheio — só world-state. Aqui
 isso é verificado por INSPEÇÃO do módulo e das declarações, não por convenção.
@@ -13,17 +13,22 @@ from pathlib import Path
 
 import pytest
 
+from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
+from ecosfera_ai.engines.biota.service import BiotaEngine
+from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.service import ClimateEngine
+from ecosfera_ai.engines.composition import ENGINE_ORDER, build_planet_engine
 from ecosfera_ai.engines.geology.service import GeologyEngine
-from ecosfera_ai.engines.legacy.orchestrator import build_planet_engine
+from ecosfera_ai.engines.hydrology.service import HydrologyEngine
+from ecosfera_ai.engines.resource.service import ResourceEngine
 from ecosfera_ai.shared_kernel.world_state import SliceRef
 from ecosfera_ai.simulation_engine.params import load_params
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
 SERVICE_ROOT = Path(__file__).resolve().parents[2]
 ENGINES_ROOT = SERVICE_ROOT / "src" / "ecosfera_ai" / "engines"
-SCIENTIFIC = ("geology", "atmosphere", "climate")
+SCIENTIFIC = ENGINE_ORDER
 
 
 def _imports_of(package: str) -> set[str]:
@@ -42,7 +47,7 @@ def _imports_of(package: str) -> set[str]:
 @pytest.mark.parametrize("package", SCIENTIFIC)
 def test_a_scientific_engine_never_imports_another_engine(package: str) -> None:
     others = {f"ecosfera_ai.engines.{name}" for name in SCIENTIFIC if name != package}
-    others |= {"ecosfera_ai.engines.legacy", "ecosfera_ai.engines.planet"}
+    others |= {"ecosfera_ai.engines.planet", "ecosfera_ai.engines.composition"}
     offenders = {
         module
         for module in _imports_of(package)
@@ -66,9 +71,35 @@ def test_every_engine_writes_exactly_one_slice_and_owns_it_alone() -> None:
 
 def test_the_declared_reads_match_what_the_coupling_needs() -> None:
     """A declaração é o contrato: quem lê o quê fica visível ao Planet."""
+    # A astronomia não lê ninguém: a órbita é condição de contorno externa, e não
+    # resposta ao planeta. É o único Engine com `reads` vazio (ADR 0013).
+    assert AstronomyEngine().reads == frozenset()
     assert GeologyEngine().reads == frozenset()
-    assert AtmosphereEngine().reads == frozenset({SliceRef.GEOLOGY})
-    assert ClimateEngine().reads == frozenset({SliceRef.ATMOSPHERE})
+    assert ChemistryEngine().reads == frozenset({SliceRef.GEOLOGY})
+    assert AtmosphereEngine().reads == frozenset({SliceRef.GEOLOGY, SliceRef.CHEMISTRY})
+    assert ClimateEngine().reads == frozenset({SliceRef.ATMOSPHERE, SliceRef.ASTRONOMY})
+    assert HydrologyEngine().reads == frozenset({SliceRef.CLIMATE})
+    assert BiotaEngine().reads == frozenset({SliceRef.RESOURCE})
+
+
+def test_every_backward_read_is_declared_as_lagged() -> None:
+    """Ler para trás é legítimo; não declarar é que não é (Spec §3).
+
+    Estas quatro defasagens são o que quebra os ciclos do modelo sem desfazer o
+    acoplamento: química⇄atmosfera, clima⇄água, geologia⇄água, recurso⇄biota. O
+    `validate_graph` recusa no boot qualquer leitura para trás não declarada — o
+    que este teste fixa é que as declarações são EXATAMENTE estas, e que ninguém
+    acrescentou uma defasagem nova sem pensar.
+    """
+    assert ChemistryEngine().lagged_reads == frozenset({SliceRef.ATMOSPHERE, SliceRef.HYDROLOGY})
+    assert AtmosphereEngine().lagged_reads == frozenset({SliceRef.BIOTA})
+    assert ClimateEngine().lagged_reads == frozenset({SliceRef.HYDROLOGY})
+    assert GeologyEngine().lagged_reads == frozenset({SliceRef.HYDROLOGY})
+    assert ResourceEngine().lagged_reads == frozenset({SliceRef.BIOTA})
+    # Quem abre e quem fecha a ordem não precisam de defasagem alguma.
+    assert AstronomyEngine().lagged_reads == frozenset()
+    assert HydrologyEngine().lagged_reads == frozenset()
+    assert BiotaEngine().lagged_reads == frozenset()
 
 
 def test_nobody_reads_a_slice_it_did_not_declare() -> None:

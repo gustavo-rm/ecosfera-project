@@ -45,15 +45,24 @@ class ClimateEngine:
 
     def tick(self, ctx: TickContext) -> TickResult:
         current = ctx.snapshot.climate
-        legacy = ctx.snapshot.legacy
+        hydrology = ctx.snapshot.hydrology
         forcing = ctx.snapshot.atmosphere.greenhouse_forcing
+        # Irradiância do MESMO tick, escrita pelo Astronomy Engine. Antes do M2
+        # ela vinha da `LegacySlice`; com o adaptador aposentado e sem este
+        # Engine, o clima recairia no `params.insolation` e o planeta perderia
+        # estações em silêncio — daí `test_solar_flux_has_writer` (ADR 0013).
+        solar_flux = ctx.snapshot.astronomy.solar_flux
+        # Criosfera: a fração de gelo é PUBLICADA pela hidrologia, não recalculada
+        # aqui — um Engine não importa outro, e derivar a mesma grandeza duas
+        # vezes é ciência duplicada. Leitura defasada: ela roda depois (ADR 0012).
+        ice_cover = hydrology.ice_fraction
 
-        absorbed = absorbed_energy(legacy.solar_flux, legacy.ice_cover, self.params)
+        absorbed = absorbed_energy(solar_flux, ice_cover, self.params)
         target = equilibrium_temperature(absorbed, forcing, self.params)
 
         drift = self.params.thermal_inertia * (target - current.temperature)
         weather = float(ctx.rng.normal(0.0, self.params.weather_variability))
-        ocean = ocean_heat_flux(current.temperature, legacy.ocean_circulation, self.params)
+        ocean = ocean_heat_flux(current.temperature, hydrology.ocean_circulation, self.params)
         d_temperature = drift + weather + ocean
         temperature = current.temperature + d_temperature
 

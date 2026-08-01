@@ -16,14 +16,15 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
+from tests.support import build_orchestrator
+
 from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord
 from ecosfera_ai.simulation_engine.biology.ecology import simulate_ecology
 from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionEngine
 from ecosfera_ai.simulation_engine.biology.genome import Genome
-from ecosfera_ai.simulation_engine.params import build_orchestrator, initial_state, load_params
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
 
@@ -61,7 +62,6 @@ def test_ecology_at_configured_ceiling_stays_fast() -> None:
 def test_full_biology_era_stays_within_budget() -> None:
     """Uma era completa (AG + ABM) no orçamento de tempo."""
     orchestrator = build_orchestrator(PARAMS)
-    life = LifeSubsystem(PARAMS.life)
     engine = BiologyEngine(EvolutionEngine(PARAMS.evolution, PARAMS.fitness), PARAMS.ecology)
 
     state = initial_state(PlanetSeed("perf", 42), PARAMS)
@@ -72,7 +72,7 @@ def test_full_biology_era_stays_within_budget() -> None:
     started = time.perf_counter()
     for era in range(1, 6):
         catalog = engine.advance_era(
-            catalog, state, life.carrying_capacity(state), planet_id="perf", era=era
+            catalog, state, state.carrying_capacity, planet_id="perf", era=era
         ).catalog
     elapsed = time.perf_counter() - started
 
@@ -82,7 +82,6 @@ def test_full_biology_era_stays_within_budget() -> None:
 def test_species_cap_bounds_the_catalog_growth() -> None:
     """O teto de espécies impede o códex de crescer sem limite ao longo das eras."""
     orchestrator = build_orchestrator(PARAMS)
-    life = LifeSubsystem(PARAMS.life)
     engine = BiologyEngine(EvolutionEngine(PARAMS.evolution, PARAMS.fitness), PARAMS.ecology)
 
     state = initial_state(PlanetSeed("perf", 3), PARAMS)
@@ -91,7 +90,7 @@ def test_species_cap_bounds_the_catalog_growth() -> None:
         for _ in range(PARAMS.timeline.era_length):
             state = orchestrator.tick(state).state
         outcome = engine.advance_era(
-            catalog, state, life.carrying_capacity(state), planet_id="perf", era=era
+            catalog, state, state.carrying_capacity, planet_id="perf", era=era
         )
         catalog = outcome.catalog
         assert len(outcome.living_species) <= PARAMS.evolution.max_species + 1

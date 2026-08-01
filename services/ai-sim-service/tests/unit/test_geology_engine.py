@@ -20,7 +20,7 @@ from ecosfera_ai.shared_kernel.events import CauseCodeEnum, Granularity
 from ecosfera_ai.shared_kernel.rng import rng_for
 from ecosfera_ai.shared_kernel.world_state import (
     GeologySlice,
-    LegacySlice,
+    HydrologySlice,
     SliceRef,
     WorldStateSnapshot,
 )
@@ -35,7 +35,7 @@ def _snapshot(volcanism: float = 1.0, relief: float = 0.2, water: float = 1.0, t
         tick=tick,
         era=0,
         geology=GeologySlice(relief=relief, volcanism=volcanism),
-        legacy=LegacySlice(water=water),
+        hydrology=HydrologySlice(ocean=water),
     )
 
 
@@ -52,8 +52,8 @@ def _context(snapshot: WorldStateSnapshot) -> TickContext:
 def test_declares_its_slice_and_the_lagged_read() -> None:
     engine = GeologyEngine()
     assert engine.writes is SliceRef.GEOLOGY
-    # A água vem do legado, que roda DEPOIS — a defasagem é declarada, não presumida.
-    assert engine.lagged_reads == frozenset({SliceRef.LEGACY})
+    # A água vem da hidrologia, que roda DEPOIS — defasagem declarada, não presumida.
+    assert engine.lagged_reads == frozenset({SliceRef.HYDROLOGY})
     assert SliceRef.ATMOSPHERE not in engine.reads | engine.lagged_reads
 
 

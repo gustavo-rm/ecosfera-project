@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from ecosfera_ai.engines.legacy.bridge import snapshot_of
-from ecosfera_ai.engines.legacy.orchestrator import build_planet_engine
+from ecosfera_ai.engines.bridge import snapshot_of
+from ecosfera_ai.engines.composition import build_planet_engine
 from ecosfera_ai.shared_kernel.replay import verify_replay
 from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed

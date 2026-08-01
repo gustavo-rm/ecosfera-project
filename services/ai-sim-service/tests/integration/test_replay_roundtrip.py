@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from ecosfera_ai.engines.legacy.bridge import snapshot_of
-from ecosfera_ai.engines.legacy.orchestrator import build_planet_engine
+from ecosfera_ai.engines.bridge import snapshot_of
+from ecosfera_ai.engines.composition import build_planet_engine
 from ecosfera_ai.engines.noop.service import NoOpEngine
 from ecosfera_ai.engines.planet.registry import EngineRegistry
 from ecosfera_ai.engines.planet.service import PlanetEngine

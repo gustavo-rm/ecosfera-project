@@ -12,10 +12,10 @@ from pathlib import Path
 import pytest
 
 from ecosfera_ai.engines.atmosphere.contracts import load_params as atmosphere_params
+from ecosfera_ai.engines.bridge import snapshot_of
 from ecosfera_ai.engines.climate.contracts import load_params as climate_params
+from ecosfera_ai.engines.composition import ENGINE_ORDER, build_planet_engine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
-from ecosfera_ai.engines.legacy.bridge import snapshot_of
-from ecosfera_ai.engines.legacy.orchestrator import build_planet_engine
 from ecosfera_ai.shared_kernel.engine import TickBudget
 from ecosfera_ai.shared_kernel.events import CoreCauseCode
 from ecosfera_ai.shared_kernel.observability import InMemoryEventStore
@@ -58,12 +58,7 @@ def test_exceeding_the_budget_emits_one_diagnostic_per_engine() -> None:
 
     assert len(diagnostics) == len(outcome.samples)
     assert all(e.cause_code is CoreCauseCode.BUDGET_EXCEEDED for e in diagnostics)
-    assert {str(e.cause_detail["engine"]) for e in diagnostics} == {
-        "geology",
-        "atmosphere",
-        "climate",
-        "legacy_planet",
-    }
+    assert {str(e.cause_detail["engine"]) for e in diagnostics} == set(ENGINE_ORDER)
 
 
 def test_the_diagnostic_never_reaches_the_scientific_view() -> None:
@@ -78,12 +73,7 @@ def test_the_diagnostic_never_reaches_the_scientific_view() -> None:
 
 def test_metrics_are_collected_for_every_engine() -> None:
     outcome = build_planet_engine(PARAMS, budget=PARAMS.engine_budget).tick(_snapshot())
-    assert {s.engine_id for s in outcome.samples} == {
-        "geology",
-        "atmosphere",
-        "climate",
-        "legacy_planet",
-    }
+    assert {s.engine_id for s in outcome.samples} == set(ENGINE_ORDER)
     assert all(s.entities_processed >= 1 for s in outcome.samples)
 
 

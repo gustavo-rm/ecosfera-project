@@ -91,7 +91,10 @@ select = ["E", "F", "I", "UP", "B", "ASYNC", "C4", "SIM", "RUF", "TID", "PTH"]
 # Notação científica legítima nas docstrings dos Engines (fórmulas de forçamento
 # radiativo, balanço de energia). Trocar α por 'a' ou − por '-' pioraria a
 # documentação de um serviço cujo produto é justamente explicar ciência.
-allowed-confusables = ["×", "−", "·", "α", "λ", "Δ", "₀"]
+# Notacao cientifica legitima nas docstrings, nao confusao acidental: o travessao
+# de intervalo/composto (Clausius-Clapeyron, 0-40 C, ar-oceano) e o de sinal
+# matematico. Degradar para hifen ASCII empobreceria a notacao (ADR 0010).
+allowed-confusables = ["×", "−", "·", "α", "λ", "Δ", "₀", "–", "σ"]
 
 [tool.ruff.lint.per-file-ignores]
 # Depends(...) como default de parâmetro é idioma do FastAPI, não bug real.
@@ -122,17 +125,54 @@ ignore_missing_imports = true
 # ─────────────────────────────────────────────────────────────────────────────
 [tool.importlinter]
 root_packages = ["ecosfera_ai"]
+# Necessario para que a fronteira do Biota (ADR 0013) alcance pacotes EXTERNOS:
+# proibir `deap`/`mesa` ali so tem efeito com esta opcao ligada.
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Engines nao importam outros Engines"
 type = "independence"
-modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+modules = [
+    "ecosfera_ai.engines.astronomy",
+    "ecosfera_ai.engines.geology",
+    "ecosfera_ai.engines.chemistry",
+    "ecosfera_ai.engines.atmosphere",
+    "ecosfera_ai.engines.climate",
+    "ecosfera_ai.engines.hydrology",
+    "ecosfera_ai.engines.resource",
+    "ecosfera_ai.engines.biota",
+    "ecosfera_ai.engines.noop",
+]
 
 [[tool.importlinter.contracts]]
 name = "O Planet Engine nao conhece Engine algum"
 type = "forbidden"
 source_modules = ["ecosfera_ai.engines.planet"]
-forbidden_modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+forbidden_modules = [
+    "ecosfera_ai.engines.astronomy",
+    "ecosfera_ai.engines.geology",
+    "ecosfera_ai.engines.chemistry",
+    "ecosfera_ai.engines.atmosphere",
+    "ecosfera_ai.engines.climate",
+    "ecosfera_ai.engines.hydrology",
+    "ecosfera_ai.engines.resource",
+    "ecosfera_ai.engines.biota",
+    "ecosfera_ai.engines.noop",
+    "ecosfera_ai.engines.composition",
+]
+
+# Fronteira do Biota PROVISÓRIO (ADR 0013). Ele porta a física determinística do
+# `life` e NADA MAIS: zero evolucao, especiacao, genoma, mutacao ou ABM. Violar
+# isso quebra o build, em vez de depender de revisao humana.
+[[tool.importlinter.contracts]]
+name = "O Biota provisorio nao toca a biologia emergente"
+type = "forbidden"
+source_modules = ["ecosfera_ai.engines.biota"]
+forbidden_modules = [
+    "ecosfera_ai.simulation_engine.biology",
+    "deap",
+    "mesa",
+]
 
 [[tool.importlinter.contracts]]
 name = "Moldura e Engines nao alcancam infraestrutura nem interfaces"

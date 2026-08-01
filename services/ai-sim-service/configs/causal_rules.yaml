@@ -7,7 +7,11 @@
 # version 2 -> 3: entram as regras da camada EMERGENTE (Inc 3), ligando pressão
 #   ambiental a extinção/prosperidade. Continuam sendo REGRAS determinísticas —
 #   nenhum LLM participa; o tutor LLM+RAG só entra no Inc 6 (ADR 0002).
-version: 3
+# version 3 -> 4 (M2): entram as regras dos ciclos fechados — água, carbono
+#   oceânico, nutrientes e capacidade de suporte. São as setas que o aluno passa
+#   a poder observar agora que os ciclos deixaram de estar pela metade
+#   (ADR 0012/0013).
+version: 4
 rules:
   - id: R-CO2-TEMP
     cause: co2
@@ -78,3 +82,52 @@ rules:
     effect: biomass
     same_direction: true
     template: "Mais espécies convivendo ({cause}) aproveitam melhor os recursos e a {effect} total sobe."
+  # --- Ciclos fechados (M2): água, química e capacidade de suporte ---
+  # A troca ar-oceano é a seta que o aluno mais precisa reconstruir: o oceano
+  # some com parte do carbono que o vulcanismo lançou, e é por isso que o
+  # aquecimento é mais lento do que o CO2 emitido faria supor.
+  - id: R-CO2-OCEAN-CARBON
+    cause: co2
+    effect: ocean_carbon
+    same_direction: true
+    template: "Quanto mais {cause} no ar, mais o mar absorve, e o carbono dissolvido ({effect}) sobe."
+  - id: R-OCEAN-CARBON-PH
+    cause: ocean_carbon
+    effect: ph
+    same_direction: false
+    template: "O {cause} dissolvido deixa a água mais ácida, então o {effect} do oceano cai."
+  - id: R-PH-BIODIVERSITY
+    cause: ph
+    effect: biodiversity
+    same_direction: true
+    template: "Um oceano ácido demais ({cause} baixo) dissolve conchas e esqueletos, e a {effect} do mar cai."
+  - id: R-TEMP-ICE-MELT
+    cause: temperature
+    effect: water
+    same_direction: true
+    template: "Com a {cause} mais alta o gelo derrete e devolve {effect} líquida ao oceano."
+  - id: R-VOLC-NUTRIENTS
+    cause: volcanism
+    effect: nutrients
+    same_direction: true
+    template: "As rochas que o {cause} traz à superfície se desgastam e liberam {effect} para a vida."
+  - id: R-NUTRIENTS-CAPACITY
+    cause: nutrients
+    effect: carrying_capacity
+    same_direction: true
+    template: "Com mais {cause} disponíveis, o ambiente sustenta mais vida ({effect} sobe)."
+  - id: R-WATER-CAPACITY
+    cause: water
+    effect: carrying_capacity
+    same_direction: true
+    template: "Mais {cause} líquida aproveitável aumenta quanta vida o planeta comporta ({effect})."
+  - id: R-CAPACITY-BIOMASS
+    cause: carrying_capacity
+    effect: biomass
+    same_direction: true
+    template: "A vida cresce até o limite que o ambiente oferece: se a {effect} pode subir, é porque a {cause} subiu."
+  - id: R-BIOMASS-CO2
+    cause: biomass
+    effect: co2
+    same_direction: false
+    template: "A {cause} retira carbono do ar para crescer, então o {effect} da atmosfera cai."

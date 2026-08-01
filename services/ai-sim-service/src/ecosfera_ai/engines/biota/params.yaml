@@ -1,0 +1,29 @@
+# M2: determinístico; substituído pela evolução emergente no M3 (ADR-ARCH-0001)
+#
+# Biota Engine PROVISÓRIO — porte dos valores do subsistema `life`, sem alteração
+# de ciência (ADR 0013). Os três primeiros são idênticos aos de
+# `configs/simulation_params.yaml: life`.
+version: 1
+
+# Abiogênese. O `life` testava `habitabilidade >= 0,35`; aqui o mesmo limiar é
+# expresso em unidades de CAPACIDADE, porque a capacidade é o que o Resource
+# publica e a habitabilidade deixou de ser grandeza deste Engine:
+#
+#     capacidade = capacidade_máxima × habitabilidade = 100 × h
+#     h >= 0,35   <=>   capacidade >= 35,0
+#
+# É reparametrização, não mudança de ciência: a condição é a mesma desigualdade.
+abiogenesis_capacity: 35.0
+emergence_amount: 0.001   # idêntico a life.emergence_amount
+
+# Crescimento logístico — idênticos a life.growth_rate / life.growth_variability.
+growth_rate: 0.15
+growth_variability: 0.02
+
+# Limiares de evento (novos: o `life` legado não emitia domain events).
+emergence_event_threshold: 0.0   # qualquer biomassa a partir do zero é abiogênese
+collapse_threshold: 0.001        # abaixo disto, a vida colapsou
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50

@@ -17,9 +17,10 @@ from ecosfera_ai.engines.climate.service import ClimateEngine
 from ecosfera_ai.shared_kernel.engine import TickBudget, TickContext
 from ecosfera_ai.shared_kernel.rng import rng_for
 from ecosfera_ai.shared_kernel.world_state import (
+    AstronomySlice,
     AtmosphereSlice,
     ClimateSlice,
-    LegacySlice,
+    HydrologySlice,
     SliceRef,
     WorldStateSnapshot,
 )
@@ -40,7 +41,8 @@ def _snapshot(
         era=0,
         atmosphere=AtmosphereSlice(greenhouse_forcing=forcing),
         climate=ClimateSlice(temperature=temperature),
-        legacy=LegacySlice(ice_cover=ice, solar_flux=1.0, ocean_circulation=circulation),
+        astronomy=AstronomySlice(solar_flux=1.0),
+        hydrology=HydrologySlice(ice_fraction=ice, ocean_circulation=circulation),
     )
 
 

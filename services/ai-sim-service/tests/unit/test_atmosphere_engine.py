@@ -23,8 +23,9 @@ from ecosfera_ai.shared_kernel.engine import TickBudget, TickContext
 from ecosfera_ai.shared_kernel.rng import rng_for
 from ecosfera_ai.shared_kernel.world_state import (
     AtmosphereSlice,
+    BiotaSlice,
+    ChemistrySlice,
     GeologySlice,
-    LegacySlice,
     SliceRef,
     WorldStateSnapshot,
 )
@@ -37,6 +38,7 @@ def _snapshot(
     forcing: float = 0.0,
     flux: float = 0.0,
     biomass: float = 0.0,
+    air_sea_flux: float = 0.0,
 ) -> WorldStateSnapshot:
     return WorldStateSnapshot(
         planet_id="p",
@@ -45,7 +47,8 @@ def _snapshot(
         era=0,
         geology=GeologySlice(co2_flux=flux),
         atmosphere=AtmosphereSlice(co2=co2, greenhouse_forcing=forcing),
-        legacy=LegacySlice(biomass=biomass),
+        biota=BiotaSlice(biomass=biomass),
+        chemistry=ChemistrySlice(air_sea_flux=air_sea_flux),
     )
 
 
@@ -100,7 +103,9 @@ def test_co2_never_goes_negative() -> None:
 def test_carbon_entering_equals_carbon_stored_when_there_are_no_sinks() -> None:
     """Conservação: sem sumidouros, tudo que a geologia emite vira estoque."""
     no_sinks = replace(PARAMS, weathering_coeff=0.0, carbon_uptake_coeff=0.0)
-    assert co2_change(500.0, inflow=7.5, biomass=3.0, params=no_sinks) == pytest.approx(7.5)
+    assert co2_change(
+        500.0, inflow=7.5, biomass=3.0, air_sea_flux=0.0, params=no_sinks
+    ) == pytest.approx(7.5)
 
 
 def test_weathering_grows_with_the_stock() -> None:

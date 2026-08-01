@@ -44,9 +44,24 @@ def carbon_sinks(co2: float, biomass: float, params: AtmosphereEngineParams) -> 
     return weathering + uptake
 
 
-def co2_change(co2: float, inflow: float, biomass: float, params: AtmosphereEngineParams) -> float:
-    """Variação do estoque: o que entra da geologia menos o que sai."""
-    return inflow - carbon_sinks(co2, biomass, params)
+def co2_change(
+    co2: float,
+    inflow: float,
+    biomass: float,
+    air_sea_flux: float,
+    params: AtmosphereEngineParams,
+) -> float:
+    """Variação do estoque: o que entra da geologia menos tudo o que sai.
+
+    `air_sea_flux` chega PRONTO da química, com a convenção de sinal dela:
+    positivo = o oceano absorve. A atmosfera SUBTRAI exatamente o número que a
+    química somou ao próprio reservatório — um fluxo, dois livros, sinais opostos.
+
+    Calcular a troca aqui também seria dupla contagem: o carbono sairia da
+    atmosfera duas vezes, ou entraria no oceano sem sair de lugar nenhum. É a
+    fronteira que o ADR 0012 fixa.
+    """
+    return inflow - carbon_sinks(co2, biomass, params) - air_sea_flux
 
 
 def radiative_forcing(co2: float, params: AtmosphereEngineParams) -> float:

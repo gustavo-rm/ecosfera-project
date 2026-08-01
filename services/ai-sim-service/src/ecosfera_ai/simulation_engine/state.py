@@ -146,6 +146,41 @@ class PlanetState:
     salinity: float = 0.0  # salinidade média do oceano
     ocean_circulation: float = 0.0  # índice de circulação termohalina [0,1]
 
+    # ── Estoques das fatias do M2 ───────────────────────────────────────────
+    # A borda HTTP e a persistência guardam ESTE objeto, e o tick faz o ciclo
+    # `snapshot -> Engines -> PlanetState` a cada passo. Um estoque sem lugar
+    # aqui voltaria a zero uma vez por tick, e a hidrologia, a química, o recurso
+    # e a biota nunca realimentariam nada (ADR 0012).
+    #
+    # `water` e `ice_cover` acima continuam sendo os AGREGADOS publicados,
+    # derivados destes reservatórios — o contrato HTTP não mudou.
+    ocean_water: float = 0.0  # reservatório oceânico (líquido salgado)
+    ice_mass: float = 0.0  # criosfera (massa, não fração)
+    vapour: float = 0.0  # vapor de água na atmosfera
+    freshwater: float = 0.0  # água doce continental
+    evaporation: float = 0.0  # fluxo do tick (diagnóstico)
+    precipitation: float = 0.0  # fluxo do tick (diagnóstico)
+
+    ocean_carbon: float = 0.0  # carbono dissolvido no oceano
+    soil_carbon: float = 0.0  # carbono soterrado no sedimento
+    nitrogen: float = 0.0
+    phosphorus: float = 0.0
+    sulfur: float = 0.0
+    nutrients: float = 0.0  # estoque agregado de nutrientes
+    ph: float = 0.0  # pH oceânico
+    air_sea_flux: float = 0.0  # troca ar<->oceano (positivo = oceano absorve)
+
+    water_available: float = 0.0  # recurso hídrico biologicamente utilizável
+    nutrients_available: float = 0.0  # nutriente aproveitável (lei do mínimo)
+    energy_available: float = 0.0  # energia biologicamente útil
+    # Capacidade de suporte derivada pelo Resource Engine. PUBLICADA aqui porque
+    # é o único acoplamento entre a física e a biologia: o M3 a lê deste campo em
+    # vez de instanciar um subsistema de vida (ADR 0006/0013).
+    carrying_capacity: float = 0.0
+    consumed: float = 0.0  # recurso retirado pela biomassa no tick
+
+    species_richness: float = 0.0  # riqueza de espécies (camada emergente, M3)
+
     def value(self, variable: str) -> float:
         """Lê uma variável de estado pelo nome da linguagem ubíqua do domínio."""
         return float(getattr(self, variable))

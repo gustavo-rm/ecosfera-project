@@ -9,7 +9,11 @@
 # `delta_from` diz como extrair a magnitude do `cause_detail`:
 #   field    -> usa o valor do campo, com o sinal que ele tiver
 #   minuend/subtrahend -> usa a diferença (travessia de faixa)
-version: 1
+#
+# version 1 -> 2 (M2): entram os eventos de água, química, recurso e biota. O
+#   consumidor continua sem conhecer módulo de Engine algum — só o vocabulário
+#   (ADR 0012/0013).
+version: 2
 
 mappings:
   - event_type: VolcanicEruption
@@ -27,3 +31,49 @@ mappings:
   - event_type: ClimateThresholdCrossed
     variable: temperature
     delta_from: { minuend: band_to, subtrahend: band_from }
+
+  # --- Ciclo da água (Hydrology Engine, M2) ---
+  - event_type: IceSheetChanged
+    variable: ice_cover
+    delta_from: { field: change }
+
+  - event_type: WaterBalanceShift
+    variable: water
+    delta_from: { field: ocean }
+
+  # --- Biogeoquímica (Chemistry Engine, M2) ---
+  # O pH cai quando o carbono dissolvido sobe: a magnitude é a QUEDA, então a
+  # observação usa a diferença na ordem (novo - antigo), que já sai negativa.
+  - event_type: OceanAcidification
+    variable: ph
+    delta_from: { minuend: ph, subtrahend: ph_before }
+
+  - event_type: NutrientDepletion
+    variable: nutrients
+    delta_from: { minuend: nutrients, subtrahend: nutrients_before }
+
+  - event_type: CarbonFluxShift
+    variable: co2
+    delta_from: { field: air_sea_flux }
+
+  # --- Recurso e biota (M2) ---
+  - event_type: CarryingCapacityShift
+    variable: carrying_capacity
+    delta_from: { field: change }
+
+  - event_type: ResourceScarcity
+    variable: nutrients
+    delta_from: { field: available }
+
+  - event_type: Abiogenesis
+    variable: biomass
+    delta_from: { field: biomass }
+
+  - event_type: BiomassCollapse
+    variable: biomass
+    delta_from: { minuend: biomass, subtrahend: biomass_before }
+
+  # --- Órbita (Astronomy Engine, M2) ---
+  - event_type: InsolationShift
+    variable: solar_flux
+    delta_from: { field: change }

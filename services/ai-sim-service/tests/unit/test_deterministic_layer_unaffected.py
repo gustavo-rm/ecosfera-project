@@ -15,6 +15,7 @@ from dataclasses import fields
 from pathlib import Path
 
 import pytest
+from tests.support import build_orchestrator
 
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.simulation.advance_era import AdvanceEraUseCase
@@ -25,9 +26,8 @@ from ecosfera_ai.infrastructure.jobs.inline_job_queue import InlineJobQueue
 from ecosfera_ai.infrastructure.persistence.inmemory_planet_repo import InMemoryPlanetRepository
 from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionEngine
-from ecosfera_ai.simulation_engine.params import build_orchestrator, initial_state, load_params
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed, PlanetState
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
 RULES = build_engine(Path("configs/causal_rules.yaml"))
@@ -41,11 +41,10 @@ async def _run_eras(*, biology_enabled: bool, seed: int, eras: int = 3) -> Plane
     repo = InMemoryPlanetRepository()
     orchestrator = build_orchestrator(PARAMS)
     explain = ExplainCausalUseCase(RULES)
-    life = LifeSubsystem(PARAMS.life)
     biology = BiologyEngine(EvolutionEngine(PARAMS.evolution, PARAMS.fitness), PARAMS.ecology)
 
     queue = InlineJobQueue()
-    evolve = EvolveBiologyUseCase(repo, biology, life)
+    evolve = EvolveBiologyUseCase(repo, biology)
 
     async def _handler(payload: dict[str, object]) -> dict[str, object]:
         return dict(
@@ -98,11 +97,20 @@ async def test_biology_only_adds_output_never_changes_physics() -> None:
 
 
 def test_carrying_capacity_is_the_only_coupling_point() -> None:
-    """`life.py` publica a capacidade; a biologia lê e nunca devolve nada a ele."""
-    life = LifeSubsystem(PARAMS.life)
+    """O Resource PUBLICA a capacidade; a biologia lê e nunca devolve nada.
+
+    Desde o M2 a capacidade vem do Resource Engine pelo world-state, e não de um
+    `LifeSubsystem` instanciado à parte (ADR 0013). A fronteira é a mesma; o que
+    mudou é que agora existe UMA fonte, e o consumidor não tem como recalculá-la
+    de forma divergente porque não tem os parâmetros para isso.
+    """
     state = initial_state(PlanetSeed("p", 1), PARAMS)
-    capacity = life.carrying_capacity(state)
-    assert capacity == PARAMS.life.carrying_capacity * life.habitability(state)
+    # Um planeta recém-criado ainda não passou por um tick: a capacidade nasce
+    # zerada e é o primeiro tick do Resource que a preenche.
+    assert state.carrying_capacity == 0.0
+    state = build_orchestrator(PARAMS).tick(state).state
+    capacity = state.carrying_capacity
+    assert capacity > 0.0
 
     engine = BiologyEngine(EvolutionEngine(PARAMS.evolution, PARAMS.fitness), PARAMS.ecology)
     outcome = engine.advance_era([], state, capacity, planet_id="p", era=1)

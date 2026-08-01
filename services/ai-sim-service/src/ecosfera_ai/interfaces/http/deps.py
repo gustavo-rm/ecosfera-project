@@ -22,13 +22,18 @@ from ecosfera_ai.application.telemetry.ingest_event import IngestTelemetryUseCas
 from ecosfera_ai.config.settings import get_settings
 from ecosfera_ai.core.observability import biology_jobs
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
+from ecosfera_ai.engines.astronomy.observability import AstronomyMetricsSink
 from ecosfera_ai.engines.atmosphere.observability import AtmosphereMetricsSink
+from ecosfera_ai.engines.biota.observability import BiotaMetricsSink
+from ecosfera_ai.engines.chemistry.observability import ChemistryMetricsSink
 from ecosfera_ai.engines.climate.observability import ClimateMetricsSink
-from ecosfera_ai.engines.geology.observability import GeologyMetricsSink
-from ecosfera_ai.engines.legacy.orchestrator import (
+from ecosfera_ai.engines.composition import (
     FrameworkTickOrchestrator,
     build_planet_engine,
 )
+from ecosfera_ai.engines.geology.observability import GeologyMetricsSink
+from ecosfera_ai.engines.hydrology.observability import HydrologyMetricsSink
+from ecosfera_ai.engines.resource.observability import ResourceMetricsSink
 from ecosfera_ai.infrastructure.jobs.inline_job_queue import InlineJobQueue
 from ecosfera_ai.infrastructure.messaging.null_event_bus import NullEventBus
 from ecosfera_ai.infrastructure.persistence.inmemory_planet_repo import (
@@ -47,12 +52,7 @@ from ecosfera_ai.shared_kernel.observability import (
 )
 from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionEngine
-from ecosfera_ai.simulation_engine.params import (
-    SimulationParams,
-    build_orchestrator,
-    load_params,
-)
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
+from ecosfera_ai.simulation_engine.params import SimulationParams, load_params
 from ecosfera_ai.simulation_engine.ticker import Ticker
 
 # Singletons de processo (substituíveis por adaptadores reais via settings/flags)
@@ -104,25 +104,30 @@ def get_observability_sink() -> ObservabilitySink:
             get_event_store(),
             PrometheusMetricsSink(),
             StructlogSink(),
+            AstronomyMetricsSink(),
             GeologyMetricsSink(),
+            ChemistryMetricsSink(),
             AtmosphereMetricsSink(),
             ClimateMetricsSink(),
+            HydrologyMetricsSink(),
+            ResourceMetricsSink(),
+            BiotaMetricsSink(),
         ]
     )
 
 
 @lru_cache
 def get_orchestrator() -> Ticker:
-    """Caminho de simulação: a moldura de Engines por padrão desde o M1.
+    """Caminho de simulação: a moldura de Engines, e desde o M2 o único.
 
-    Desligar a flag NÃO é um modo equivalente: volta ao TickOrchestrator
-    monolítico, com o efeito estufa linear e o carbono no `chemistry`. As duas
-    trajetórias divergem por construção — a moldura roda a ciência corrigida
-    (ADR 0010/0011). A flag existe como rollback de emergência.
+    Não há mais ramo condicional: o `TickOrchestrator` monolítico e a flag
+    `ECOSFERA_ENGINES_FRAMEWORK` foram removidos junto com o adaptador legado.
+    A consequência — não existe rollback para a ciência anterior — é deliberada e
+    está registrada no ADR 0014. A rede que importa é o replay determinístico:
+    reproduzir uma trajetória gravada continua possível, que é a reversibilidade
+    de que a auditoria depende.
     """
     params = get_simulation_params()
-    if not get_settings().engines_framework:
-        return build_orchestrator(params)
     planet = build_planet_engine(
         params,
         budget=params.engine_budget,
@@ -169,12 +174,6 @@ def get_run_tick_use_case() -> RunTickUseCase:
 
 
 @lru_cache
-def get_life_subsystem() -> LifeSubsystem:
-    """Subsistema determinístico de vida — publica a capacidade de suporte."""
-    return LifeSubsystem(get_simulation_params().life)
-
-
-@lru_cache
 def get_biology_engine() -> BiologyEngine:
     params = get_simulation_params()
     evolution = EvolutionEngine(params.evolution, params.fitness)
@@ -182,7 +181,13 @@ def get_biology_engine() -> BiologyEngine:
 
 
 def get_evolve_biology_use_case() -> EvolveBiologyUseCase:
-    return EvolveBiologyUseCase(get_planet_repo(), get_biology_engine(), get_life_subsystem())
+    """A capacidade de suporte não é mais injetada: vem publicada no estado.
+
+    Até o M1 este caso de uso recebia um `LifeSubsystem` só para calcular a
+    capacidade. Desde o M2 quem a deriva é o Resource Engine, e ela chega pelo
+    `PlanetState` como qualquer grandeza publicada (ADR 0013).
+    """
+    return EvolveBiologyUseCase(get_planet_repo(), get_biology_engine())
 
 
 @lru_cache
@@ -222,11 +227,10 @@ def get_advance_era_use_case() -> AdvanceEraUseCase:
         biology_enabled=settings.biology_enabled,
         # Só a fila inline resolve na hora; com ARQ a rota responde 202.
         resolves_inline=settings.job_backend != "arq",
-        # Tutor embrionário: a era passa a ser narrada a partir da TRILHA DE
-        # EVENTOS quando ela existe, e não do world-state (ADR 0011). Só faz
-        # sentido com a moldura ligada — o TickOrchestrator legado não emite
-        # domain events.
-        explain_events=(get_explain_from_events_use_case() if settings.engines_framework else None),
+        # Tutor embrionário: a era é narrada a partir da TRILHA DE EVENTOS quando
+        # ela existe, e não do world-state (ADR 0011). Deixou de ser condicional
+        # no M2 — não há mais caminho de simulação que não emita domain events.
+        explain_events=get_explain_from_events_use_case(),
     )
 
 

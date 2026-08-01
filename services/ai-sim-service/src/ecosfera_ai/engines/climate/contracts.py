@@ -12,12 +12,16 @@ from ecosfera_ai.shared_kernel.world_state import SliceRef
 
 ENGINE_ID = "climate"
 
-# Lê o forçamento da atmosfera NO MESMO TICK (ela roda antes). Gelo, irradiância
-# e circulação oceânica ainda vivem no legado, que roda depois — leitura
-# defasada e declarada (migram no M2).
+# Lê o forçamento da atmosfera e a irradiância da astronomia NO MESMO TICK (as
+# duas rodam antes). Gelo e circulação vêm da hidrologia, que roda DEPOIS —
+# leitura defasada e declarada, e é ela que quebra o ciclo clima<->água.
+#
+# Que a irradiância seja leitura do MESMO tick importa: com ela defasada, a
+# estação do planeta chegaria ao clima um tick atrasada. É a razão de o Astronomy
+# Engine abrir a ordem (ADR 0013).
 WRITES = SliceRef.CLIMATE
-READS: frozenset[SliceRef] = frozenset({SliceRef.ATMOSPHERE})
-LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.LEGACY})
+READS: frozenset[SliceRef] = frozenset({SliceRef.ATMOSPHERE, SliceRef.ASTRONOMY})
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.HYDROLOGY})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 

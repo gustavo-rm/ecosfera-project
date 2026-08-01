@@ -12,12 +12,12 @@ from ecosfera_ai.shared_kernel.world_state import SliceRef
 
 ENGINE_ID = "atmosphere"
 
-# Lê a geologia NO MESMO TICK (ela roda antes): é assim que a desgaseificação
-# vira estoque sem defasagem. A biomassa vem do legado, que roda depois — logo,
-# leitura defasada e declarada.
+# Lê a geologia e a QUÍMICA no MESMO TICK (as duas rodam antes): é assim que a
+# desgaseificação vira estoque e a troca ar<->oceano é debitada sem defasagem. A
+# biomassa vem da biota, que roda depois — logo, leitura defasada e declarada.
 WRITES = SliceRef.ATMOSPHERE
-READS: frozenset[SliceRef] = frozenset({SliceRef.GEOLOGY})
-LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.LEGACY})
+READS: frozenset[SliceRef] = frozenset({SliceRef.GEOLOGY, SliceRef.CHEMISTRY})
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.BIOTA})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 

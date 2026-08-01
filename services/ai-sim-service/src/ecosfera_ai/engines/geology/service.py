@@ -42,7 +42,10 @@ class GeologyEngine:
 
     def tick(self, ctx: TickContext) -> TickResult:
         current = ctx.snapshot.geology
-        water = ctx.snapshot.legacy.water
+        # A erosão responde à água LÍQUIDA em contato com o relevo: oceano e água
+        # doce. Vapor e gelo não erodem rocha na escala deste modelo.
+        hydrology = ctx.snapshot.hydrology
+        water = hydrology.ocean + hydrology.freshwater
 
         pulse = float(ctx.rng.normal(0.0, self.params.tectonic_activity))
         d_volcanism = volcanism_change(current.volcanism, pulse, self.params)

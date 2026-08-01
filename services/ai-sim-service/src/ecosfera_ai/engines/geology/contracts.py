@@ -12,12 +12,14 @@ from ecosfera_ai.shared_kernel.world_state import SliceRef
 
 ENGINE_ID = "geology"
 
-# Escreve a própria fatia. Lê `water` do legado para calcular a erosão — leitura
-# DEFASADA porque o adaptador legado roda depois na ordem do tick, então o valor
+# Escreve a própria fatia. Lê a água da hidrologia para calcular a erosão —
+# leitura DEFASADA porque a Hydrology roda depois na ordem do tick, então o valor
 # visto é o do tick anterior. A defasagem é declarada, não presumida (ADR 0008).
+# No M2 a fonte mudou de `LegacySlice.water` para `HydrologySlice`; a defasagem
+# continua sendo a mesma, e por isso o comportamento não muda (ADR 0014).
 WRITES = SliceRef.GEOLOGY
 READS: frozenset[SliceRef] = frozenset()
-LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.LEGACY})
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.HYDROLOGY})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 

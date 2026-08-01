@@ -1,10 +1,11 @@
 """Capacidade de "avançar um tick", isolada do orquestrador concreto.
 
-Existem hoje duas implementações: o `TickOrchestrator` original e o
-`FrameworkTickOrchestrator`, que roda o mesmo tick através da moldura de Engines
-(ADR 0008). Os casos de uso dependem deste Protocol, não de um dos dois — trocar
-a implementação é decisão da raiz de composição, atrás da flag
-`ECOSFERA_ENGINES_FRAMEWORK`, e nenhuma camada acima percebe.
+Desde o M2 há uma única implementação — `FrameworkTickOrchestrator`, que roda o
+tick pela moldura de Engines (ADR 0014). O Protocol permanece, e não por
+simetria: é ele que mantém os casos de uso independentes do motor, e é o que
+permitiu ao M0/M1 trocarem o orquestrador inteiro sem que nenhuma camada acima
+mudasse de assinatura. A mesma porta serve ao replay, que injeta a variante que
+não publica no Canal B.
 """
 
 from __future__ import annotations

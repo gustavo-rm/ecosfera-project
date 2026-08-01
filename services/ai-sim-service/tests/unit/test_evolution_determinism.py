@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.support import build_orchestrator
+
 from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord, living
 from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine, biology_seed
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionEngine
 from ecosfera_ai.simulation_engine.biology.genome import Genome
-from ecosfera_ai.simulation_engine.params import build_orchestrator, initial_state, load_params
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed, PlanetState
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
-LIFE = LifeSubsystem(PARAMS.life)
 
 
 def _engine() -> BiologyEngine:
@@ -31,7 +31,7 @@ def _history(seed: int, eras: int = 5) -> list[tuple[list[str], list[str]]]:
         for _ in range(PARAMS.timeline.era_length):
             state = orchestrator.tick(state).state
         outcome = engine.advance_era(
-            catalog, state, LIFE.carrying_capacity(state), planet_id="p", era=era
+            catalog, state, state.carrying_capacity, planet_id="p", era=era
         )
         catalog = outcome.catalog
         trace.append(
@@ -65,7 +65,7 @@ def test_populations_are_reproducible_to_the_last_bit() -> None:
             for _ in range(PARAMS.timeline.era_length):
                 state = orchestrator.tick(state).state
             catalog = engine.advance_era(
-                catalog, state, LIFE.carrying_capacity(state), planet_id="p", era=era
+                catalog, state, state.carrying_capacity, planet_id="p", era=era
             ).catalog
         return [(r.species_id, r.population) for r in catalog]
 
@@ -116,7 +116,7 @@ def test_speciation_records_its_ancestor() -> None:
         for _ in range(PARAMS.timeline.era_length):
             state = orchestrator.tick(state).state
         outcome = engine.advance_era(
-            catalog, state, LIFE.carrying_capacity(state), planet_id="p", era=era
+            catalog, state, state.carrying_capacity, planet_id="p", era=era
         )
         catalog = outcome.catalog
         trace.extend(outcome.speciated)

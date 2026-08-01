@@ -9,7 +9,6 @@ from ecosfera_ai.application.simulation.replay_state import EraNotFoundError
 from ecosfera_ai.application.simulation.run_tick import PlanetNotFoundError
 from ecosfera_ai.interfaces.http.deps import (
     get_job_queue,
-    get_life_subsystem,
     get_planet_repo,
 )
 from ecosfera_ai.interfaces.http.schemas.biology import (
@@ -22,7 +21,6 @@ from ecosfera_ai.interfaces.http.schemas.biology import (
     SpeciesOut,
 )
 from ecosfera_ai.simulation_engine.biology.codex import SpeciesRecord
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
 
 router = APIRouter(prefix="/simulation", tags=["biology"])
 
@@ -72,9 +70,13 @@ async def get_species(
 async def get_ecology(
     planet_id: str,
     repo: PlanetRepository = Depends(get_planet_repo),
-    life: LifeSubsystem = Depends(get_life_subsystem),
 ) -> EcologyResponse:
-    """Snapshot populacional atual e a capacidade de suporte que o ambiente oferece."""
+    """Snapshot populacional atual e a capacidade de suporte que o ambiente oferece.
+
+    A capacidade é LIDA do estado publicado, não recalculada aqui: quem a deriva
+    é o Resource Engine (ADR 0013). O contrato da resposta não mudou — mudou de
+    onde o número vem, e agora é o mesmo que a biologia de fato consumiu.
+    """
     state = await repo.load_latest(planet_id)
     if state is None:
         raise PlanetNotFoundError(planet_id)
@@ -82,7 +84,7 @@ async def get_ecology(
     catalog = [record for record in await repo.load_species(planet_id) if not record.is_extinct]
     return EcologyResponse(
         planet_id=planet_id,
-        carrying_capacity=life.carrying_capacity(state),
+        carrying_capacity=state.carrying_capacity,
         total_population=sum(record.population for record in catalog),
         populations=[
             PopulationOut(

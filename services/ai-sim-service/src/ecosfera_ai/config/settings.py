@@ -44,12 +44,10 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://ecosfera:ecosfera@localhost:5432/ecosfera"
     )
 
-    # Moldura de Engines. LIGADA por padrão desde o M1 (ADR 0011): o caminho de
-    # simulação de produção é a moldura, com Geology/Atmosphere/Climate como
-    # Engines de verdade. Desligar volta ao TickOrchestrator monolítico, que
-    # roda a ciência ANTERIOR ao M1 — é rollback de emergência, não um modo
-    # equivalente: as duas trajetórias divergem por construção (ADR 0010).
-    engines_framework: bool = Field(default=True)
+    # `ECOSFERA_ENGINES_FRAMEWORK` foi REMOVIDA no M2 (ADR 0014). A moldura de
+    # Engines é o único caminho de simulação: não há mais um segundo motor para
+    # a flag escolher. Definir a variável de ambiente hoje não faz nada.
+    #
     # Spans de tracing da moldura (Pilar 4). No-op enquanto desligado.
     tracing_enabled: bool = Field(default=False)
 

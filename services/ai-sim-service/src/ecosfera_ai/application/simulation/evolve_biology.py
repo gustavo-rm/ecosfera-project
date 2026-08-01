@@ -28,7 +28,6 @@ from ecosfera_ai.simulation_engine.biology.codex import (
 )
 from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine, BiologyOutcome
 from ecosfera_ai.simulation_engine.state import PlanetState
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
 from ecosfera_ai.simulation_engine.timeline import EventLogEntry
 
 
@@ -80,15 +79,21 @@ def biology_events(outcome: BiologyOutcome, planet_id: str, tick: int) -> list[E
 
 
 class EvolveBiologyUseCase:
-    def __init__(
-        self,
-        repo: PlanetRepository,
-        biology: BiologyEngine,
-        life: LifeSubsystem,
-    ) -> None:
+    """Roda a biologia emergente DENTRO do orçamento que a física publicou.
+
+    Desde o M2 a capacidade de suporte é LIDA do estado, não recalculada por um
+    subsistema de vida injetado aqui. Quem a deriva é o Resource Engine, e ela
+    chega pelo `PlanetState` como qualquer outra grandeza publicada (ADR 0013).
+
+    A dependência que sumiu importa: com o `LifeSubsystem` no construtor, este
+    caso de uso continha uma segunda cópia da ciência de habitabilidade, que
+    podia divergir da do Engine sem que nada acusasse. Ler o valor publicado
+    torna a divergência impossível por construção.
+    """
+
+    def __init__(self, repo: PlanetRepository, biology: BiologyEngine) -> None:
         self._repo = repo
         self._biology = biology
-        self._life = life
 
     async def execute(self, planet_id: str, era: int) -> BiologySummary:
         """Evolui a biologia da era já fechada e persiste códex + eventos."""
@@ -124,5 +129,5 @@ class EvolveBiologyUseCase:
         era: int,
     ) -> BiologyOutcome:
         """Executa a biologia da era SEM I/O — reutilizado pelo replay (RF-016)."""
-        capacity = self._life.carrying_capacity(state)
+        capacity = state.carrying_capacity
         return self._biology.advance_era(catalog, state, capacity, planet_id=planet_id, era=era)

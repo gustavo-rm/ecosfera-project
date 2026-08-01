@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from tests.support import build_orchestrator
 
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.ports.job_queue import JobRef, JobResult, JobStatus
@@ -14,7 +15,7 @@ from ecosfera_ai.application.simulation.advance_era import AdvanceEraUseCase
 from ecosfera_ai.application.simulation.create_planet import CreatePlanetUseCase
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
 from ecosfera_ai.infrastructure.persistence.inmemory_planet_repo import InMemoryPlanetRepository
-from ecosfera_ai.simulation_engine.params import build_orchestrator, load_params
+from ecosfera_ai.simulation_engine.params import load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
