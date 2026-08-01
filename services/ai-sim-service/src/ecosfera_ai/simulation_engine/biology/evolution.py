@@ -21,6 +21,18 @@ nenhuma outra parte do processo tem seu RNG afetado.
 
 O motor NÃO escreve no `PlanetState`: lê o ambiente e a capacidade de suporte e
 devolve só o que é biológico (ADR 0006).
+
+## Por que o DEAP é importado preguiçosamente (ADR 0017)
+
+`EvolutionParams` vive aqui, e `simulation_engine/params.py` o importa para
+montar o `SimulationParams` — que por sua vez é importado por
+`engines/composition.py`. Com `from deap import ...` no topo, essa cadeia tornava
+o `deap` requisito de importação de **toda a física**, apesar de o extra `sim`
+ser declarado opcional: o serviço não subia sem ele.
+
+A fábrica `_deap()` desfaz isso. O `deap` passa a ser tocado só quando este motor
+roda de fato, e os nove Engines — inclusive o Ecology, que é aritmética pura —
+importam e rodam sem o extra instalado.
 """
 
 from __future__ import annotations
@@ -29,9 +41,8 @@ import random
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any
-
-from deap import base, creator, tools
 
 from ecosfera_ai.simulation_engine.biology.codex import (
     SpeciesRecord,
@@ -42,12 +53,23 @@ from ecosfera_ai.simulation_engine.biology.fitness import FitnessParams, environ
 from ecosfera_ai.simulation_engine.biology.genome import TROPHIC_PRODUCER, Genome
 from ecosfera_ai.simulation_engine.state import PlanetState
 
-# O DEAP exige classes registradas no módulo `creator`. Criá-las na importação
-# (e não a cada execução) evita o warning de redefinição e o vazamento de memória.
-if not hasattr(creator, "EcosferaFitnessMax"):
-    creator.create("EcosferaFitnessMax", base.Fitness, weights=(1.0,))
-if not hasattr(creator, "EcosferaIndividual"):
-    creator.create("EcosferaIndividual", list, fitness=creator.EcosferaFitnessMax)
+
+@lru_cache(maxsize=1)
+def _deap() -> tuple[Any, Any, Any]:
+    """Importa o DEAP e registra as classes do `creator` — só quando usado.
+
+    O DEAP exige classes registradas no módulo `creator`. Criá-las UMA vez (e não
+    a cada execução) evita o warning de redefinição e o vazamento de memória; o
+    `lru_cache` é o que garante essa única vez agora que o registro deixou de
+    acontecer na importação do módulo.
+    """
+    from deap import base, creator, tools
+
+    if not hasattr(creator, "EcosferaFitnessMax"):
+        creator.create("EcosferaFitnessMax", base.Fitness, weights=(1.0,))
+    if not hasattr(creator, "EcosferaIndividual"):
+        creator.create("EcosferaIndividual", list, fitness=creator.EcosferaFitnessMax)
+    return base, creator, tools
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,8 +123,9 @@ class EvolutionEngine:
     def _fitness_of(self, genome: Genome, state: PlanetState, occupancy: float) -> float:
         return environmental_fitness(genome, state, self._f, occupancy=occupancy)
 
-    def _toolbox(self, state: PlanetState, occupancy: float) -> base.Toolbox:
+    def _toolbox(self, state: PlanetState, occupancy: float) -> Any:
         """Monta o toolbox do DEAP com os operadores genéticos configurados."""
+        base, _, tools = _deap()
         toolbox = base.Toolbox()
 
         def evaluate(individual: Any) -> tuple[float]:
@@ -228,6 +251,7 @@ class EvolutionEngine:
         for individual in population:
             individual.fitness.values = toolbox.evaluate(individual)
 
+        _, creator, _ = _deap()
         for _ in range(self._p.generations):
             offspring = [
                 creator.EcosferaIndividual(ind)
@@ -250,8 +274,9 @@ class EvolutionEngine:
             catalog, alive, population, state, capacity, planet_id, era
         )
 
-    def _initial_population(self, alive: list[SpeciesRecord], toolbox: base.Toolbox) -> list[Any]:
+    def _initial_population(self, alive: list[SpeciesRecord], toolbox: Any) -> list[Any]:
         """População inicial: cópias mutadas dos genomas vivos (variação intraespecífica)."""
+        _, creator, _ = _deap()
         seeds = [record.genome.to_vector() for record in alive]
         population: list[Any] = []
         while len(population) < self._p.population_size:

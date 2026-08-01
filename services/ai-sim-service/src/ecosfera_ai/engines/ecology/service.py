@@ -1,9 +1,15 @@
 """Ecology Engine — reparte a comunidade em níveis tróficos e resolve a predação.
 
-Envolve o modelo trófico de `simulation_engine/biology/ecology.py`, corrigido no
-M3 para atualização **síncrona** com teto global de predação e ordem estável.
-O `mesa` só é tocado quando este Engine roda — a fábrica é preguiçosa, e é isso
-que permite ao serviço subir e rodar a física sem o extra `sim` (ADR 0017).
+Porta a ciência do modelo trófico de `simulation_engine/biology/ecology.py` —
+corrigido no M3 para atualização **síncrona**, com teto global de captura e ordem
+estável — para aritmética pura sobre agregados por nível trófico.
+
+**Não envolve o modelo por agente, e não importa `mesa`.** O ABM opera sobre
+populações por espécie; este Engine opera sobre três agregados, que é o que cabe
+no Canal A (aditivo, de floats). Envolvê-lo exigiria materializar a lista de
+espécies a cada tick só para agregá-la de volta. A consequência prática é que os
+nove Engines importam e rodam sem o extra `sim` instalado (ADR 0017); o ABM
+segue vivo no caminho por era, atrás de fábrica preguiçosa.
 
 ## O que ele escreve, e o que NÃO escreve
 

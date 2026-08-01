@@ -98,10 +98,16 @@ já resolvida pela Evolution para reparti-la. O acoplamento de volta
 (pressão de predação → seleção) é que se resolve por defasagem, declarada do lado
 da Evolution.
 
-**O `mesa` é preguiçoso.** A fábrica de classes só importa `mesa` quando este
-Engine roda de fato (`@lru_cache(maxsize=1)`), e é isso que permite ao serviço
-subir e rodar a física inteira sem o extra `sim` instalado (ADR 0017). O
-contrato de import-linter mantém `mesa` fora do Evolution.
+**Este Engine não usa `mesa`.** Ele PORTA a ciência do modelo por agente para
+aritmética pura sobre três agregados; não o envolve. O ABM opera sobre populações
+por espécie, e este Engine opera sobre níveis tróficos — que é o que cabe no
+Canal A (aditivo, de floats). Envolvê-lo exigiria materializar a lista de
+espécies a cada tick só para agregá-la de volta.
+
+A consequência é que os nove Engines importam e rodam **sem o extra `sim`**
+instalado (verificado em `test_app_boots_without_sim.py`). O ABM com `mesa`
+segue vivo no caminho de biologia por era, atrás de fábrica preguiçosa
+(ADR 0017).
 
 **Eventos por NÍVEL, nunca por organismo.** `TrophicCollapse` e
 `PopulationDeclined` reportam **travessia de limiar** por nível trófico agregado.

@@ -115,13 +115,42 @@ class ResourceEngine:
         cinco unidades significa coisas opostas num planeta de capacidade 10 e
         num de capacidade 500.
 
-        Um planeta ainda sem medida (capacidade anterior zero) não gera evento de
-        variação: sair de zero é o nascimento da leitura, não uma mudança.
+        A saída de zero é caso à parte: a variação relativa não existe (dividiria
+        por zero), mas a TRAVESSIA existe e é a mais importante do planeta — é ela
+        que torna a abiogênese possível. Vira evento próprio, com a variação
+        absoluta no lugar da relativa.
         """
         emitter = EventEmitter(engine_id=self.engine_id, seed=ctx.seed, tick=ctx.tick, era=ctx.era)
         events: list[DomainEvent] = []
 
-        if capacity_before > _EPS:
+        if capacity_before <= _EPS < capacity_after:
+            # O planeta passou de INABITÁVEL a habitável. É travessia de limiar,
+            # não estado contínuo, e acontece uma vez — não afoga trilha alguma.
+            #
+            # No M2 este caso era silenciado ("sair de zero é o nascimento da
+            # leitura, não uma mudança"), o que não custava nada porque ninguém a
+            # jusante dependia dele. No M3 depende: é exatamente esta travessia
+            # que dispara a abiogênese, e sem evento o `LifeEmerged` não tem
+            # causa a que apontar — a cadeia ambiente→biologia ficaria cortada no
+            # elo mais importante que a plataforma tem para ensinar (ADR 0016).
+            events.append(
+                emitter.emit(
+                    CARRYING_CAPACITY_SHIFT,
+                    ResourceCauseCode.HABITABILITY_GAIN,
+                    location={"region_id": "global"},
+                    participants=[f"engine:{self.engine_id}"],
+                    environmental_factors=["habitability:emerged"],
+                    resources=["water", "nutrients", "energy"],
+                    cause_detail={
+                        "carrying_capacity": capacity_after,
+                        "capacity_before": capacity_before,
+                        "change": capacity_after,
+                        "habitability": index,
+                    },
+                    causation_id=ctx.caused_by_slice(SliceRef.CLIMATE),
+                )
+            )
+        elif capacity_before > _EPS:
             relative = (capacity_after - capacity_before) / capacity_before
             if abs(relative) >= self.params.capacity_event_threshold:
                 gained = relative > 0.0

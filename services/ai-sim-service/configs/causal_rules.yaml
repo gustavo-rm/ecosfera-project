@@ -131,3 +131,22 @@ rules:
     effect: co2
     same_direction: false
     template: "A {cause} retira carbono do ar para crescer, então o {effect} da atmosfera cai."
+  # --- Biologia emergente (M3, ADR 0016) ---
+  # As regras abaixo narram a SELEÇÃO LOCAL: a comunidade responde ao ambiente
+  # que encontra. Nenhuma delas fala em "melhor adaptado" ou em progresso — a
+  # linguagem teleológica é justamente o que a plataforma existe para desfazer.
+  - id: R-TEMPERATURE-BIOMASS
+    cause: temperature
+    effect: biomass
+    same_direction: false
+    template: "A {cause} se afastou do que a comunidade tolera, e parte dela não se sustentou: a {effect} caiu."
+  - id: R-BIOMASS-RICHNESS
+    cause: biomass
+    effect: species_richness
+    same_direction: true
+    template: "Com mais {cause} há espaço para linhagens distintas coexistirem, e a {effect} acompanha."
+  - id: R-TEMPERATURE-TRAIT
+    cause: temperature
+    effect: mean_temp_optimum
+    same_direction: true
+    template: "As coortes que toleram a nova {cause} deixaram mais descendentes, e o {effect} da comunidade seguiu junto."

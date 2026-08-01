@@ -77,3 +77,31 @@ mappings:
   - event_type: InsolationShift
     variable: solar_flux
     delta_from: { field: change }
+
+  # --- Evolução emergente (Evolution Engine, M3) ---
+  # `Abiogenesis` acima veio do Biota provisório do M2; quem emite o marco de
+  # surgimento agora é a Evolution, com o nome da Spec (ADR 0016).
+  - event_type: LifeEmerged
+    variable: biomass
+    delta_from: { field: carrying_capacity }
+
+  - event_type: SpeciesExtinct
+    variable: biomass
+    delta_from: { minuend: biomass, subtrahend: biomass_before }
+
+  - event_type: SpeciationOccurred
+    variable: species_richness
+    delta_from: { field: distance }
+
+  - event_type: TraitShift
+    variable: mean_temp_optimum
+    delta_from: { minuend: after, subtrahend: before }
+
+  # --- Dinâmica trófica (Ecology Engine, M3) ---
+  - event_type: TrophicCollapse
+    variable: biomass
+    delta_from: { minuend: biomass, subtrahend: biomass_before }
+
+  - event_type: PopulationDeclined
+    variable: biomass
+    delta_from: { minuend: biomass, subtrahend: biomass_before }
