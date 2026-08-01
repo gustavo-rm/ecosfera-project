@@ -40,7 +40,6 @@ import pytest
 
 from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
-from ecosfera_ai.engines.biota.service import BiotaEngine
 from ecosfera_ai.engines.bridge import snapshot_of
 from ecosfera_ai.engines.chemistry.contracts import load_params as chemistry_params
 from ecosfera_ai.engines.chemistry.service import ChemistryEngine
@@ -48,6 +47,8 @@ from ecosfera_ai.engines.climate.contracts import load_params as climate_params
 from ecosfera_ai.engines.climate.domain import absorbed_energy, equilibrium_temperature
 from ecosfera_ai.engines.climate.service import ClimateEngine
 from ecosfera_ai.engines.composition import build_planet_engine, planet_invariants
+from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
 from ecosfera_ai.engines.geology.service import GeologyEngine
 from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
@@ -85,7 +86,8 @@ def _trail(
                     ClimateEngine(),
                     HydrologyEngine(),
                     ResourceEngine(),
-                    BiotaEngine(),
+                    EvolutionEngine(),
+                    EcologyEngine(),
                 ]
             ),
             invariants=planet_invariants(

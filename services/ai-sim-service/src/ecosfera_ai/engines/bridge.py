@@ -38,6 +38,7 @@ from ecosfera_ai.shared_kernel.world_state import (
     BiotaSlice,
     ChemistrySlice,
     ClimateSlice,
+    EcologySlice,
     GeologySlice,
     HydrologySlice,
     ResourceSlice,
@@ -131,7 +132,23 @@ def snapshot_of(state: PlanetState, *, era: int = 0) -> WorldStateSnapshot:
             carrying_capacity=state.carrying_capacity,
             consumed=state.consumed,
         ),
-        biota=BiotaSlice(biomass=state.biomass, species_richness=state.species_richness),
+        biota=BiotaSlice(
+            biomass=state.biomass,
+            species_richness=state.species_richness,
+            mean_temp_optimum=state.mean_temp_optimum,
+            mean_temp_tolerance=state.mean_temp_tolerance,
+            mean_water_need=state.mean_water_need,
+            mean_size=state.mean_size,
+            mean_metabolism=state.mean_metabolism,
+            mean_trophic_level=state.mean_trophic_level,
+        ),
+        ecology=EcologySlice(
+            producer_biomass=state.producer_biomass,
+            herbivore_biomass=state.herbivore_biomass,
+            predator_biomass=state.predator_biomass,
+            predation_pressure=state.predation_pressure,
+            total_population=state.total_population,
+        ),
     )
 
 
@@ -184,4 +201,15 @@ def planet_state_of(snapshot: WorldStateSnapshot) -> PlanetState:
         carrying_capacity=resource.carrying_capacity,
         consumed=resource.consumed,
         species_richness=snapshot.biota.species_richness,
+        mean_temp_optimum=snapshot.biota.mean_temp_optimum,
+        mean_temp_tolerance=snapshot.biota.mean_temp_tolerance,
+        mean_water_need=snapshot.biota.mean_water_need,
+        mean_size=snapshot.biota.mean_size,
+        mean_metabolism=snapshot.biota.mean_metabolism,
+        mean_trophic_level=snapshot.biota.mean_trophic_level,
+        producer_biomass=snapshot.ecology.producer_biomass,
+        herbivore_biomass=snapshot.ecology.herbivore_biomass,
+        predator_biomass=snapshot.ecology.predator_biomass,
+        predation_pressure=snapshot.ecology.predation_pressure,
+        total_population=snapshot.ecology.total_population,
     )

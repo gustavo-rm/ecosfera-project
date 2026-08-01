@@ -125,8 +125,8 @@ ignore_missing_imports = true
 # ─────────────────────────────────────────────────────────────────────────────
 [tool.importlinter]
 root_packages = ["ecosfera_ai"]
-# Necessario para que a fronteira do Biota (ADR 0013) alcance pacotes EXTERNOS:
-# proibir `deap`/`mesa` ali so tem efeito com esta opcao ligada.
+# Necessario para que as fronteiras alcancem pacotes EXTERNOS: proibir
+# `deap`/`mesa` num Engine so tem efeito com esta opcao ligada.
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -140,7 +140,8 @@ modules = [
     "ecosfera_ai.engines.climate",
     "ecosfera_ai.engines.hydrology",
     "ecosfera_ai.engines.resource",
-    "ecosfera_ai.engines.biota",
+    "ecosfera_ai.engines.evolution",
+    "ecosfera_ai.engines.ecology",
     "ecosfera_ai.engines.noop",
 ]
 
@@ -156,23 +157,21 @@ forbidden_modules = [
     "ecosfera_ai.engines.climate",
     "ecosfera_ai.engines.hydrology",
     "ecosfera_ai.engines.resource",
-    "ecosfera_ai.engines.biota",
+    "ecosfera_ai.engines.evolution",
+    "ecosfera_ai.engines.ecology",
     "ecosfera_ai.engines.noop",
     "ecosfera_ai.engines.composition",
 ]
 
-# Fronteira do Biota PROVISÓRIO (ADR 0013). Ele porta a física determinística do
-# `life` e NADA MAIS: zero evolucao, especiacao, genoma, mutacao ou ABM. Violar
-# isso quebra o build, em vez de depender de revisao humana.
+# O Evolution Engine e PURO: a selecao local nao precisa de framework de
+# otimizacao. Barrar `deap` aqui e o que impede alguem de reintroduzir o AG de
+# fitness global que o ADR-ARCH-0001 superou e o ADR 0016 tornou desnecessario.
+# `mesa` tambem: quem faz ABM e a Ecology, atras de uma fabrica preguicosa.
 [[tool.importlinter.contracts]]
-name = "O Biota provisorio nao toca a biologia emergente"
+name = "O Evolution Engine nao usa framework de otimizacao"
 type = "forbidden"
-source_modules = ["ecosfera_ai.engines.biota"]
-forbidden_modules = [
-    "ecosfera_ai.simulation_engine.biology",
-    "deap",
-    "mesa",
-]
+source_modules = ["ecosfera_ai.engines.evolution"]
+forbidden_modules = ["deap", "mesa"]
 
 [[tool.importlinter.contracts]]
 name = "Moldura e Engines nao alcancam infraestrutura nem interfaces"

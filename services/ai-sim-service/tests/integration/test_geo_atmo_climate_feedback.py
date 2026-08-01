@@ -14,11 +14,12 @@ import pytest
 
 from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
-from ecosfera_ai.engines.biota.service import BiotaEngine
 from ecosfera_ai.engines.bridge import snapshot_of
 from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.service import ClimateEngine
 from ecosfera_ai.engines.composition import build_planet_engine, planet_invariants
+from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
 from ecosfera_ai.engines.geology.service import GeologyEngine
 from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
@@ -89,7 +90,8 @@ def test_a_quiet_planet_does_not_warm() -> None:
                 ClimateEngine(),
                 HydrologyEngine(),
                 ResourceEngine(),
-                BiotaEngine(),
+                EvolutionEngine(),
+                EcologyEngine(),
             ]
         ),
         invariants=planet_invariants(
@@ -117,7 +119,10 @@ def test_each_arrow_crosses_only_through_the_world_state() -> None:
         SliceRef.CLIMATE: "climate",
         SliceRef.HYDROLOGY: "hydrology",
         SliceRef.RESOURCE: "resource",
-        SliceRef.BIOTA: "biota",
+        # A biota tem DOIS produtores, então duas fatias com um dono cada — a
+        # regra de um-escritor da moldura força a divisão (ADR 0016).
+        SliceRef.BIOTA: "evolution",
+        SliceRef.ECOLOGY: "ecology",
     }
     # Desde o M2 nao sobra fatia sem dono: a `LegacySlice` deixou de existir.
     assert set(planet.registry.owned_slices) == set(SliceRef)

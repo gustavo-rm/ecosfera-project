@@ -24,13 +24,14 @@ from ecosfera_ai.core.observability import biology_jobs
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
 from ecosfera_ai.engines.astronomy.observability import AstronomyMetricsSink
 from ecosfera_ai.engines.atmosphere.observability import AtmosphereMetricsSink
-from ecosfera_ai.engines.biota.observability import BiotaMetricsSink
 from ecosfera_ai.engines.chemistry.observability import ChemistryMetricsSink
 from ecosfera_ai.engines.climate.observability import ClimateMetricsSink
 from ecosfera_ai.engines.composition import (
     FrameworkTickOrchestrator,
     build_planet_engine,
 )
+from ecosfera_ai.engines.ecology.observability import EcologyMetricsSink
+from ecosfera_ai.engines.evolution.observability import EvolutionMetricsSink
 from ecosfera_ai.engines.geology.observability import GeologyMetricsSink
 from ecosfera_ai.engines.hydrology.observability import HydrologyMetricsSink
 from ecosfera_ai.engines.resource.observability import ResourceMetricsSink
@@ -111,7 +112,8 @@ def get_observability_sink() -> ObservabilitySink:
             ClimateMetricsSink(),
             HydrologyMetricsSink(),
             ResourceMetricsSink(),
-            BiotaMetricsSink(),
+            EvolutionMetricsSink(),
+            EcologyMetricsSink(),
         ]
     )
 

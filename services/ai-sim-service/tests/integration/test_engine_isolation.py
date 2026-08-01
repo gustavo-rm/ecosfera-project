@@ -15,10 +15,11 @@ import pytest
 
 from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
-from ecosfera_ai.engines.biota.service import BiotaEngine
 from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.service import ClimateEngine
 from ecosfera_ai.engines.composition import ENGINE_ORDER, build_planet_engine
+from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.service import GeologyEngine
 from ecosfera_ai.engines.hydrology.service import HydrologyEngine
 from ecosfera_ai.engines.resource.service import ResourceEngine
@@ -79,7 +80,10 @@ def test_the_declared_reads_match_what_the_coupling_needs() -> None:
     assert AtmosphereEngine().reads == frozenset({SliceRef.GEOLOGY, SliceRef.CHEMISTRY})
     assert ClimateEngine().reads == frozenset({SliceRef.ATMOSPHERE, SliceRef.ASTRONOMY})
     assert HydrologyEngine().reads == frozenset({SliceRef.CLIMATE})
-    assert BiotaEngine().reads == frozenset({SliceRef.RESOURCE})
+    # A Evolution lê o ambiente já resolvido; a Ecology lê a comunidade que a
+    # Evolution acabou de publicar, no MESMO tick (ADR 0016).
+    assert EvolutionEngine().reads == frozenset({SliceRef.RESOURCE, SliceRef.CLIMATE})
+    assert EcologyEngine().reads == frozenset({SliceRef.BIOTA, SliceRef.RESOURCE})
 
 
 def test_every_backward_read_is_declared_as_lagged() -> None:
@@ -99,7 +103,10 @@ def test_every_backward_read_is_declared_as_lagged() -> None:
     # Quem abre e quem fecha a ordem não precisam de defasagem alguma.
     assert AstronomyEngine().lagged_reads == frozenset()
     assert HydrologyEngine().lagged_reads == frozenset()
-    assert BiotaEngine().lagged_reads == frozenset()
+    # A Evolution lê a pressão de predação DEFASADA: a Ecology roda depois dela.
+    assert EvolutionEngine().lagged_reads == frozenset({SliceRef.ECOLOGY})
+    # A Ecology fecha o tick, então não precisa de defasagem alguma.
+    assert EcologyEngine().lagged_reads == frozenset()
 
 
 def test_nobody_reads_a_slice_it_did_not_declare() -> None:

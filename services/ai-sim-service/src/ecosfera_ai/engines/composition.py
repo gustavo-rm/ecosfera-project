@@ -13,19 +13,22 @@ rota ou repositório muda de assinatura.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
+
 from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
-from ecosfera_ai.engines.biota.service import BiotaEngine
 from ecosfera_ai.engines.bridge import planet_state_of, snapshot_of
 from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.service import ClimateEngine
+from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.service import GeologyEngine
 from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
 from ecosfera_ai.engines.hydrology.service import HydrologyEngine
 from ecosfera_ai.engines.planet.registry import EngineRegistry
 from ecosfera_ai.engines.planet.service import PlanetEngine
 from ecosfera_ai.engines.resource.service import ResourceEngine
-from ecosfera_ai.shared_kernel.engine import TickBudget
+from ecosfera_ai.shared_kernel.engine import Engine, EngineGraphError, TickBudget
 from ecosfera_ai.shared_kernel.observability import ObservabilitySink
 from ecosfera_ai.shared_kernel.world_state import (
     BoundedFraction,
@@ -49,10 +52,19 @@ from ecosfera_ai.simulation_engine.state import PlanetState, StateBounds
 # 5. climate   — converte forçamento e insolação em temperatura.
 # 6. hydrology — move a água segundo o calor recém-resolvido.
 # 7. resource  — traduz o ambiente fechado em capacidade de suporte.
-# 8. biota     — gasta a capacidade (provisório até o M3 — ADR 0013).
+# 8. evolution — a comunidade se sustenta (ou não) nas condições que encontra e
+#    gasta o orçamento; o genoma médio deriva na direção do ótimo LOCAL.
+# 9. ecology   — reparte essa biomassa entre níveis tróficos e resolve a predação;
+#    fecha o tick porque precisa da comunidade já resolvida (ADR 0016).
 #
 # A ordem é DADO verificável, não convenção implícita: `validate_graph` recusa no
 # boot qualquer leitura para trás que não esteja declarada em `lagged_reads`.
+#
+# `ENGINE_ORDER` é a ÚNICA fonte da ordem — `build_planet_engine` instancia a
+# partir dela. Manter uma lista de construtores em paralelo faria da constante
+# mera documentação, que aqui é pior que nada: ela seguiria descrevendo uma ordem
+# que o tick deixou de obedecer, e todo teste escrito contra ela passaria a
+# atestar uma ficção. Trocar de posição aqui muda o tick de verdade.
 ENGINE_ORDER: tuple[str, ...] = (
     "astronomy",
     "geology",
@@ -61,8 +73,43 @@ ENGINE_ORDER: tuple[str, ...] = (
     "climate",
     "hydrology",
     "resource",
-    "biota",
+    "evolution",
+    "ecology",
 )
+
+# Construtores por identificador. O `engine_id` de cada Engine é o que casa com a
+# chave — `_engines_in_order` confere isso no boot, para que um rename silencioso
+# não desmonte a correspondência entre nome e posição.
+_ENGINE_FACTORIES: Mapping[str, Callable[[], Engine]] = {
+    "astronomy": AstronomyEngine,
+    "geology": GeologyEngine,
+    "chemistry": ChemistryEngine,
+    "atmosphere": AtmosphereEngine,
+    "climate": ClimateEngine,
+    "hydrology": HydrologyEngine,
+    "resource": ResourceEngine,
+    "evolution": EvolutionEngine,
+    "ecology": EcologyEngine,
+}
+
+
+def _engines_in_order() -> list[Engine]:
+    """Instancia os Engines na ordem canônica, conferindo os identificadores."""
+    missing = set(ENGINE_ORDER) - set(_ENGINE_FACTORIES)
+    if missing:
+        raise EngineGraphError(f"sem construtor para o(s) Engine(s): {sorted(missing)}")
+    orphan = set(_ENGINE_FACTORIES) - set(ENGINE_ORDER)
+    if orphan:
+        raise EngineGraphError(f"Engine construído mas fora da ordem do tick: {sorted(orphan)}")
+
+    engines = [_ENGINE_FACTORIES[name]() for name in ENGINE_ORDER]
+    for name, engine in zip(ENGINE_ORDER, engines, strict=True):
+        if engine.engine_id != name:
+            raise EngineGraphError(
+                f"a ordem do tick nomeia {name!r}, mas o Engine se identifica como "
+                f"{engine.engine_id!r}: a posição deixaria de significar o que diz"
+            )
+    return engines
 
 
 def planet_invariants(bounds: StateBounds, *, water_tolerance: float) -> tuple[Invariant, ...]:
@@ -110,6 +157,12 @@ def planet_invariants(bounds: StateBounds, *, water_tolerance: float) -> tuple[I
                     "carrying_capacity",
                 ),
                 SliceRef.BIOTA: ("biomass", "species_richness"),
+                SliceRef.ECOLOGY: (
+                    "producer_biomass",
+                    "herbivore_biomass",
+                    "predator_biomass",
+                    "total_population",
+                ),
             }
         ),
         BoundedFraction(
@@ -141,23 +194,12 @@ def build_planet_engine(
     budget: TickBudget | None = None,
     sink: ObservabilitySink | None = None,
 ) -> PlanetEngine:
-    """Registra os oito Engines na ordem canônica de acoplamento.
+    """Registra os Engines na ordem canônica de acoplamento (`ENGINE_ORDER`).
 
     Não há mais adaptador nem fatia sem dono: desde o M2 TODA grandeza do
     world-state é escrita por um Engine (ADR 0014).
     """
-    registry = EngineRegistry.of(
-        [
-            AstronomyEngine(),
-            GeologyEngine(),
-            ChemistryEngine(),
-            AtmosphereEngine(),
-            ClimateEngine(),
-            HydrologyEngine(),
-            ResourceEngine(),
-            BiotaEngine(),
-        ]
-    )
+    registry = EngineRegistry.of(_engines_in_order())
     # A tolerância é propriedade DECLARADA do Engine que detém a grandeza, e mora
     # no YAML dele — não num bloco global que ninguém saberia manter em dia.
     invariants = planet_invariants(

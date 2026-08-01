@@ -181,6 +181,24 @@ class PlanetState:
 
     species_richness: float = 0.0  # riqueza de espécies (camada emergente, M3)
 
+    # ── Comunidade emergente (M3) ───────────────────────────────────────────
+    # Genoma MÉDIO da comunidade viva. Persistido pelo mesmo motivo dos estoques
+    # do M2: sem lugar aqui, a seleção acumulada voltaria a zero a cada tick e a
+    # deriva de traço nunca se manifestaria (ADR 0015/0016).
+    mean_temp_optimum: float = 0.0
+    mean_temp_tolerance: float = 0.0
+    mean_water_need: float = 0.0
+    mean_size: float = 0.0
+    mean_metabolism: float = 0.0
+    mean_trophic_level: float = 0.0
+
+    # Pirâmide trófica agregada (Ecology Engine).
+    producer_biomass: float = 0.0
+    herbivore_biomass: float = 0.0
+    predator_biomass: float = 0.0
+    predation_pressure: float = 0.0
+    total_population: float = 0.0
+
     def value(self, variable: str) -> float:
         """Lê uma variável de estado pelo nome da linguagem ubíqua do domínio."""
         return float(getattr(self, variable))

@@ -60,11 +60,18 @@ ao M3 ler a capacidade da `ResourceSlice` em vez de instanciar um subsistema
 | eventos | `CarryingCapacityShift`, `ResourceScarcity` |
 | parâmetros | `params.yaml` (versionado) |
 
-**Por que a biomassa é leitura defasada.** O Biota roda DEPOIS do Resource — ele
-precisa da capacidade deste tick para crescer. Logo o consumo contabilizado aqui
-é o da biomassa do tick anterior. É a mesma técnica de quebra de ciclo usada em
-`chemistry ⇄ atmosphere`, declarada em `lagged_reads` para que o
-`validate_graph` a aceite.
+**Por que a biomassa é leitura defasada.** A Evolution roda DEPOIS do Resource —
+ela precisa da capacidade deste tick para que a comunidade se sustente ou não.
+Logo o consumo contabilizado aqui é o da biomassa do tick anterior. É a mesma
+técnica de quebra de ciclo usada em `chemistry ⇄ atmosphere`, declarada em
+`lagged_reads` para que o `validate_graph` a aceite. Desde o M3 quem escreve a
+biomassa é a Evolution, e não o Biota provisório do M2 — a troca de dono
+preservou a defasagem, e isso é afirmado em `test_biomass_read_is_lagged`
+(ADR 0016).
+
+**Capacidade não é biomassa.** Este Engine publica o **limite**; a ocupação desse
+limite é da Evolution. Nunca escrevemos biomassa aqui, e a Evolution nunca
+redefine capacidade — é a fronteira onde um Engine futuro tende a se confundir.
 
 **Eventos.** `CarryingCapacityShift` compara a variação **relativa**, porque a
 escala absoluta é arbitrária: cinco unidades significam coisas opostas num

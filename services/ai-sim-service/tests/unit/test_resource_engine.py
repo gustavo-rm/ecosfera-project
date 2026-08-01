@@ -1,20 +1,14 @@
-"""Resource e Biota: o orçamento biológico e quem o gasta (M2).
+"""Resource Engine: o orçamento biológico que a física oferece (M2/M3).
 
-Os dois vêm juntos porque a fronteira entre eles é o assunto: o Resource DERIVA
-a capacidade de suporte a partir da física, o Biota a CONSOME, e nenhum dos dois
-faz o trabalho do outro (ADR 0013).
+O Resource DERIVA a capacidade de suporte; quem a CONSOME é a Evolution desde o
+M3 (o Biota provisório do M2 foi removido — ADR 0016). A fronteira é a mesma e
+continua sendo o assunto: capacidade é LIMITE, biomassa é OCUPAÇÃO.
 """
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 import pytest
 
-from ecosfera_ai.engines.biota.contracts import load_params as biota_params
-from ecosfera_ai.engines.biota.domain import emergence, logistic_growth
-from ecosfera_ai.engines.biota.events import ABIOGENESIS, BIOMASS_COLLAPSE, BiotaCauseCode
-from ecosfera_ai.engines.biota.service import BiotaEngine
 from ecosfera_ai.engines.resource.contracts import load_params as resource_params
 from ecosfera_ai.engines.resource.domain import (
     carrying_capacity,
@@ -45,7 +39,6 @@ from ecosfera_ai.shared_kernel.world_state import (
 )
 
 RESOURCE = resource_params()
-BIOTA = biota_params()
 
 
 def _context(snapshot: WorldStateSnapshot, engine_id: str) -> TickContext:
@@ -192,80 +185,3 @@ def test_the_resource_engine_never_writes_outside_its_slice() -> None:
         "carrying_capacity",
         "consumed",
     }
-
-
-# --- Biota (PROVISÓRIO — ADR 0013) -------------------------------------------
-
-
-def test_biota_only_reads_the_capacity() -> None:
-    """Ele não sabe o que é temperatura, água ou nutriente — e é por isso que a
-    fronteira física/biologia se sustenta."""
-    engine = BiotaEngine()
-    assert engine.writes is SliceRef.BIOTA
-    assert engine.reads == frozenset({SliceRef.RESOURCE})
-    assert engine.lagged_reads == frozenset()
-
-
-def test_the_abiogenesis_threshold_is_the_ported_one_reparameterised() -> None:
-    """`h >= 0,35` virou `capacidade >= 35`: mesma desigualdade (ADR 0013).
-
-    A capacidade é `100 × h`, então o limiar em unidades de capacidade é o
-    produto do limiar de habitabilidade pelo máximo — reparametrização, não
-    mudança de ciência.
-    """
-    assert BIOTA.abiogenesis_capacity == pytest.approx(RESOURCE.max_carrying_capacity * 0.35)
-
-
-def test_life_emerges_once_and_only_above_the_threshold() -> None:
-    below = BIOTA.abiogenesis_capacity * 0.5
-    above = BIOTA.abiogenesis_capacity * 1.5
-    assert emergence(0.0, below, BIOTA) == 0.0
-    assert emergence(0.0, above, BIOTA) == BIOTA.emergence_amount
-    # Já havendo vida, não há nova abiogênese.
-    assert emergence(1.0, above, BIOTA) == 0.0
-
-
-def test_growth_is_logistic_and_stops_at_the_capacity() -> None:
-    capacity = 100.0
-    assert logistic_growth(1.0, capacity, BIOTA) > 0.0
-    assert logistic_growth(capacity, capacity, BIOTA) == pytest.approx(0.0)
-    # Acima da capacidade, a população decresce de volta a ela.
-    assert logistic_growth(capacity * 1.5, capacity, BIOTA) < 0.0
-
-
-def test_an_unviable_planet_kills_the_life_it_had() -> None:
-    assert logistic_growth(10.0, 0.0, BIOTA) == pytest.approx(-BIOTA.growth_rate * 10.0)
-
-
-def test_abiogenesis_emits_the_milestone_chained_to_the_resource() -> None:
-    world = _world(resource=ResourceSlice(carrying_capacity=BIOTA.abiogenesis_capacity * 2))
-    result = BiotaEngine().tick(_context(world, "biota"))
-    births = [e for e in result.events if e.event_type == ABIOGENESIS]
-    assert births
-    assert births[0].cause_code is BiotaCauseCode.HABITABILITY_THRESHOLD
-
-
-def test_collapse_fires_when_the_capacity_vanishes() -> None:
-    world = _world(biomass=0.05, resource=ResourceSlice(carrying_capacity=0.0))
-    # Sem ruído, o declínio é limpo: isola o colapso do sorteio demográfico.
-    result = BiotaEngine(replace(BIOTA, growth_rate=1.0, growth_variability=0.0)).tick(
-        _context(world, "biota")
-    )
-    collapses = [e for e in result.events if e.event_type == BIOMASS_COLLAPSE]
-    assert collapses
-    assert collapses[0].cause_code is BiotaCauseCode.CAPACITY_COLLAPSE
-
-
-def test_biomass_never_goes_negative() -> None:
-    world = _world(biomass=1e-6, resource=ResourceSlice(carrying_capacity=0.0))
-    result = BiotaEngine().tick(_context(world, "biota"))
-    assert 1e-6 + result.delta.values["biomass"] >= 0.0
-
-
-def test_the_biota_engine_writes_only_the_biomass() -> None:
-    """`species_richness` fica com a camada emergente do M3 — escrevê-la aqui
-    seria fingir uma riqueza que este Engine provisório não modela."""
-    world = _world(resource=ResourceSlice(carrying_capacity=50.0))
-    result = BiotaEngine().tick(_context(world, "biota"))
-    assert result.delta.writes is SliceRef.BIOTA
-    assert set(result.delta.values) == {"biomass"}

@@ -17,7 +17,6 @@ from pathlib import Path
 
 from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
-from ecosfera_ai.engines.biota.service import BiotaEngine
 from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.service import ClimateEngine
 from ecosfera_ai.engines.composition import (
@@ -25,6 +24,8 @@ from ecosfera_ai.engines.composition import (
     build_planet_engine,
     planet_invariants,
 )
+from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
 from ecosfera_ai.engines.geology.service import GeologyEngine
 from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
@@ -81,7 +82,8 @@ def build_volcanic_planet(sink: ObservabilitySink | None = None) -> PlanetEngine
         ClimateEngine(),
         HydrologyEngine(),
         ResourceEngine(),
-        BiotaEngine(),
+        EvolutionEngine(),
+        EcologyEngine(),
     ]
     return PlanetEngine(
         EngineRegistry.of(engines),
