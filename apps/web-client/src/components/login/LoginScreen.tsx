@@ -16,7 +16,7 @@ import { LoginForm } from '@/components/form/LoginForm';
  */
 export function LoginScreen() {
   return (
-    <main className="relative min-h-[100dvh] w-full overflow-hidden ">
+    <main className="relative min-h-dvh w-full overflow-hidden ">
       <SpaceBackdrop />
       <PlanetSceneClient />
       <SunFlare />
@@ -25,8 +25,8 @@ export function LoginScreen() {
         <BrandLogo />
       </div>
 
-      <div className="relative z-30 flex min-h-[100dvh] w-full flex-col items-center justify-end px-5 pb-10 pt-[42vh] md:justify-center md:px-10 md:pt-10 lg:items-end lg:px-[7vw]">
-        <div className="w-full max-w-[440px] md:max-w-[470px] lg:max-w-[430px]">
+      <div className="relative z-30 flex min-h-dvh w-full flex-col items-center justify-end px-5 pb-10 pt-[42vh] md:justify-center md:px-10 md:pt-10 lg:items-end lg:px-[7vw]">
+        <div className="w-full max-w-110 md:max-w-117.5 lg:max-w-107.5">
           <LoginCard>
             <LoginForm />
           </LoginCard>

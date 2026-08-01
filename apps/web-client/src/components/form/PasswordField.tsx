@@ -27,7 +27,7 @@ export function PasswordField({ id, label, value, onChange, placeholder }: Passw
           aria-pressed={visible}
           className="shrink-0 rounded-md text-white/40 outline-none transition-colors hover:text-cyan focus-visible:text-cyan"
         >
-          <Toggle className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          <Toggle className="h-4.5 w-4.5" strokeWidth={1.75} />
         </button>
       }
     >
