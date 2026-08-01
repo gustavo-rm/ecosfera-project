@@ -89,6 +89,12 @@ mappings:
     variable: biomass
     delta_from: { minuend: biomass, subtrahend: biomass_before }
 
+  # Mortandade em massa SEM extinção total — o caso que de fato acontece quando
+  # o ambiente vira contra a vida (ADR 0016).
+  - event_type: MassMortality
+    variable: biomass
+    delta_from: { minuend: biomass, subtrahend: biomass_before }
+
   - event_type: SpeciationOccurred
     variable: species_richness
     delta_from: { field: distance }

@@ -53,6 +53,12 @@ founder_population: 1.0
 # Teto de espécies vivas simultâneas (contenção de custo — RSK Inc 3).
 max_species: 12
 
+# Fração da biomassa perdida num tick que caracteriza MORTANDADE EM MASSA. É
+# travessia, não estado: compara o antes com o depois. Calibrado acima da
+# variação de rotina da comunidade acomodada, para que o evento signifique
+# "algo virou contra a vida" e não "a população oscilou".
+mass_mortality_threshold: 0.06
+
 # Variação de traço médio que vira evento notável (Canal B).
 trait_shift_threshold: 0.05
 

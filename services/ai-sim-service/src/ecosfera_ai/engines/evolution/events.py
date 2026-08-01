@@ -17,6 +17,16 @@ SPECIATION_OCCURRED = "SpeciationOccurred"
 SPECIES_EXTINCT = "SpeciesExtinct"
 TRAIT_SHIFT = "TraitShift"
 
+# Mortandade em massa SEM extinção total. É o caso comum e faltava: a extinção
+# só dispara quando a comunidade inteira cai abaixo do piso de viabilidade, o que
+# quase nunca acontece. Um choque térmico que custa um quarto da biomassa não
+# produzia evento algum — o diagnóstico de causa existia e era inalcançável.
+#
+# Para uma plataforma cujo produto é explicar POR QUÊ, "a comunidade perdeu 23%
+# da biomassa porque o calor passou do que ela tolera" é justamente o evento que
+# precisa existir (ADR 0016).
+MASS_MORTALITY = "MassMortality"
+
 
 class EvolutionCauseCode(CauseCodeEnum):
     """Causas estruturadas da evolução — código, nunca prosa."""

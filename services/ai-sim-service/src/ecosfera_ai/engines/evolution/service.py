@@ -48,6 +48,7 @@ from ecosfera_ai.engines.evolution.domain import (
 )
 from ecosfera_ai.engines.evolution.events import (
     LIFE_EMERGED,
+    MASS_MORTALITY,
     SPECIATION_OCCURRED,
     SPECIES_EXTINCT,
     TRAIT_SHIFT,
@@ -242,6 +243,36 @@ class EvolutionEngine:
                 )
             )
             return tuple(events)
+
+        # Mortandade em massa: a comunidade encolheu além do limiar declarado sem
+        # se extinguir. É TRAVESSIA (compara antes e depois), não estado — e é o
+        # caso que de fato acontece quando o ambiente vira contra a vida.
+        if current.biomass > 0.0:
+            lost = (current.biomass - biomass) / current.biomass
+            if lost >= self.params.mass_mortality_threshold:
+                cause = _limiting_cause(genome, conditions, self.params)
+                events.append(
+                    emitter.emit(
+                        MASS_MORTALITY,
+                        cause,
+                        location={"region_id": "global"},
+                        participants=["species:community"],
+                        environmental_factors=[_factor_of(cause)],
+                        genes=list(_TRAITS),
+                        resources=["biomass"],
+                        cause_detail={
+                            "biomass": biomass,
+                            "biomass_before": current.biomass,
+                            "lost_fraction": lost,
+                            "suitability": suitability,
+                            "temperature": conditions.temperature,
+                            "thermal_match": thermal_match(genome, conditions.temperature),
+                            "carrying_capacity": conditions.carrying_capacity,
+                        },
+                        causation_id=ctx.caused_by_slice(SliceRef.CLIMATE)
+                        or ctx.caused_by_slice(SliceRef.RESOURCE),
+                    )
+                )
 
         if has_speciated(drifted, genome, self.params):
             events.append(

@@ -77,9 +77,19 @@ class LocalConditions:
 
     @property
     def occupancy(self) -> float:
-        """Fração do orçamento ambiental já ocupada."""
+        """Fração do orçamento ambiental já ocupada.
+
+        Sem orçamento algum a fração não é 1 — é INFINITA: qualquer biomassa
+        instalada excede um teto de zero. Devolver 1,0 tratava um planeta
+        inabitável como um planeta apenas cheio, e a diferença não era acadêmica:
+        com `crowding(1) ≈ 0,45` contra um custo de manutenção de 0,45, a
+        comunidade CRESCIA num mundo de capacidade zero.
+
+        Com infinito, `crowding` vai a zero e a lei do mínimo faz o resto — o
+        orçamento ambiental é mais um fator limitante, e um fator nulo é fatal.
+        """
         if self.carrying_capacity <= _EPS:
-            return 1.0
+            return math.inf
         return max(0.0, self.occupied) / self.carrying_capacity
 
 

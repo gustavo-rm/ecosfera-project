@@ -41,6 +41,7 @@ class EvolutionEngineParams:
     abiogenesis_capacity: float
     founder_population: float
     max_species: int
+    mass_mortality_threshold: float
     trait_shift_threshold: float
     max_duration_s: float
     max_events: int
