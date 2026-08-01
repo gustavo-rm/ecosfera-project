@@ -16,7 +16,7 @@ import { LoginForm } from '@/components/form/LoginForm';
  */
 export function LoginScreen() {
   return (
-    <main className="relative min-h-[100dvh] w-full overflow-hidden bg-space-void">
+    <main className="relative min-h-[100dvh] w-full overflow-hidden ">
       <SpaceBackdrop />
       <PlanetSceneClient />
       <SunFlare />

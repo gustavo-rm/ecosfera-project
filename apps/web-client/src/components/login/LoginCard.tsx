@@ -15,9 +15,9 @@ export function LoginCard({ children }: { children: ReactNode }) {
         ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
         delay: 0.15,
       }}
-      className="relative w-full rounded-[28px] border border-white/12 bg-space-blue/55 p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.75)] backdrop-blur-2xl sm:p-9"
+      className="relative w-full rounded-[28px] border-[.5px] backdrop-blur-[7px] bg-black/25 border-white/30 p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.75)] sm:p-9"
     >
-      <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-b from-white/[0.08] to-transparent opacity-70" />
+      <div className="pointer-events-none absolute inset-0 rounded-[28px]" />
       <div className="pointer-events-none absolute inset-0 rounded-[28px] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16)] ring-1 ring-inset ring-atmo/15" />
       <div className="relative">{children}</div>
     </motion.div>

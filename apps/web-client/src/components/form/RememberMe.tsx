@@ -11,7 +11,7 @@ export function RememberMe({ checked, onChange }: RememberMeProps) {
   return (
     <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-white/70">
       <span
-        className={`relative flex h-[18px] w-[18px] items-center justify-center rounded-md border transition-all duration-200 ${
+        className={`relative flex h-4.5 w-4.5 items-center justify-center rounded-md border transition-all duration-200 ${
           checked ? 'border-cyan bg-cyan/20' : 'border-white/25 bg-white/5'
         }`}
       >
