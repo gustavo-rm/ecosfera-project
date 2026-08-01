@@ -1,16 +1,21 @@
-# ADR 0017 — Biologia opcional, imports preguiçosos, e a dívida dos dois caminhos
+# ADR 0017 — Biologia opcional, e a retirada do fitness global em quatro tempos
 
 ## Status
-Aceito quanto às partes (1) e (2). A parte (3) é **dívida registrada, não
-resolvida** — precisa de decisão explícita antes do M4. Fecha o M3 junto com o
-**ADR 0016**. Referências: ADR 0006, ADR 0007 (import preguiçoso do ARQ),
-ADR-ARCH-0001, RF-031.
+Partes (1) e (2): **aceitas e implementadas**.
+Parte (3): sequência de quatro tempos **aprovada**; o tempo 1 está implementado,
+o tempo 2 está **bloqueado** por um achado de modelagem (ver "O BLOQUEIO"), e os
+tempos 3 e 4 dependem dele.
+
+Fecha o M3 junto com o **ADR 0016**. Referências: ADR 0006, ADR 0007 (import
+preguiçoso do ARQ), ADR-ARCH-0001, ADR-ARCH-0002, RF-031, DEC-01/DEC-04/DEC-16 da
+Especificação do Evolution Engine, e a auditoria de conformidade de 2026-07-29.
 
 ## Contexto
 
 O M3 substituiu o Biota provisório por Evolution + Ecology Engines, com seleção
 local e sem função de aptidão global (ADR 0016). Ao verificar as guardas do M3,
-três coisas apareceram que não estavam no plano.
+três coisas apareceram que não estavam no plano — e a terceira é a mais séria de
+todo o marco.
 
 ## Decisão
 
@@ -65,32 +70,24 @@ Consequência prática: o Ecology Engine não importa `mesa` de forma alguma, e 
 por isso que os nove Engines rodam sem o extra. O ABM com `mesa` segue vivo no
 caminho de biologia por era.
 
-### 3. DÍVIDA — existem DOIS caminhos de biologia, e um deles contradiz o ADR 0016
+### 3. Retirada do fitness global em QUATRO TEMPOS
 
-Este é o achado que precisa de decisão, e por isso está registrado em vez de
-resolvido no impulso.
+Existem hoje **dois caminhos de biologia com ciência incompatível no mesmo
+binário**, e o inválido estava ligado por padrão.
 
-| | Caminho A (novo) | Caminho B (legado) |
+| | Caminho A (Engine) | Caminho B (legado, por era) |
 | --- | --- | --- |
 | onde | `engines/evolution` + `engines/ecology` | `simulation_engine/biology/` |
 | cadência | por tick, dentro do `ENGINE_ORDER` | por era, via `EvolveBiologyUseCase` |
-| ciência | seleção local, sem fitness | **AG com fitness global, `selTournament`** |
+| ciência | seleção local, sem fitness | **AG do DEAP, `selTournament` sobre aptidão escalar** |
 | produto | fatias + eventos do Canal B | **códex de espécies** (tabela `species`) |
-| ligado | sempre | `ECOSFERA_BIOLOGY_ENABLED` |
+| gate | nenhum (roda sempre) | `ECOSFERA_BIOLOGY_ENABLED` |
 
-**Os dois estão ativos agora**, e o caminho B está ligado **por padrão**
-(`biology_enabled: bool = Field(default=True)`). Ele é alcançado por `deps.py` →
-`get_biology_engine()` → `BiologyEngine(EvolutionEngine(...), ...)`, e é ele que
-popula o códex de espécies e alimenta o resumo de era.
-
-**Isto já havia sido auditado, e de forma independente.**
-`docs/evolution-engine/00-auditoria-conformidade.md` (2026-07-29) examinou
-exatamente esses arquivos contra a Especificação do Evolution Engine e concluiu:
-
-> | `biology/fitness.py`, `evolution.py`, `ecology.py`, `engine.py` |
-> | **não mesclar** | Violam DEC-01, DEC-16, DEC-05, DEC-06 |
-
-e, sobre a flag:
+**Isto já havia sido auditado, de forma independente.**
+`docs/evolution-engine/00-auditoria-conformidade.md` (2026-07-29) examinou esses
+arquivos contra a Especificação do Evolution Engine e concluiu **"não mesclar"**
+para `fitness.py`, `evolution.py`, `ecology.py` e `engine.py` (violam DEC-01,
+DEC-16, DEC-05, DEC-06), e desaconselhou explicitamente subir com a flag ligada:
 
 > O que eu não recomendo é mesclar com a flag ligada: isso publica como
 > "emergente" um comportamento que a especificação classifica como
@@ -98,61 +95,128 @@ e, sobre a flag:
 > dinâmica que não é o que o texto diz ser.
 
 A DEC-01 ("não existe função de aptidão em nenhum ponto") é a mesma decisão que o
-ADR 0016 aplicou ao Engine novo. O M3 chegou ao mesmo veredito por outro caminho
-— o que confirma o diagnóstico e torna a pendência mais urgente, não menos.
+ADR 0016 aplicou ao Engine novo. O M3 chegou ao mesmo veredito por outro caminho.
 
-Por que isto não é apenas desarrumação:
+#### A decisão NÃO é escolher entre três opções
 
-- **Contradiz a regra de ouro do M3 dentro do mesmo serviço.** Um estudante pode
-  receber uma explicação derivada de um ótimo escolhido por torneio — exatamente
-  a concepção teleológica que o ADR-ARCH-0001 superou.
-- **Os dois podem discordar.** O Engine diz biomassa X com genoma médio G; o job
-  diz que o códex tem espécies com genomas ranqueados por aptidão. Nada
-  reconcilia os dois números, e nada detecta a divergência.
-- **Trava a remoção do `deap`.** Enquanto o caminho B viver, o extra `sim`
-  precisa do `deap`.
+As saídas consideradas não estão no mesmo nível — tratá-las como alternativas
+mutuamente exclusivas seria um falso trilema. **Desligar a flag é contenção**
+(para o sangramento); **decidir o destino do caminho B é arquitetura**; **remover
+o DEAP é consequência**. A decisão é uma SEQUÊNCIA:
 
-**Por que não resolvemos agora.** Apagar o caminho B removeria o **códex de
-espécies** — a tabela `species`, os registros de especiação e extinção com nome,
-o "quem está vivo neste planeta" que é a carga pedagógica do M4. Os eventos do
-Canal B do Evolution Engine já carregam o genoma no `cause_detail`, então o códex
-PODE ser reconstruído como projeção — mas essa projeção não existe, e apagar
-antes de construí-la deixaria um buraco funcional.
+**Tempo 1 — `biology_enabled=False` por padrão. FEITO.**
+Contenção imediata, commit isolado. Não decide nada sobre o caminho B: apenas
+impede que ciência sabidamente inválida rode sem alguém a ter pedido. O custo
+aceito é que `/species` passa a exigir a flag — o estado honesto é "o catálogo
+antigo está desativado porque sua ciência é inválida; o novo está sendo ligado".
+A biologia emergente **não depende desta flag** e segue rodando no tick.
 
-As três saídas, com a recomendação:
+**Tempo 2 — reparentar o códex sobre os eventos do Evolution Engine. BLOQUEADO.**
+Ver "O bloqueio encontrado", abaixo.
 
-1. **Reparentar o códex sobre os eventos do Evolution Engine** (recomendada). O
-   caminho B para de fazer evolução e vira projeção de
-   `SpeciationOccurred`/`SpeciesExtinct`/`MassMortality`. O fitness global e o
-   `deap` saem; o códex sobrevive. É o desenho que o ADR 0016 já pressupõe ao
-   dizer que "a composição por espécie é materializada no códex a partir dos
-   eventos".
-2. **Apagar o caminho B inteiro.** Mais simples e mais rápido, mas custa o códex
-   até que o M4 o reconstrua.
-3. **Manter os dois.** Rejeitada: deixa o fitness global vivo em produção,
-   contradizendo o próprio milestone e a recomendação explícita da auditoria.
+**Tempo 3 — remover `simulation_engine/biology/`**, quando nada mais o consumir.
+Fecha a cadeia de migração: `RF-031 (AG global) → ADR-ARCH-0001 (emergente) →
+M3 (sem DEAP no Engine) → aqui (o último DEAP do serviço morre)`. O caminho B é o
+último reduto do fitness global; removê-lo torna a proibição da DEC-01 verdadeira
+**no código**, e não só nos Engines.
 
-Há ainda uma **medida provisória**, ortogonal às três: virar o padrão de
-`biology_enabled` para `False`. Ela não decide nada — só impede que o caminho
-cientificamente inválido rode sem alguém tê-lo pedido, que é literalmente o que a
-auditoria recomenda. O custo é que o códex de espécies e as rotas `/species`
-passam a exigir a flag ligada, o que é mudança de comportamento visível ao
-produto. Por isso **não foi aplicada** no M3: é decisão de produto, não de
-implementação.
+**Tempo 4 — religar `biology_enabled=True`**, quando o único caminho existente
+for o emergente. A flag volta a ligar biologia, e só há a biologia certa para
+ligar.
 
-Até a decisão, o caminho B permanece **como está** — não foi ampliado nem
-recebeu ciência nova no M3.
+Entre o tempo 1 e o tempo 4 a única biologia que roda por padrão é **nenhuma**
+(flag desligada) ou **a emergente** (após o reparenting). O caminho DEAP não
+executa por padrão a partir do tempo 1.
+
+#### Por que rejeitamos deletar o caminho B agora
+
+Deletar direto (sem reparentar) parecia mais simples e é mais caro de viver:
+
+- **Custo do códex.** O `/species` ficaria vazio por um marco inteiro.
+- **Eventos órfãos — o pior dos dois.** Pior que a funcionalidade sumida é a
+  RAZÃO de ela sumir: o Evolution Engine continuaria emitindo
+  `SpeciationOccurred`/`SpeciesExtinct` que **ninguém projeta em lista nenhuma**.
+  Ficaríamos com a trilha (o "por quê") sem o catálogo (o "o quê"), e o Tutor
+  explicaria "a espécie X foi extinta" sem conseguir listar quais espécies
+  existem. É a mesma família dos furos silenciosos desta rodada — o `solar_flux`,
+  a `biomass` — agora do lado read-side: nada estoura, e uma pergunta básica do
+  usuário deixa de ter resposta.
+- **Irreversibilidade.** Reparentar é incremental e reversível; deletar é
+  arqueologia se o M4 precisar de algo que vivia lá. Entre duas opções que chegam
+  ao mesmo lugar (caminho B morto), ganha a que preserva funcionalidade e é
+  reversível.
+
+#### O BLOQUEIO encontrado no tempo 2
+
+A verificação pedida antes de reparentar — *"o envelope de evento do Evolution
+carrega tudo que o códex precisa?"* — respondeu **não**, e por um motivo
+diferente do previsto.
+
+O genoma **está** lá: `LifeEmerged` e `SpeciationOccurred` carregam os seis
+traços em `cause_detail` como `gene_*`. O que falta é mais fundo:
+
+| `SpeciesOut` precisa | O evento carrega? |
+| --- | --- |
+| `genome` (6 traços) | **sim** (`gene_*` no `cause_detail`) |
+| `emerged_era` | sim (`occurred_at.era`) |
+| `trophic_class` | sim (derivável do genoma) |
+| `species_id` | **NÃO** |
+| `population` (por espécie) | **NÃO** (só a biomassa da comunidade) |
+| `ancestor_id` (linhagem) | **NÃO** |
+| `fitness` | não — e **não deve** existir (DEC-01) |
+
+A causa não é o envelope estar magro. É que **o Evolution Engine não tem
+espécies.** Ele modela a comunidade como **um genoma médio** (ADR 0016, §2), e
+todo evento seu nomeia `species:community` ou `species:founder`.
+`species_richness` é um `float` escalar na fatia — uma contagem, não um conjunto
+de identidades. `SpeciationOccurred` significa *"o genoma médio da comunidade
+divergiu além do limiar"*, e **não** *"a espécie X nasceu da espécie Y"*.
+
+Uma projeção só pode projetar o que existe a montante. Não há como derivar um
+catálogo de espécies coexistentes, com população e linhagem, de uma série de
+eventos sobre uma média.
+
+**A saída prevista não resolve, e teria criado um problema pior.** A hipótese era
+"o Engine escreve no repositório do códex ao emitir o evento". Isso quebraria a
+pureza do Engine: `tick()` é função pura do snapshot — é disso que o replay
+bit-a-bit depende —, e Engines não têm portas de I/O por desenho
+(ADR-ARCH-0001). O sink de observabilidade só é chamado **depois** que o tick
+fecha, e pelo Planet Engine, justamente para manter a medição fora do caminho
+determinístico. Um Engine gravando num repositório no meio do tick é exatamente o
+canal lateral que a moldura proíbe.
+
+As saídas reais, para decisão:
+
+1. **Redefinir o códex como LINHAGEM da comunidade** (mais barata, honesta).
+   Cada `LifeEmerged`/`SpeciationOccurred` abre uma entrada com o genoma médio
+   daquele momento; `SpeciesExtinct` fecha. `ancestor_id` é a entrada anterior;
+   `population` é a biomassa da comunidade. O `/species` passa a mostrar uma
+   **cadeia filogenética no tempo**, não um censo de espécies coexistentes — e o
+   schema muda de significado (`fitness` sai). Numa corrida de 320 ticks isso dá
+   poucas entradas, o que é pouco material pedagógico.
+2. **Dar coortes por espécie ao Evolution Engine** (a que a auditoria pede: DEC-04,
+   coortes em arrays colunares, malha geodésica). Aí a especiação produz
+   identidades de verdade e o códex volta a ser um censo. É a reescrita de escala
+   M4 que a própria auditoria chama de "distância de arquitetura, não de
+   refatoração".
+3. **Emitir eventos por espécie.** Rejeitada: não há espécies a nomear no modelo
+   de média, e contraria a granularidade agregada padrão (ADR-ARCH-0002, Corr. 2).
+
+Os tempos 3 e 4 dependem do tempo 2 e seguem bloqueados: não se remove o caminho
+B enquanto ele for a única fonte do códex, nem se religa a flag antes de existir
+biologia válida para ligar.
 
 ## Consequências
 
-**Ganhamos.** O extra `sim` volta a ser opcional de fato, verificado e não
-apenas declarado. A moldura inteira roda numa instalação mínima, o que é o que o
-walking skeleton do Inc 0/1 prometia.
+**Ganhamos.** O extra `sim` volta a ser opcional de fato, verificado e não apenas
+declarado. A ciência inválida deixou de rodar por padrão — o que era o risco
+concreto, e está fechado desde o tempo 1.
 
 **Perdemos.** O import preguiçoso troca uma falha no boot por uma falha na
-primeira execução do AG por era. É o mesmo compromisso já aceito no ADR 0007 para
-o ARQ, e o teste que exige o `ImportError` mantém a exigência visível.
+primeira execução do AG por era — mesmo compromisso já aceito no ADR 0007 para o
+ARQ, com teste que mantém a exigência visível. E o `/species` passa a exigir a
+flag até o tempo 2 concluir.
 
-**Fica em aberto** a parte (3), acima. Enquanto ela não for decidida, o serviço
-contém duas biologias com ciências incompatíveis, e essa é a dívida mais
-importante que o M3 deixa para o M4.
+**Fica em aberto** a escolha entre "códex como linhagem" e "coortes por espécie".
+Ela não é de implementação: decide o que o `/species` SIGNIFICA para o estudante,
+e por isso volta para o dono do produto.
