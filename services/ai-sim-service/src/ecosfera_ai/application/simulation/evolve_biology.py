@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
+from ecosfera_ai.application.simulation.errors import SpeciesNotFoundError
 from ecosfera_ai.application.simulation.run_tick import PlanetNotFoundError
 from ecosfera_ai.core.observability import (
     biology_extinctions,
@@ -30,9 +31,9 @@ from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine, BiologyO
 from ecosfera_ai.simulation_engine.state import PlanetState
 from ecosfera_ai.simulation_engine.timeline import EventLogEntry
 
-
-class SpeciesNotFoundError(Exception):
-    """Espécie inexistente no códex do planeta (HTTP 404)."""
+# Reexportado por compatibilidade: a classe vive no módulo leve para que
+# registrar um handler HTTP não exija o extra `sim` (ADR 0017).
+__all__ = ["BiologySummary", "EvolveBiologyUseCase", "SpeciesNotFoundError", "biology_events"]
 
 
 @dataclass(frozen=True, slots=True)

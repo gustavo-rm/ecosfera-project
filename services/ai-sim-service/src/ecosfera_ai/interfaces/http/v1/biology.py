@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from ecosfera_ai.application.ports.job_queue import JobQueue
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
-from ecosfera_ai.application.simulation.evolve_biology import SpeciesNotFoundError
+from ecosfera_ai.application.simulation.errors import SpeciesNotFoundError
 from ecosfera_ai.application.simulation.replay_state import EraNotFoundError
 from ecosfera_ai.application.simulation.run_tick import PlanetNotFoundError
 from ecosfera_ai.interfaces.http.deps import (
