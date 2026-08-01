@@ -274,15 +274,27 @@ Duas séries, separadas por escopo (ADR-ARCH-0001, sem fusão):
 | Série | Onde | Cobre |
 | --- | --- | --- |
 | projeto | `docs/architecture/adr/ADR-ARCH-*.md` | decisões transversais entre Engines/serviços |
-| serviço | `docs/adr/000N-*.md` | decisões internas a este serviço (0001…0014) |
+| serviço | `docs/adr/000N-*.md` | decisões internas a este serviço (0001…0015) |
 
-Os três do M2:
+Os do M2:
 
 | ADR | Decisão |
 | --- | --- |
 | 0012 | ciclos fechados: fronteiras do carbono e da água |
 | 0013 | `physics` → Astronomy Engine, e a fronteira do Biota provisório |
 | 0014 | aposentadoria do legado, e a perda deliberada do rollback |
+| 0015 | dívida de rehidratação do world-state, **vigiada** até o M5 |
+
+### Três guardas que valem conhecer antes de mexer
+
+| Arquivo | O que impede |
+| --- | --- |
+| `test_snapshot_roundtrip.py` | Engine novo cuja fatia não seja mapeada na ponte — o campo voltaria a zero a cada tick, **em silêncio** (ADR 0015) |
+| `test_baseline_is_physics.py` | condição inicial que deixe de ser física: carbono aparecendo sem fonte, planeta derivando sem causa, ou o gap inicial→equilíbrio crescendo |
+| `test_solar_flux_has_writer.py` | fatia órfã de escritor — o Climate recairia numa constante de referência e o planeta perderia estações sem quebrar teste algum (ADR 0013) |
+
+Os três protegem a mesma classe de defeito: **o sintoma é ausência**, e ausência
+não se denuncia sozinha. Nada estoura, e um número fica parado, plausível, errado.
 
 A especificação da moldura vive em
 `docs/architecture/ECOSFERA_Engine_Framework_Spec.md`.

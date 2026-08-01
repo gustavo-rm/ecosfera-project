@@ -59,31 +59,94 @@ def test_the_three_engines_all_speak() -> None:
     assert types & {TEMPERATURE_SHIFT, CLIMATE_THRESHOLD_CROSSED}
 
 
+def _ancestry(event: DomainEvent, by_id: dict[str, DomainEvent]) -> list[str]:
+    """Sobe a cadeia de `causation_id` a partir de um evento, tipo a tipo.
+
+    Devolve o caminho do efeito para a causa. A proteção contra ciclo é defensiva:
+    os ids são determinísticos e a cadeia é acíclica por construção, mas um laço
+    num teste é um travamento silencioso do CI.
+    """
+    path = [event.event_type]
+    current, seen = event, {event.event_id}
+    while current.causation_id and current.causation_id in by_id:
+        if current.causation_id in seen:
+            break
+        seen.add(current.causation_id)
+        current = by_id[current.causation_id]
+        path.append(current.event_type)
+    return path
+
+
 def test_the_chain_reaches_from_the_eruption_to_the_climate() -> None:
-    """A cadeia completa, reconstruída só por `causation_id`, num planeta ativo."""
+    """UMA cadeia CONECTADA erupção → forçamento → clima, seguida elo a elo.
+
+    A asserção é sobre o caminho, não sobre a co-ocorrência. Verificar
+    separadamente que "existe forçamento causado por erupção" e que "existe
+    efeito climático causado por forçamento" é mais fraco do que parece: os dois
+    podem se referir a forçamentos DIFERENTES, e o teste passaria com a cadeia
+    partida ao meio.
+
+    Aqui se caminha de um evento de clima para trás, por `causation_id`, e se
+    exige que o percurso completo apareça — `[clima, forçamento, erupção]` como
+    subsequência contígua do mesmo caminho.
+    """
     events = _volcanic_events()
     by_id = {event.event_id: event for event in events}
-    parent_type = {
-        event.event_id: by_id[event.causation_id].event_type
-        for event in events
-        if event.causation_id and event.causation_id in by_id
-    }
-
-    forcing_from_eruption = [
-        event
-        for event in events
-        if event.event_type == GREENHOUSE_FORCING_CHANGED
-        and parent_type.get(event.event_id) == VOLCANIC_ERUPTION
-    ]
-    climate_from_forcing = [
+    climate_events = [
         event
         for event in events
         if event.event_type in {TEMPERATURE_SHIFT, CLIMATE_THRESHOLD_CROSSED}
-        and parent_type.get(event.event_id) == GREENHOUSE_FORCING_CHANGED
     ]
+    assert climate_events, "o clima não falou — não há de onde caminhar para trás"
 
-    assert forcing_from_eruption, "nenhum forçamento atribuído a uma erupção"
-    assert climate_from_forcing, "nenhum efeito climático atribuído ao forçamento"
+    connected = [
+        path
+        for path in (_ancestry(event, by_id) for event in climate_events)
+        if any(
+            path[i] == GREENHOUSE_FORCING_CHANGED and path[i + 1] == VOLCANIC_ERUPTION
+            for i in range(len(path) - 1)
+        )
+    ]
+    observed = sorted({tuple(_ancestry(e, by_id)) for e in climate_events})
+    assert connected, (
+        "nenhum efeito climático alcança uma erupção seguindo `causation_id`; "
+        f"caminhos observados: {observed}"
+    )
+    # O elo do meio é o forçamento: o clima nunca aponta direto para a geologia,
+    # porque não a lê. A cadeia SÓ existe porque cada Engine encadeou com o
+    # anterior sem conhecê-lo (Spec §2).
+    for path in connected:
+        forcing_at = path.index(GREENHOUSE_FORCING_CHANGED)
+        assert forcing_at > 0, "o forçamento tem de ser causa de algo, não a ponta"
+        assert path[0] in {TEMPERATURE_SHIFT, CLIMATE_THRESHOLD_CROSSED}
+
+
+def test_the_chain_is_not_mere_co_occurrence() -> None:
+    """Eventos do mesmo tick sem `causation_id` NÃO formam cadeia.
+
+    É o contraponto do teste acima: se a implementação passasse a ligar tudo o
+    que acontece junto, este teste continuaria verde e o de cima também — então
+    aqui se verifica que a ligação é DERIVADA, e não temporal. Um evento sem
+    causa declarada permanece sem pai, mesmo cercado de eventos simultâneos.
+    """
+    events = _volcanic_events()
+    by_id = {event.event_id: event for event in events}
+    by_tick: dict[int, list[DomainEvent]] = {}
+    for event in events:
+        by_tick.setdefault(event.occurred_at.tick, []).append(event)
+
+    crowded = [group for group in by_tick.values() if len(group) > 1]
+    assert crowded, "sem ticks com vários eventos, o teste não prova nada"
+
+    orphans = [event for group in crowded for event in group if event.causation_id is None]
+    assert orphans, (
+        "TODO evento de um tick cheio tem pai — sinal de que a ligação virou "
+        "co-ocorrência temporal em vez de proveniência declarada"
+    )
+    # E quem tem pai aponta para um evento REAL, não para um id inventado.
+    for event in events:
+        if event.causation_id is not None and event.causation_id in by_id:
+            assert by_id[event.causation_id].event_id == event.causation_id
 
 
 def test_causation_crosses_ticks() -> None:

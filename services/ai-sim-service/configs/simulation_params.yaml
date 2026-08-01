@@ -35,9 +35,30 @@ timeline:
 #
 # `water` e `ice_cover` são os AGREGADOS de partida; a ponte os reparte nos
 # quatro reservatórios da hidrologia no primeiro tick (ADR 0012).
+#
+# ─── CONDIÇÃO INICIAL É FÍSICA, NÃO CAMPO EM BRANCO ─────────────────────────
+# Um campo não preenchido NÃO significa "o planeta está no começo": significa um
+# estado que a física do modelo não admite. Um oceano com carbono zero é
+# infinitamente sub-saturado e aspira a atmosfera; o sintoma medido foi o CO2
+# caindo de 280 para 234 ppm em 60 ticks, e a leitura pedagógica virava "o oceano
+# resfria o planeta" — um aluno aprendendo ciência falsa a partir de um campo
+# esquecido (ADR 0012 §7).
+#
+# Cada valor abaixo tem procedência. Alterá-los é decisão CIENTÍFICA, revisável
+# por um especialista sem tocar em Python — e `test_baseline_is_physics.py`
+# verifica que continuam coerentes com os parâmetros dos Engines.
 initial_state:
-  temperature: 14.0        # °C, temperatura média global de partida
-  co2: 280.0               # ppm, nível de referência pré-industrial
+  # Temperatura média global da Terra pré-industrial (~1850), a âncora que o
+  # aluno reconhece. ATENÇÃO: o equilíbrio do Climate Engine com estes
+  # parâmetros é ~17,6 °C, então o planeta aquece ~3,6 °C na partida só para
+  # alcançá-lo. A distância é anterior ao M2 e está PINADA em
+  # `KNOWN_EQUILIBRIUM_GAP_C` (test_baseline_is_physics.py) para não crescer em
+  # silêncio; fechá-la é recalibração de clima, ainda não decidida.
+  temperature: 14.0
+  # ppm de CO2 pré-industrial (Etheridge et al. 1996, testemunhos de gelo de Law
+  # Dome). É o mesmo `reference_co2` do Atmosphere e do Chemistry: na referência
+  # o forçamento de Myhre é ZERO por definição, e a troca ar<->oceano também.
+  co2: 280.0
   water: 1.0               # estoque relativo de água líquida
   ice_cover: 0.10          # fração [0,1] coberta por gelo
   biomass: 0.0             # planeta ainda sem vida
@@ -47,18 +68,25 @@ initial_state:
   salinity: 0.35           # salinidade média inicial
   ocean_circulation: 0.50  # circulação termohalina inicial [0,1]
   # Carbono dissolvido no oceano, EM EQUILÍBRIO com a atmosfera de referência.
-  # Não é um detalhe: o oceano é um reservatório grande, e começá-lo vazio faria
-  # o planeta gastar a primeira era enchendo-o às custas do ar — um transiente de
-  # condição inicial errada, que se leria como "o oceano resfria o planeta".
-  # O valor casa com `reference_ocean_carbon` do Chemistry Engine, que é por
-  # definição o carbono oceânico cuja pressão parcial iguala os 280 ppm do ar.
+  # Casa com `reference_ocean_carbon` do Chemistry Engine, que é por definição o
+  # carbono oceânico cuja pressão parcial iguala os 280 ppm do ar — logo o
+  # gradiente de Henry parte de zero e o oceano começa como TAMPÃO, não como
+  # sumidouro. O oceano é o maior reservatório de carbono do sistema
+  # (Sabine et al. 2004), então errar sua condição inicial domina a trajetória.
   ocean_carbon: 300.0
-  # Estoques de nutriente de partida, nos valores em que o elemento é
-  # exatamente NÃO-limitante (a demanda de referência do Resource Engine).
-  # Mesma razão do carbono oceânico: zerá-los não é "planeta jovem", é campo não
-  # preenchido — e faria a capacidade de suporte nascer em ~0, adiando a
-  # abiogênese por dezenas de ticks por artefato de condição inicial.
-  # Com estes valores a capacidade inicial reproduz a do subsistema `life`.
+  # Estoques de nutriente de partida, nos valores em que cada elemento é
+  # exatamente NÃO-limitante — isto é, iguais à demanda de referência declarada
+  # em `engines/resource/params.yaml`. Pela lei do mínimo (Liebig 1840), é o
+  # ponto em que o nutriente deixa de governar a capacidade e a habitabilidade
+  # volta a ser regida por temperatura e água, que são os termos herdados do
+  # subsistema `life` sem recalibração (ADR 0013).
+  #
+  # A proporção entre eles segue a razão de Redfield (Redfield 1958): o fósforo é
+  # o mais escasso em termos absolutos e, por isso, o limitante típico de um
+  # oceano — o que é justamente o fenômeno que a lei do mínimo deve ensinar.
+  #
+  # Zerá-los não é "planeta jovem": é campo não preenchido. Medido, fazia a
+  # capacidade nascer em ~0 e atrasava a abiogênese em ~50 ticks.
   nutrients: 0.30
   nitrogen: 0.50
   phosphorus: 0.10
