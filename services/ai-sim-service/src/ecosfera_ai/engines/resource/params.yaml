@@ -1,0 +1,48 @@
+# Resource Engine — disponibilidade de recurso e capacidade de suporte (Spec §5.1).
+#
+# Os quatro primeiros blocos convertem estado físico em RECURSO DISPONÍVEL; o
+# último o converte em capacidade de suporte, que é o único acoplamento entre a
+# camada determinística e a biologia (ADR 0006, ADR 0013).
+version: 1
+
+# Água: a doce é integralmente utilizável; a oceânica é salgada e só entra em
+# parte (dessalinização biológica tem custo).
+ocean_accessibility: 0.10
+
+# Energia: fração da irradiância incidente que vira energia biologicamente útil
+# (ordem de grandeza da eficiência fotossintética bruta).
+energy_conversion: 0.05
+
+# Lei do mínimo de Liebig: a demanda de referência de cada macronutriente. O
+# elemento MAIS ESCASSO em relação à sua demanda é o que limita.
+nitrogen_demand: 0.50
+phosphorus_demand: 0.10
+sulfur_demand: 0.20
+
+# Habitabilidade térmica e hídrica — os dois termos vêm do subsistema `life`
+# determinístico sem alteração de valor (ADR 0013).
+optimal_temperature: 22.0
+temperature_tolerance: 15.0
+water_requirement: 0.2
+
+# Requisitos dos dois fatores NOVOS do M2 (nutriente e energia).
+nutrient_requirement: 0.30
+energy_requirement: 0.04
+
+# Capacidade de suporte com habitabilidade plena — mesmo valor de `life`.
+max_carrying_capacity: 100.0
+
+# Consumo: recurso retirado por unidade de biomassa por tick.
+consumption_per_biomass: 0.001
+
+# Limiares de evento.
+capacity_event_threshold: 0.20  # variação relativa da capacidade que vira evento
+# Escassez medida como FRAÇÃO DO REQUISITO de cada recurso, e não em valor
+# absoluto: água, nutriente e energia vivem em escalas diferentes (0,2 / 0,3 /
+# 0,04), e um único número absoluto declararia um deles permanentemente escasso
+# num planeta perfeitamente normal.
+scarcity_fraction: 0.50
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50

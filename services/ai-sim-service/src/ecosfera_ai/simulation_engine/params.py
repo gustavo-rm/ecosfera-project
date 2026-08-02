@@ -1,9 +1,17 @@
-"""Carrega os parâmetros dos subsistemas do YAML versionado (dados, não código).
+"""Carrega os parâmetros de simulação do YAML versionado (dados, não código).
 
 Espelha `domain/feedback/rule_loader`: os parâmetros científicos vivem em
 `configs/simulation_params.yaml` e são revisáveis por especialistas sem redeploy.
-O campo `version` permite evoluir o esquema com rastreabilidade. Aqui também mora
-a fábrica que compõe os dados no `TickOrchestrator` (padrão Strategy).
+O campo `version` permite evoluir o esquema com rastreabilidade.
+
+## O que saiu daqui no M2
+
+A ciência de física, química, clima, geologia, oceano e vida deixou de morar
+neste arquivo: cada Engine passou a carregar o próprio `params.yaml` versionado,
+co-locado com o código que o consome (Spec §5.1). O que sobrou aqui é o que NÃO
+pertence a um Engine — condições iniciais, faixas físicas, progressão de eras,
+orçamento da moldura — mais os parâmetros da camada emergente do Inc 3, que não
+é um Engine (ADR 0014).
 """
 
 from __future__ import annotations
@@ -15,19 +23,13 @@ from typing import Any
 
 import yaml
 
+from ecosfera_ai.engines.astronomy.contracts import load_params as astronomy_params
+from ecosfera_ai.engines.astronomy.domain import solar_flux_at
 from ecosfera_ai.shared_kernel.engine import TickBudget
 from ecosfera_ai.simulation_engine.biology.ecology import EcologyParams
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionParams
 from ecosfera_ai.simulation_engine.biology.fitness import FitnessParams
-from ecosfera_ai.simulation_engine.orchestrator import TickOrchestrator
 from ecosfera_ai.simulation_engine.state import PlanetSeed, PlanetState, StateBounds
-from ecosfera_ai.simulation_engine.subsystems.base import Subsystem
-from ecosfera_ai.simulation_engine.subsystems.chemistry import ChemistryParams, ChemistrySubsystem
-from ecosfera_ai.simulation_engine.subsystems.climate import ClimateParams, ClimateSubsystem
-from ecosfera_ai.simulation_engine.subsystems.geology import GeologyParams, GeologySubsystem
-from ecosfera_ai.simulation_engine.subsystems.life import LifeParams, LifeSubsystem
-from ecosfera_ai.simulation_engine.subsystems.ocean import OceanParams, OceanSubsystem
-from ecosfera_ai.simulation_engine.subsystems.physics import PhysicsParams, PhysicsSubsystem
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +51,13 @@ class InitialState:
     volcanism: float
     salinity: float
     ocean_circulation: float
+    # Estoques de partida das fatias do M2. Todos com default para que um YAML
+    # anterior ao M2 continue carregando (ADR 0012).
+    ocean_carbon: float = 0.0
+    nutrients: float = 0.0
+    nitrogen: float = 0.0
+    phosphorus: float = 0.0
+    sulfur: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,14 +75,10 @@ class SimulationParams:
     initial_state: InitialState
     bounds: StateBounds
     timeline: TimelineParams
-    physics: PhysicsParams
-    chemistry: ChemistryParams
-    climate: ClimateParams
-    geology: GeologyParams
-    ocean: OceanParams
-    life: LifeParams
     # Camada emergente (Inc 3). Vive junto dos demais parâmetros porque a
-    # biologia é subsistema de simulação, não de IA aplicada (ADR 0006).
+    # biologia é subsistema de simulação, não de IA aplicada (ADR 0006), e
+    # porque ela não é um Engine — não teria um `params.yaml` co-locado onde
+    # morar (ADR 0014).
     fitness: FitnessParams
     evolution: EvolutionParams
     ecology: EcologyParams
@@ -103,6 +108,11 @@ def load_params(path: Path) -> SimulationParams:
             volcanism=float(init["volcanism"]),
             salinity=float(init["salinity"]),
             ocean_circulation=float(init["ocean_circulation"]),
+            ocean_carbon=float(init.get("ocean_carbon", 0.0)),
+            nutrients=float(init.get("nutrients", 0.0)),
+            nitrogen=float(init.get("nitrogen", 0.0)),
+            phosphorus=float(init.get("phosphorus", 0.0)),
+            sulfur=float(init.get("sulfur", 0.0)),
         ),
         bounds=StateBounds(
             ice_cover_min=float(ice_range[0]),
@@ -120,12 +130,6 @@ def load_params(path: Path) -> SimulationParams:
             ocean_circulation_max=float(circulation_range[1]),
         ),
         timeline=TimelineParams(era_length=int(raw["timeline"]["era_length"])),
-        physics=PhysicsParams(**_floats(raw["physics"])),
-        chemistry=ChemistryParams(**_floats(raw["chemistry"])),
-        climate=ClimateParams(**_floats(raw["climate"])),
-        geology=GeologyParams(**_floats(raw["geology"])),
-        ocean=OceanParams(**_floats(raw["ocean"])),
-        life=LifeParams(**_floats(raw["life"])),
         fitness=FitnessParams(**_floats(raw["fitness"])),
         evolution=EvolutionParams(**_evolution_fields(raw["evolution"])),
         ecology=EcologyParams(**_ecology_fields(raw["ecology"])),
@@ -150,12 +154,15 @@ def initial_state(seed: PlanetSeed, params: SimulationParams) -> PlanetState:
     A órbita parte de uma condição circular no raio configurado: posição (R, 0) e
     velocidade perpendicular de módulo sqrt(GM/R), opcionalmente perturbada por
     `eccentricity_kick` para gerar uma órbita elíptica (estações mais marcadas).
+
+    Os parâmetros orbitais vêm do **Astronomy Engine**, que é o dono deles desde
+    o M2. Derivar a órbita inicial de outra fonte permitiria que o estado de
+    partida fosse incoerente com a gravidade que o integrador de fato usa.
     """
     i = params.initial_state
-    p = params.physics
+    p = astronomy_params()
     radius = p.orbital_radius
     circular_speed = math.sqrt(p.gravitational_parameter / radius) if radius > 0.0 else 0.0
-    physics = PhysicsSubsystem(p)
     return PlanetState(
         planet_id=seed.planet_id,
         seed=seed.seed,
@@ -170,29 +177,17 @@ def initial_state(seed: PlanetSeed, params: SimulationParams) -> PlanetState:
         orbital_y=0.0,
         orbital_vx=0.0,
         orbital_vy=circular_speed * (1.0 + p.eccentricity_kick),
-        solar_flux=physics.solar_flux_at(radius, 0.0),
+        solar_flux=solar_flux_at(radius, 0.0, p),
         relief=i.relief,
         volcanism=i.volcanism,
         salinity=i.salinity,
         ocean_circulation=i.ocean_circulation,
+        ocean_carbon=i.ocean_carbon,
+        nutrients=i.nutrients,
+        nitrogen=i.nitrogen,
+        phosphorus=i.phosphorus,
+        sulfur=i.sulfur,
     )
-
-
-def build_orchestrator(params: SimulationParams) -> TickOrchestrator:
-    """Fábrica: injeta os parâmetros nos subsistemas e monta o orquestrador.
-
-    A sequência abaixo é a ordem canônica de acoplamento (`SUBSYSTEM_ORDER`),
-    justificada na docstring do orquestrador e no ADR 0004.
-    """
-    subsystems: list[Subsystem] = [
-        PhysicsSubsystem(params.physics),
-        ChemistrySubsystem(params.chemistry),
-        ClimateSubsystem(params.climate),
-        GeologySubsystem(params.geology),
-        OceanSubsystem(params.ocean),
-        LifeSubsystem(params.life),
-    ]
-    return TickOrchestrator(subsystems, params.bounds)
 
 
 def _floats(raw: dict[str, Any]) -> dict[str, float]:

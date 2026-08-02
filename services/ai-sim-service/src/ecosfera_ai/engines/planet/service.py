@@ -45,6 +45,7 @@ from ecosfera_ai.shared_kernel.rng import rng_for
 from ecosfera_ai.shared_kernel.world_state import (
     Invariant,
     InvariantBreach,
+    SliceRef,
     WorldStateSnapshot,
     compose,
 )
@@ -123,14 +124,24 @@ class PlanetEngine:
         events: list[DomainEvent] = []
         samples: list[PerfSample] = []
         breaches: list[InvariantBreach] = []
+        # Proveniência causal: fatia -> eventos que produziram o valor corrente.
+        # Parte do snapshot que ENTROU, então atravessa ticks sem tornar o Planet
+        # Engine estatal — `tick()` continua função pura do snapshot, e o replay
+        # reconstrói a mesma cadeia.
+        provenance: dict[SliceRef, tuple[str, ...]] = dict(snapshot.provenance)
 
         for engine in self._registry.engines:
+            declared = engine.reads | engine.lagged_reads
             context = TickContext(
                 snapshot=working,
                 rng=rng_for(snapshot.seed, engine.engine_id, snapshot.tick),
                 tick=snapshot.tick,
                 era=snapshot.era,
                 budget=self._budget,
+                # Restrita ao que o Engine DECLAROU ler: proveniência de uma
+                # fatia não declarada é acesso a estado alheio pela porta dos
+                # fundos.
+                caused_by={ref: provenance[ref] for ref in declared if ref in provenance},
             )
             with span("engine.tick", engine=engine.engine_id, tick=snapshot.tick):
                 started = self._clock()
@@ -142,6 +153,8 @@ class PlanetEngine:
             working = composition.snapshot
             breaches.extend(composition.breaches)
             events.extend(result.events)
+            if result.events:
+                provenance[engine.writes] = tuple(e.event_id for e in result.events)
             samples.append(
                 PerfSample(
                     engine_id=engine.engine_id,
@@ -153,7 +166,7 @@ class PlanetEngine:
                 )
             )
 
-        closed = working.advanced()
+        closed = working.with_provenance(provenance).advanced()
 
         # Canal B lateral. Construído DEPOIS de `closed`: nada aqui pode
         # influenciar o snapshot que acabou de ser fechado.

@@ -49,7 +49,7 @@ def test_engines_run_in_the_registered_order() -> None:
     log: list[str] = []
     registry = EngineRegistry.of(
         [
-            _Recorder("chemistry", SliceRef.CHEMISTRY, "co2", log),
+            _Recorder("chemistry", SliceRef.CHEMISTRY, "ocean_carbon", log),
             _Recorder("climate", SliceRef.CLIMATE, "temperature", log),
             _Recorder("biota", SliceRef.BIOTA, "biomass", log),
         ]
@@ -59,7 +59,7 @@ def test_engines_run_in_the_registered_order() -> None:
 
     assert log == ["chemistry", "climate", "biota"]
     assert registry.engine_ids == ("chemistry", "climate", "biota")
-    assert outcome.snapshot.chemistry.co2 == 1.0
+    assert outcome.snapshot.chemistry.ocean_carbon == 1.0
     assert outcome.snapshot.tick == 1
 
 
@@ -75,15 +75,17 @@ def test_each_engine_reads_the_effects_of_the_previous_one() -> None:
         writes: SliceRef = SliceRef.CLIMATE
 
         def tick(self, ctx: TickContext) -> TickResult:
-            seen.append(ctx.snapshot.chemistry.co2)
+            seen.append(ctx.snapshot.chemistry.ocean_carbon)
             return TickResult(
                 delta=StateDelta(engine_id=self.engine_id, tick=ctx.tick, writes=self.writes)
             )
 
-    registry = EngineRegistry.of([_Recorder("chemistry", SliceRef.CHEMISTRY, "co2", []), _Reader()])
+    registry = EngineRegistry.of(
+        [_Recorder("chemistry", SliceRef.CHEMISTRY, "ocean_carbon", []), _Reader()]
+    )
     PlanetEngine(registry).tick(_snapshot())
 
-    assert seen == [1.0], "o clima deveria ver o CO2 que a química acabou de escrever"
+    assert seen == [1.0], "o clima deveria ver o carbono que a química acabou de escrever"
 
 
 def test_duplicate_engine_id_is_rejected_at_boot() -> None:
@@ -110,7 +112,7 @@ def test_unresolved_cycle_is_detected() -> None:
     """Ler uma fatia escrita adiante no mesmo tick é ordem inconsistente."""
     early = _Recorder("climate", SliceRef.CLIMATE, "temperature", [])
     early.reads = frozenset({SliceRef.CHEMISTRY})
-    late = _Recorder("chemistry", SliceRef.CHEMISTRY, "co2", [])
+    late = _Recorder("chemistry", SliceRef.CHEMISTRY, "ocean_carbon", [])
 
     with pytest.raises(EngineGraphError, match="ciclo não resolvido"):
         EngineRegistry.of([early, late])
@@ -120,7 +122,7 @@ def test_declared_lag_resolves_the_cycle() -> None:
     """A defasagem de um tick é legítima — desde que declarada, não presumida."""
     early = _Recorder("climate", SliceRef.CLIMATE, "temperature", [])
     early.lagged_reads = frozenset({SliceRef.CHEMISTRY})
-    late = _Recorder("chemistry", SliceRef.CHEMISTRY, "co2", [])
+    late = _Recorder("chemistry", SliceRef.CHEMISTRY, "ocean_carbon", [])
 
     registry = EngineRegistry.of([early, late])
 
@@ -183,7 +185,7 @@ def test_noop_engine_proves_the_frame_orchestrates_both_channels() -> None:
 def test_registry_publishes_slice_ownership() -> None:
     registry = EngineRegistry.of(
         [
-            _Recorder("chemistry", SliceRef.CHEMISTRY, "co2", []),
+            _Recorder("chemistry", SliceRef.CHEMISTRY, "ocean_carbon", []),
             _Recorder("climate", SliceRef.CLIMATE, "temperature", []),
         ]
     )

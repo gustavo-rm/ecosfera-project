@@ -1,0 +1,43 @@
+# Ecology Engine — dinâmica trófica emergente (Spec §5.1).
+#
+# CADÊNCIA (ADR 0016): `steps_per_tick`, e não `steps` por era. Antes o modelo
+# rodava um lote de 12 passos no fecho da era; como Engine, ele roda no loop, um
+# passo por tick. Com `era_length: 10`, o trabalho total por era é equivalente —
+# mas a ecologia passa a ler um ambiente ATUALIZADO entre passos, em vez de um
+# instantâneo congelado do início da era. É melhor cientificamente e muda a
+# trajetória numérica; como o M3 é o marco que introduz a biota no world-state,
+# não há baseline anterior a preservar.
+version: 1
+
+steps_per_tick: 1
+
+# Taxas herdadas do bloco `ecology` de simulation_params.yaml, sem recalibração.
+growth_rate: 0.35
+predation_rate: 0.015
+conversion_efficiency: 0.30
+mortality_rate: 0.12
+demographic_noise: 0.01
+min_viable_population: 0.001
+
+# Repartição inicial da biomassa entre níveis tróficos quando a Ecology recebe
+# uma comunidade nova da Evolution. O produtor fica com o restante.
+herbivore_share: 0.25
+predator_share: 0.05
+
+# A pirâmide de biomassa NÃO inverte (Elton, 1927): cada nível carrega menos que
+# o de baixo, porque a conversão dissipa energia. Teto da soma dos consumidores
+# como fração do total — sem ele, a renormalização escalaria predadores para cima
+# quando os produtores colapsassem, criando um planeta de predadores sem presa.
+max_consumer_share: 0.50
+
+# Limiares de evento.
+collapse_threshold: 0.05   # fração da biomassa abaixo da qual o nível colapsa
+decline_threshold: 0.20    # queda relativa que caracteriza declínio notável
+
+# Tetos de custo (RSK Inc 3) — contenção, não ciência.
+max_agents: 24
+max_steps: 50
+
+budget:
+  max_duration_s: 0.25
+  max_events: 100

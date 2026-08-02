@@ -1,0 +1,67 @@
+# Evolution Engine — seleção natural emergente (Spec §5.1).
+#
+# NÃO há parâmetros de algoritmo genético aqui: nem tamanho de população, nem
+# gerações, nem pressão de torneio. Isso não é omissão — é a consequência de o
+# fitness global ter sido superado (ADR-ARCH-0001) e, com ele, o próprio AG
+# (ADR 0016). O que sobra são taxas biológicas.
+version: 1
+
+# Crescimento: fração do excedente local convertida em variação populacional.
+growth_rate: 0.15
+
+# Custo de existir. Herdados de `fitness.maintenance_penalty` sem recalibração.
+metabolism_cost: 0.40
+size_cost: 0.05
+
+# Energia de referência do produtor. ATENÇÃO à escala: o `fitness` legado usava
+# 0,80 comparando com `solar_flux` (~1,0); aqui a comparação é com o
+# `energy_available` da ResourceSlice (~0,05), que é a irradiância JÁ convertida
+# em energia biologicamente útil. O valor casa com o `energy_requirement` do
+# Resource — é o mesmo limiar, lido da mesma grandeza.
+energy_reference: 0.04
+
+# Lotação: quanto o orçamento cheio aperta a comunidade inteira. É a
+# densidade-dependência EMERGENTE — o que faz a biomassa parar de crescer sem que
+# nenhuma curva logística seja imposta. Calibrado para que o excedente local
+# cruze zero perto de `ocupação = 1`, isto é, para que a comunidade se acomode NA
+# capacidade que o Resource publica e não acima dela (ADR 0016: capacidade é
+# limite, biomassa é ocupação).
+crowding_weight: 1.20
+
+# Peso da pressão de predação lida da EcologySlice na conta de sobrevivência.
+predation_weight: 0.30
+
+# Mutação: desvio-padrão como FRAÇÃO da amplitude de cada traço, para que um
+# mesmo sigma não mova `metabolism` e `temp_optimum` em escalas incomparáveis.
+mutation_sigma: 0.02
+
+# Excedente local acima do qual a coorte gera descendência divergente.
+reproduction_threshold: 0.25
+
+# Distância genética que caracteriza espécie nova (herdado de `evolution`).
+speciation_threshold: 0.12
+
+# População abaixo da qual a coorte não se sustenta (herdado de `evolution`).
+extinction_population: 0.01
+
+# Abiogênese: capacidade mínima para a primeira vida surgir. Mesmo limiar do
+# Biota provisório do M2, que por sua vez veio do `life` (ADR 0013) — a cadeia
+# `h >= 0,35` <=> `capacidade >= 35` continua valendo.
+abiogenesis_capacity: 35.0
+founder_population: 1.0
+
+# Teto de espécies vivas simultâneas (contenção de custo — RSK Inc 3).
+max_species: 12
+
+# Fração da biomassa perdida num tick que caracteriza MORTANDADE EM MASSA. É
+# travessia, não estado: compara o antes com o depois. Calibrado acima da
+# variação de rotina da comunidade acomodada, para que o evento signifique
+# "algo virou contra a vida" e não "a população oscilou".
+mass_mortality_threshold: 0.06
+
+# Variação de traço médio que vira evento notável (Canal B).
+trait_shift_threshold: 0.05
+
+budget:
+  max_duration_s: 0.10
+  max_events: 100

@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from ecosfera_ai.application.simulation.evolve_biology import SpeciesNotFoundError
+from ecosfera_ai.application.simulation.errors import SpeciesNotFoundError
 from ecosfera_ai.application.simulation.replay_state import EraNotFoundError
 from ecosfera_ai.application.simulation.run_tick import PlanetNotFoundError
 from ecosfera_ai.application.telemetry.ingest_event import ConsentRequiredError

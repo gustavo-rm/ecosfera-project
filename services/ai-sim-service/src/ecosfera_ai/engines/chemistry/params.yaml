@@ -1,0 +1,37 @@
+# Chemistry Engine — ciclos biogeoquímicos versionados (Spec §5.1).
+#
+# Este Engine NÃO detém o carbono atmosférico (é da Atmosphere, M1). Ele detém
+# os demais reservatórios e o fluxo ar<->oceano, que a Atmosphere subtrai do
+# próprio estoque — um fluxo, dois livros, sinais opostos (ADR 0012).
+version: 1
+
+# Troca ar<->oceano: proporcional ao desequilíbrio de pressão parcial.
+solubility: 0.02
+reference_co2: 280.0
+ocean_carbon_capacity: 3000.0   # capacidade do reservatório oceânico (ppm-equivalente)
+burial_coeff: 0.0008            # sequestro de carbono oceânico para o sedimento
+
+# Nutrientes: liberados pelo intemperismo (∝ relevo × vulcanismo), reciclados.
+weathering_nutrient_yield: 0.020
+nutrient_recycling: 0.010
+
+# N/P/S: alimentados pelo intemperismo, drenados por soterramento.
+nitrogen_yield: 0.010
+phosphorus_yield: 0.004
+sulfur_yield: 0.006
+element_burial: 0.005
+
+# pH oceânico: cai logaritmicamente com o carbono dissolvido.
+reference_ph: 8.2
+ph_sensitivity: 0.9
+reference_ocean_carbon: 300.0
+
+# Limiares de evento.
+acidification_threshold: 7.9
+nutrient_depletion_threshold: 0.15
+# Tolerância declarada da conservação de carbono (Spec §3).
+carbon_tolerance: 1.0e-9
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50

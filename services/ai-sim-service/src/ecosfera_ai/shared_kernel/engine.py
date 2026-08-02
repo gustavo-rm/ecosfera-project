@@ -17,8 +17,8 @@ persistência, fila, Event Store) é assíncrona e orquestra o loop por fora
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Protocol
 
 import numpy as np
@@ -82,10 +82,24 @@ class TickContext:
     tick: int
     era: int
     budget: TickBudget
+    # Proveniência causal do Canal A: para cada fatia que este Engine declarou
+    # ler, os `event_id` que produziram o valor corrente dela neste tick.
+    #
+    # É o que permite encadear `causation_id` SEM que um Engine leia o Canal B de
+    # outro: a informação viaja como metadado do delta (`StateDelta.caused_by`,
+    # Spec §3), e o Planet a repassa restrita ao que cada Engine declarou. Sem
+    # isso, a cadeia vulcanismo->CO2->temperatura só seria reconstruível por
+    # heurística de ordem, o que não é rastro causal, é adivinhação.
+    caused_by: Mapping[SliceRef, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def seed(self) -> int:
         return self.snapshot.seed
+
+    def caused_by_slice(self, ref: SliceRef) -> str | None:
+        """Primeiro evento responsável pelo valor corrente da fatia, se houver."""
+        ids = self.caused_by.get(ref, ())
+        return ids[0] if ids else None
 
 
 @dataclass(frozen=True, slots=True)

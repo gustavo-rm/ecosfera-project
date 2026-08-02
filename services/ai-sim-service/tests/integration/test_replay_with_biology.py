@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from tests.support import build_orchestrator
 
 from ecosfera_ai.application.simulation.create_planet import CreatePlanetUseCase
 from ecosfera_ai.application.simulation.evolve_biology import EvolveBiologyUseCase
@@ -18,9 +19,8 @@ from ecosfera_ai.application.simulation.replay_state import ReplayStateUseCase
 from ecosfera_ai.infrastructure.persistence.inmemory_planet_repo import InMemoryPlanetRepository
 from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionEngine
-from ecosfera_ai.simulation_engine.params import build_orchestrator, load_params
+from ecosfera_ai.simulation_engine.params import load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
 from ecosfera_ai.simulation_engine.timeline import EraCheckpoint
 
 BASE = "/ai/api/v1/simulation"
@@ -29,7 +29,7 @@ PARAMS = load_params(Path("configs/simulation_params.yaml"))
 
 def _biology_use_case(repo: InMemoryPlanetRepository) -> EvolveBiologyUseCase:
     engine = BiologyEngine(EvolutionEngine(PARAMS.evolution, PARAMS.fitness), PARAMS.ecology)
-    return EvolveBiologyUseCase(repo, engine, LifeSubsystem(PARAMS.life))
+    return EvolveBiologyUseCase(repo, engine)
 
 
 @pytest.mark.asyncio

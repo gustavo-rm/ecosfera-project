@@ -11,15 +11,21 @@ só muda a janela de observação (uma era em vez de um tick).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
+from ecosfera_ai.application.feedback.explain_from_events import (
+    CausalLink,
+    ExplainFromEventsUseCase,
+)
 from ecosfera_ai.application.ports.job_queue import JobQueue, JobRef
 from ecosfera_ai.application.ports.planet_repo import PlanetRepository
 from ecosfera_ai.application.simulation.evolve_biology import BiologySummary
 from ecosfera_ai.application.simulation.run_tick import PlanetNotFoundError
 from ecosfera_ai.domain.feedback.models import CausalExplanation, Observation
+from ecosfera_ai.shared_kernel.events import DomainEvent
 from ecosfera_ai.simulation_engine.state import PlanetState, StateDelta
 from ecosfera_ai.simulation_engine.ticker import Ticker
 from ecosfera_ai.simulation_engine.timeline import (
@@ -30,6 +36,12 @@ from ecosfera_ai.simulation_engine.timeline import (
 
 # Nome do job pesado de evolução, compartilhado pelos adaptadores de fila.
 JOB_RUN_EVOLUTION = "run_evolution"
+
+# De onde a narração da era saiu. É DADO na resposta, não inferência: sem isto,
+# saber se o Tutor leu a trilha ou o delta agregado exigiria heurística sobre o
+# conteúdo da explicação — e auditabilidade por adivinhação não é auditabilidade.
+NARRATED_FROM_EVENTS = "events"
+NARRATED_FROM_STATE_DELTA = "state_delta"
 
 # Variáveis observadas que existem apenas na camada emergente. São passadas ao
 # MOTOR DE REGRAS já existente (sem LLM) para que a explicação da era cite
@@ -53,6 +65,10 @@ class EraOutcome:
     # rota responde 200; com ARQ, vem `job` e a rota responde 202 (ADR 0007).
     biology: BiologySummary | None = None
     job: JobRef | None = None
+    # Rastro causa->efeito reconstruído da trilha de eventos (Canal B). Vem vazio
+    # quando a era não produziu ocorrência notável alguma (ADR 0011).
+    causal_trace: tuple[CausalLink, ...] = ()
+    narrated_from: str = NARRATED_FROM_STATE_DELTA
 
 
 class AdvanceEraUseCase:
@@ -66,6 +82,7 @@ class AdvanceEraUseCase:
         *,
         biology_enabled: bool = False,
         resolves_inline: bool = True,
+        explain_events: ExplainFromEventsUseCase | None = None,
     ) -> None:
         self._repo = repo
         self._orchestrator = orchestrator
@@ -74,6 +91,7 @@ class AdvanceEraUseCase:
         self._jobs = jobs
         self._biology_enabled = biology_enabled
         self._resolves_inline = resolves_inline
+        self._explain_events = explain_events
 
     async def execute(self, planet_id: str) -> EraOutcome:
         base = await self._repo.load_latest(planet_id)
@@ -85,9 +103,12 @@ class AdvanceEraUseCase:
 
         state = base
         events: list[EventLogEntry] = []
+        domain_events: list[DomainEvent] = []
         for _ in range(self._era_length):
             previous = state
-            state = self._orchestrator.tick(state).state
+            result = self._orchestrator.tick(state)
+            state = result.state
+            domain_events.extend(result.events)
             events.extend(detect_milestones(planet_id, previous, state))
 
         checkpoint = EraCheckpoint(
@@ -107,11 +128,7 @@ class AdvanceEraUseCase:
         # e nunca o altera, o que mantém a camada determinística intacta (ADR 0006).
         biology, job = await self._run_biology(planet_id, era)
 
-        # Observações da era: delta determinístico + sinais biológicos emergentes,
-        # ambos narrados pelo MESMO motor de regras (não há LLM aqui).
-        observations = state.observe(base)
-        observations.extend(_biology_observations(biology))
-        explanation = self._explain.execute(planet_id, observations)
+        explanation, trace, source = self._narrate(planet_id, base, state, domain_events, biology)
 
         return EraOutcome(
             era=era,
@@ -123,7 +140,39 @@ class AdvanceEraUseCase:
             explanation=explanation,
             biology=biology,
             job=job,
+            causal_trace=trace,
+            narrated_from=source,
         )
+
+    def _narrate(
+        self,
+        planet_id: str,
+        base: PlanetState,
+        state: PlanetState,
+        domain_events: Sequence[DomainEvent],
+        biology: BiologySummary | None,
+    ) -> tuple[CausalExplanation, tuple[CausalLink, ...], str]:
+        """Narra a era a partir da TRILHA DE EVENTOS quando ela existe.
+
+        É o que o ADR-ARCH-0001 pede do consumidor: explicar sem recalcular
+        ciência e sem inspecionar estado interno de Engine. O motor de regras é o
+        mesmo de sempre — muda de onde vêm as observações que ele consome.
+
+        Recuo deliberado para o delta agregado: uma era pode passar sem NENHUMA
+        ocorrência notável (é o caso comum — o Canal B registra travessia de
+        patamar, não o contínuo). Devolver explicação vazia nesses casos seria
+        regressão de produto, não pureza arquitetural. O delta agregado é estado
+        PUBLICADO, não memória interna, então o recuo não viola a fronteira.
+        """
+        if self._explain_events is not None and domain_events:
+            outcome = self._explain_events.execute(planet_id, domain_events)
+            if outcome.explanation.chain:
+                return outcome.explanation, outcome.trace, NARRATED_FROM_EVENTS
+
+        observations = state.observe(base)
+        observations.extend(_biology_observations(biology))
+        explanation = self._explain.execute(planet_id, observations)
+        return explanation, (), NARRATED_FROM_STATE_DELTA
 
     async def _run_biology(
         self, planet_id: str, era: int

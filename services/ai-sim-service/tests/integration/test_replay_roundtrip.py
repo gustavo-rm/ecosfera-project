@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from ecosfera_ai.engines.legacy.bridge import snapshot_of
-from ecosfera_ai.engines.legacy.orchestrator import build_planet_engine
+from ecosfera_ai.engines.bridge import snapshot_of
+from ecosfera_ai.engines.composition import build_planet_engine
 from ecosfera_ai.engines.noop.service import NoOpEngine
 from ecosfera_ai.engines.planet.registry import EngineRegistry
 from ecosfera_ai.engines.planet.service import PlanetEngine
 from ecosfera_ai.shared_kernel.replay import ReplayMismatchError, replay, verify_replay
 from ecosfera_ai.shared_kernel.world_state import WorldStateSnapshot
-from ecosfera_ai.simulation_engine.params import build_orchestrator, initial_state, load_params
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
@@ -65,8 +65,7 @@ def test_replay_regenerates_the_same_event_sequence() -> None:
 
 def test_replay_through_the_real_deterministic_core() -> None:
     """O núcleo científico de verdade, atravessando a moldura, reproduz a era."""
-    legacy = build_orchestrator(PARAMS)
-    planet = build_planet_engine(legacy, budget=PARAMS.engine_budget)
+    planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget)
     checkpoint = snapshot_of(initial_state(PlanetSeed("replay", 4242), PARAMS))
 
     era = planet.run_era(checkpoint, ticks=ERA_TICKS)

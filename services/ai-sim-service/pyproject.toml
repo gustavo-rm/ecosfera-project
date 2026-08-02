@@ -88,7 +88,13 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC", "C4", "SIM", "RUF", "TID", "PTH"]
-allowed-confusables = ["×"]
+# Notação científica legítima nas docstrings dos Engines (fórmulas de forçamento
+# radiativo, balanço de energia). Trocar α por 'a' ou − por '-' pioraria a
+# documentação de um serviço cujo produto é justamente explicar ciência.
+# Notacao cientifica legitima nas docstrings, nao confusao acidental: o travessao
+# de intervalo/composto (Clausius-Clapeyron, 0-40 C, ar-oceano) e o de sinal
+# matematico. Degradar para hifen ASCII empobreceria a notacao (ADR 0010).
+allowed-confusables = ["×", "−", "·", "α", "λ", "Δ", "₀", "–", "σ"]
 
 [tool.ruff.lint.per-file-ignores]
 # Depends(...) como default de parâmetro é idioma do FastAPI, não bug real.
@@ -119,17 +125,53 @@ ignore_missing_imports = true
 # ─────────────────────────────────────────────────────────────────────────────
 [tool.importlinter]
 root_packages = ["ecosfera_ai"]
+# Necessario para que as fronteiras alcancem pacotes EXTERNOS: proibir
+# `deap`/`mesa` num Engine so tem efeito com esta opcao ligada.
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Engines nao importam outros Engines"
 type = "independence"
-modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+modules = [
+    "ecosfera_ai.engines.astronomy",
+    "ecosfera_ai.engines.geology",
+    "ecosfera_ai.engines.chemistry",
+    "ecosfera_ai.engines.atmosphere",
+    "ecosfera_ai.engines.climate",
+    "ecosfera_ai.engines.hydrology",
+    "ecosfera_ai.engines.resource",
+    "ecosfera_ai.engines.evolution",
+    "ecosfera_ai.engines.ecology",
+    "ecosfera_ai.engines.noop",
+]
 
 [[tool.importlinter.contracts]]
 name = "O Planet Engine nao conhece Engine algum"
 type = "forbidden"
 source_modules = ["ecosfera_ai.engines.planet"]
-forbidden_modules = ["ecosfera_ai.engines.noop", "ecosfera_ai.engines.legacy"]
+forbidden_modules = [
+    "ecosfera_ai.engines.astronomy",
+    "ecosfera_ai.engines.geology",
+    "ecosfera_ai.engines.chemistry",
+    "ecosfera_ai.engines.atmosphere",
+    "ecosfera_ai.engines.climate",
+    "ecosfera_ai.engines.hydrology",
+    "ecosfera_ai.engines.resource",
+    "ecosfera_ai.engines.evolution",
+    "ecosfera_ai.engines.ecology",
+    "ecosfera_ai.engines.noop",
+    "ecosfera_ai.engines.composition",
+]
+
+# O Evolution Engine e PURO: a selecao local nao precisa de framework de
+# otimizacao. Barrar `deap` aqui e o que impede alguem de reintroduzir o AG de
+# fitness global que o ADR-ARCH-0001 superou e o ADR 0016 tornou desnecessario.
+# `mesa` tambem: quem faz ABM e a Ecology, atras de uma fabrica preguicosa.
+[[tool.importlinter.contracts]]
+name = "O Evolution Engine nao usa framework de otimizacao"
+type = "forbidden"
+source_modules = ["ecosfera_ai.engines.evolution"]
+forbidden_modules = ["deap", "mesa"]
 
 [[tool.importlinter.contracts]]
 name = "Moldura e Engines nao alcancam infraestrutura nem interfaces"

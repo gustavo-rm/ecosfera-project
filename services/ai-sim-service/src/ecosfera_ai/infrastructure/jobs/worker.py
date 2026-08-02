@@ -21,7 +21,6 @@ from ecosfera_ai.core.observability import biology_jobs
 from ecosfera_ai.simulation_engine.biology.engine import BiologyEngine
 from ecosfera_ai.simulation_engine.biology.evolution import EvolutionEngine
 from ecosfera_ai.simulation_engine.params import load_params
-from ecosfera_ai.simulation_engine.subsystems.life import LifeSubsystem
 
 
 def build_use_case() -> EvolveBiologyUseCase:
@@ -35,7 +34,7 @@ def build_use_case() -> EvolveBiologyUseCase:
     params = load_params(settings.simulation_params_path)
     repo = PostgresPlanetRepository(create_engine(settings.database_url))
     biology = BiologyEngine(EvolutionEngine(params.evolution, params.fitness), params.ecology)
-    return EvolveBiologyUseCase(repo, biology, LifeSubsystem(params.life))
+    return EvolveBiologyUseCase(repo, biology)
 
 
 async def run_evolution(ctx: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:

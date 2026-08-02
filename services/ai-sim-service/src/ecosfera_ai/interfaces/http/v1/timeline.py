@@ -14,6 +14,7 @@ from ecosfera_ai.interfaces.http.deps import (
 from ecosfera_ai.interfaces.http.schemas.biology import BiologySummaryOut, JobRefOut
 from ecosfera_ai.interfaces.http.schemas.timeline import (
     AdvanceEraResponse,
+    CausalLinkOut,
     EraStateResponse,
     EraSummaryOut,
     EventOut,
@@ -59,6 +60,17 @@ async def advance_era(
             if outcome.job is not None
             else None
         ),
+        causal_trace=[
+            CausalLinkOut(
+                cause_event=link.cause_event,
+                cause_type=link.cause_type,
+                effect_event=link.effect_event,
+                effect_type=link.effect_type,
+                cause_code=link.cause_code,
+            )
+            for link in outcome.causal_trace
+        ],
+        narrated_from=outcome.narrated_from,
     )
 
 

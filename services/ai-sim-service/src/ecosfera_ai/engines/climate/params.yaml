@@ -1,0 +1,38 @@
+# Climate Engine — parâmetros científicos versionados (Spec §5.1).
+#
+# Herdados do subsystem `climate`, com duas mudanças de autoria (ADR 0010):
+#  1. o efeito estufa NÃO é mais calculado aqui — o forçamento chega pronto da
+#     atmosfera pelo Canal A;
+#  2. o sequestro de calor pela circulação termohalina passou do `ocean` para cá,
+#     porque `temperature` precisa de um dono só.
+version: 1
+
+insolation: 1.0            # insolação de referência (sem a física orbital ativa)
+base_albedo: 0.30          # refletividade base (sem gelo)
+ice_albedo_coeff: 0.40     # o gelo aumenta o albedo (reflete mais luz)
+energy_to_temp: 30.0       # conversão de energia absorvida em °C de equilíbrio
+
+# Sensibilidade climática: °C de equilíbrio por W/m² de forçamento. 0.8 equivale
+# a ~3 °C por duplicação de CO2 (3.7 W/m²), a faixa central do IPCC AR6.
+climate_sensitivity: 0.8
+
+# Deslocamento de base. Era -5.0 quando o termo de estufa LINEAR (0.01 × CO2)
+# somava +2.8 °C no CO2 de referência. Com o forçamento logarítmico valendo ZERO
+# na referência, o offset absorve esses +2.8 — assim o planeta parte do mesmo
+# equilíbrio de antes (~17.6 °C) e só a RESPOSTA a mudanças de CO2 muda de forma.
+equilibrium_offset: -2.2
+
+thermal_inertia: 0.25      # fração do desvio corrigida por tick (0..1)
+weather_variability: 0.05  # desvio-padrão do ruído meteorológico (°C)
+
+# Sequestro de calor pela circulação oceânica (vindo do subsystem `ocean`).
+ocean_heat_uptake: 0.02
+ocean_reference_temperature: 14.0
+
+# Limiares narrativos de temperatura (°C) e passo mínimo para TemperatureShift.
+temperature_bands: [0.0, 10.0, 20.0, 30.0]
+shift_threshold: 0.15
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50

@@ -39,8 +39,11 @@ def _state(
 
 def test_params_expose_version_and_scientific_values() -> None:
     assert PARAMS.version >= 1
-    assert PARAMS.life.carrying_capacity > 0.0
     assert PARAMS.bounds.ice_cover_max == 1.0
+    # A ciência por domínio saiu deste YAML no M2 e vive no `params.yaml` de cada
+    # Engine (ADR 0014); o que sobrou aqui é o que não pertence a Engine algum.
+    assert PARAMS.timeline.era_length > 0
+    assert PARAMS.initial_state.co2 > 0.0
 
 
 def test_initial_state_comes_from_params_not_seed() -> None:

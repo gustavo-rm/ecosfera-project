@@ -1,0 +1,44 @@
+# Hydrology Engine — parâmetros do ciclo da água versionados (Spec §5.1).
+#
+# Herda a salinidade e a circulação termohalina do subsystem `ocean`, e o ciclo
+# gelo<->água que estava embutido no `chemistry` legado. Substitui os dois
+# (ADR 0012).
+version: 1
+
+# Evaporação: cresce com a temperatura acima da referência (Clausius-Clapeyron
+# linearizada na faixa habitável — ver README).
+evaporation_coeff: 0.004
+evaporation_reference_temperature: 10.0
+
+# Precipitação: o vapor condensa a uma taxa proporcional ao próprio estoque.
+precipitation_coeff: 0.35
+
+# Criosfera: degelo acima do limiar, congelamento abaixo.
+melt_coeff: 0.010
+freeze_coeff: 0.008
+melt_threshold: 0.0
+freeze_threshold: 0.0
+
+# Escoamento: a água doce retorna ao oceano.
+runoff_coeff: 0.25
+
+# Salinidade e circulação termohalina (herdadas do `ocean`).
+salt_content: 0.35
+salinity_relaxation: 0.20
+reference_salinity: 0.35
+reference_temperature: 14.0
+salinity_sensitivity: 0.50
+temperature_sensitivity: 0.02
+tidal_forcing: 0.05
+circulation_baseline: 0.50
+circulation_relaxation: 0.15
+circulation_variability: 0.005
+
+# Variação de gelo que caracteriza um evento notável.
+ice_event_threshold: 0.02
+# Tolerância declarada da conservação de água (Spec §3).
+conservation_tolerance: 1.0e-9
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50

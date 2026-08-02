@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from tests.support import build_orchestrator
 
-from ecosfera_ai.simulation_engine.params import build_orchestrator, initial_state, load_params
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed, PlanetState, StateDelta
 from ecosfera_ai.simulation_engine.timeline import (
     EVENT_ICE_FREE,

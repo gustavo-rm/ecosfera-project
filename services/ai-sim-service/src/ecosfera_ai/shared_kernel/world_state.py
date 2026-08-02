@@ -36,15 +36,26 @@ from typing import Any, Protocol, cast
 
 # Versão do esquema do world-state. Sobe quando uma fatia ganha/perde campos, de
 # modo que um checkpoint gravado saiba sob qual formato foi escrito (RF-016).
-WORLD_STATE_VERSION = 1
+#
+# 1 -> 2 (M2): a `LegacySlice` foi REMOVIDA e o que ela guardava passou a ter
+# Engine dono — órbita e irradiância na `AstronomySlice`, água e criosfera na
+# `HydrologySlice`, biomassa na `BiotaSlice`. A `ClimateSlice` perdeu `ice_cover`
+# (a criosfera é reservatório de água) e as fatias de química, recurso e biota
+# ganharam seus campos. Checkpoints da versão 1 não são legíveis como 2.
+#
+# 2 -> 3 (M3): a biota passa a ter DOIS produtores — Evolution e Ecology — e a
+# Spec §3 fala em uma única `BiotaSlice`. Como a moldura exige UM escritor por
+# fatia (`validate_graph`), a biota foi desdobrada em `BiotaSlice` (Evolution) e
+# `EcologySlice` (Ecology). Divergência consciente da letra da Spec para honrar
+# a regra normativa dela (ADR 0016).
+WORLD_STATE_VERSION = 3
 
 
 class SliceRef(StrEnum):
     """Identifica uma fatia do world-state (a unidade de propriedade de escrita).
 
-    `LEGACY` é transitória: hospeda o estado do núcleo determinístico atual
-    enquanto os Engines científicos não assumem a autoria das suas fatias
-    (M1/M2). Ver `engines/legacy/adapter.py` e ADR 0008.
+    Desde o M2 não há mais fatia transitória: TODA grandeza tem um Engine dono
+    (ADR 0014). A `LEGACY` foi removida junto com o adaptador.
     """
 
     ASTRONOMY = "astronomy"
@@ -55,7 +66,7 @@ class SliceRef(StrEnum):
     CHEMISTRY = "chemistry"
     RESOURCE = "resource"
     BIOTA = "biota"
-    LEGACY = "legacy"
+    ECOLOGY = "ecology"
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,16 +87,28 @@ class AstronomySlice:
 
 @dataclass(frozen=True, slots=True)
 class GeologySlice:
-    """Relevo e atividade vulcânica."""
+    """Relevo, atividade vulcânica e o fluxo de CO2 desgaseificado.
+
+    `co2_flux` é a saída do Geology Engine para a atmosfera. Publicá-lo aqui, e
+    não escrever direto na `AtmosphereSlice`, é o que mantém a seta
+    vulcanismo->CO2 cruzando a fronteira SOMENTE pelo Canal A (Spec §2).
+    """
 
     relief: float = 0.0
     volcanism: float = 0.0
+    co2_flux: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
 class AtmosphereSlice:
-    """Composição e massa atmosférica (assumida pelo Atmosphere Engine em M1)."""
+    """Composição atmosférica e forçamento radiativo (Atmosphere Engine, M1).
 
+    `co2` é o ESTOQUE — dono único desde o M1. O ciclo do carbono inteiro
+    (desgaseificação, intemperismo e absorção biótica) vive no Atmosphere
+    Engine; o `chemistry` legado deixou de escrever carbono (ADR 0010).
+    """
+
+    co2: float = 0.0
     pressure: float = 0.0
     oxygen: float = 0.0
     greenhouse_forcing: float = 0.0
@@ -93,70 +116,136 @@ class AtmosphereSlice:
 
 @dataclass(frozen=True, slots=True)
 class ClimateSlice:
-    """Temperatura média, criosfera e balanço de energia absorvida."""
+    """Temperatura média e balanço de energia absorvida.
+
+    `ice_cover` saiu daqui no M2: a criosfera é um reservatório de ÁGUA, e quem
+    a governa é a Hydrology. O Climate a LÊ para o albedo (leitura defasada).
+    """
 
     temperature: float = 0.0
-    ice_cover: float = 0.0
     energy: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
 class HydrologySlice:
-    """Ciclo da água: estoque líquido, salinidade e circulação termohalina."""
+    """Ciclo da água completo: quatro reservatórios e os fluxos entre eles (M2).
 
-    water: float = 0.0
+    A soma `ocean + ice + vapour + freshwater` é conservada dentro da tolerância
+    declarada — a água não é criada nem destruída, só muda de reservatório. É a
+    invariante que o Planet Engine verifica (Spec §3).
+    """
+
+    ocean: float = 0.0
+    ice: float = 0.0
+    vapour: float = 0.0
+    freshwater: float = 0.0
     salinity: float = 0.0
     ocean_circulation: float = 0.0
+    # Fração da hidrosfera aprisionada em gelo — o que o albedo enxerga.
+    # PUBLICADA aqui, e não recalculada pelo Climate, por duas razões: um Engine
+    # não importa outro (contrato de import-linter), e derivar a mesma grandeza
+    # em dois lugares é a definição de ciência duplicada.
+    ice_fraction: float = 0.0
+    # Fluxos do tick (diagnóstico observável, não reservatório).
+    evaporation: float = 0.0
+    precipitation: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
 class ChemistrySlice:
-    """Estoques químicos acoplados ao clima (carbono em primeiro lugar)."""
+    """Ciclos biogeoquímicos: carbono NÃO-atmosférico, N/P/S, nutrientes e pH.
 
-    co2: float = 0.0
+    O carbono ATMOSFÉRICO não mora aqui — é da Atmosphere (M1). Esta fatia detém
+    os demais reservatórios e, sobretudo, o `air_sea_flux`: um fluxo ÚNICO,
+    somado ao oceano e subtraído da atmosfera, para que o carbono não seja
+    contado duas vezes (ADR 0012).
+    """
+
+    ocean_carbon: float = 0.0
+    soil_carbon: float = 0.0
+    nitrogen: float = 0.0
+    phosphorus: float = 0.0
+    sulfur: float = 0.0
     nutrients: float = 0.0
+    ph: float = 0.0
+    # Troca ar<->oceano do tick: positivo = oceano ABSORVE da atmosfera.
+    air_sea_flux: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
 class ResourceSlice:
-    """Recursos disponíveis à biota (assumida pelo Resource Engine em M2)."""
+    """Estoques agregados de recurso e a CAPACIDADE DE SUPORTE derivada (M2).
 
-    available: float = 0.0
+    `carrying_capacity` é o único acoplamento entre a física determinística e a
+    biologia: o Biota (M2, provisório) e a evolução emergente (M3) a consomem
+    como orçamento, e nunca escrevem de volta.
+    """
+
+    water_available: float = 0.0
+    nutrients_available: float = 0.0
+    energy_available: float = 0.0
+    carrying_capacity: float = 0.0
     consumed: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
 class BiotaSlice:
-    """Vida agregada: biomassa e riqueza de espécies (Evolution/Ecology, M3)."""
+    """Vida agregada — escrita pelo **Evolution Engine** (M3).
+
+    Carrega AGREGADOS escalares, não a composição por espécie. A composição
+    (id, genoma, população, nível trófico, era de surgimento) vive no códex e
+    viaja pelo Canal B como evento, por duas razões que se somam (ADR 0016):
+
+    1. `StateDelta.values` é `Mapping[str, float]` e `apply_delta` SOMA floats.
+       Uma lista de registros não trafega pelo Canal A — colocá-la ali mudaria o
+       tipo do canal para o sistema inteiro e quebraria a semântica aditiva de
+       que o replay depende.
+    2. O ADR 0006 mantém espécies fora do world-state de propósito: é isso que
+       faz a física ser bit-a-bit idêntica com biologia ligada ou desligada.
+
+    O resultado materializa a Correção 2 do ADR-ARCH-0002: agregado por padrão no
+    world-state, detalhe por espécie sob demanda, no códex.
+
+    **`biomass` é OCUPAÇÃO, não limite.** O teto que o ambiente oferece é a
+    `carrying_capacity` da `ResourceSlice`, e quem o deriva é o Resource. Este
+    Engine gasta esse orçamento; nunca o redefine. A distinção é a fronteira em
+    que um Engine futuro tende a se confundir.
+    """
 
     biomass: float = 0.0
     species_richness: float = 0.0
+    # GENOMA MÉDIO da comunidade viva. É a representação agregada que permite ao
+    # Engine ser função PURA do snapshot: sem ela, a composição teria de viver
+    # num atributo do Engine, e `tick()` deixaria de depender só do que recebe —
+    # exatamente o que o replay bit-a-bit não admite (ADR 0011 §4).
+    #
+    # A seleção move estas médias na direção do ótimo LOCAL (genética
+    # quantitativa); a composição por espécie é materializada no códex a partir
+    # dos eventos do Canal B, que carregam o genoma no `cause_detail`.
+    mean_temp_optimum: float = 0.0
+    mean_temp_tolerance: float = 0.0
+    mean_water_need: float = 0.0
+    mean_size: float = 0.0
+    mean_metabolism: float = 0.0
+    mean_trophic_level: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
-class LegacySlice:
-    """Espelho do `PlanetState` do núcleo determinístico atual (transitória).
+class EcologySlice:
+    """Dinâmica trófica agregada — escrita pelo **Ecology Engine** (M3).
 
-    Existe para que o núcleo já validado atravesse a moldura sem ter sua física
-    alterada. Cada campo migra para a fatia de domínio correspondente quando o
-    Engine dono for construído (M1/M2), e esta fatia desaparece.
+    Existe como fatia SEPARADA da `BiotaSlice` porque a moldura exige um escritor
+    por fatia e a biota tem dois produtores. A Spec §3 lista literalmente
+    "`BiotaSlice` (evolução/ecologia)"; representá-la por duas fatias é a leitura
+    que honra a regra normativa da própria Spec (ADR 0016).
     """
 
-    temperature: float = 0.0
-    co2: float = 0.0
-    water: float = 0.0
-    ice_cover: float = 0.0
-    biomass: float = 0.0
-    energy: float = 0.0
-    orbital_x: float = 0.0
-    orbital_y: float = 0.0
-    orbital_vx: float = 0.0
-    orbital_vy: float = 0.0
-    solar_flux: float = 0.0
-    relief: float = 0.0
-    volcanism: float = 0.0
-    salinity: float = 0.0
-    ocean_circulation: float = 0.0
+    producer_biomass: float = 0.0
+    herbivore_biomass: float = 0.0
+    predator_biomass: float = 0.0
+    # Pressão de predação que o Evolution lê DEFASADA para a seleção local.
+    predation_pressure: float = 0.0
+    total_population: float = 0.0
 
 
 # Mapa fatia -> atributo do snapshot. Explícito (dado), não derivado por
@@ -171,7 +260,7 @@ SLICE_ATTRIBUTE: Mapping[SliceRef, str] = MappingProxyType(
         SliceRef.CHEMISTRY: "chemistry",
         SliceRef.RESOURCE: "resource",
         SliceRef.BIOTA: "biota",
-        SliceRef.LEGACY: "legacy",
+        SliceRef.ECOLOGY: "ecology",
     }
 )
 
@@ -200,7 +289,26 @@ class WorldStateSnapshot:
     chemistry: ChemistrySlice = ChemistrySlice()
     resource: ResourceSlice = ResourceSlice()
     biota: BiotaSlice = BiotaSlice()
-    legacy: LegacySlice = LegacySlice()
+    ecology: EcologySlice = EcologySlice()
+    # Proveniência causal: para cada fatia, os eventos que produziram o valor
+    # corrente dela. Vive AQUI, e não em atributo do Planet Engine, por uma razão
+    # de pureza: guardá-la fora do snapshot tornaria `tick()` dependente de
+    # chamadas anteriores, e o replay deixaria de ser função da semente. Como é
+    # derivada de um fluxo de eventos determinístico, ela é reproduzida idêntica
+    # — e é o que permite encadear `causation_id` ENTRE ticks (uma erupção no
+    # tick 12 explicando o forçamento que cruza o patamar no tick 40).
+    provenance: Mapping[SliceRef, tuple[str, ...]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "provenance", MappingProxyType(dict(self.provenance)))
+
+    def with_provenance(self, updates: Mapping[SliceRef, tuple[str, ...]]) -> WorldStateSnapshot:
+        """Novo snapshot com a proveniência das fatias tocadas atualizada."""
+        if not updates:
+            return self
+        merged = dict(self.provenance)
+        merged.update(updates)
+        return replace(self, provenance=merged)
 
     def slice_of(self, ref: SliceRef) -> Any:
         """Lê uma fatia pelo seu identificador (acesso somente leitura)."""
@@ -350,6 +458,51 @@ class BoundedFraction:
             if repairs:
                 snapshot = snapshot.with_slice(ref, replace(cast(Any, current), **repairs))
         return InvariantOutcome(snapshot, tuple(breaches))
+
+
+@dataclass(frozen=True, slots=True)
+class ConservedTotal:
+    """A soma de um conjunto de campos de UMA fatia não pode mudar (Spec §3).
+
+    É a invariante da água: os fluxos apenas MOVEM massa entre reservatórios, e
+    a soma dos quatro é constante dentro da tolerância declarada.
+
+    **Não repara.** As demais invariantes recortam o valor e seguem, porque o
+    recorte é regra determinística conhecida. Aqui não existe reparo correto:
+    saber que a soma se moveu não diz de qual reservatório tirar a diferença, e
+    escolher um esconderia o defeito exatamente onde ele precisa ser visto. A
+    violação vira `DiagnosticEvent` e o número errado fica à vista.
+
+    Aplica-se por delta, o que a torna precisa quanto à autoria: a soma só pode
+    mudar no delta de quem escreve a fatia, então o Engine culpado é o que
+    aparece no evento.
+    """
+
+    name: str
+    slice_ref: SliceRef
+    fields: tuple[str, ...]
+    tolerance: float = 1e-9
+
+    def _total(self, snapshot: WorldStateSnapshot) -> float:
+        current = snapshot.slice_of(self.slice_ref)
+        return sum(float(getattr(current, name)) for name in self.fields)
+
+    def apply(self, before: WorldStateSnapshot, after: WorldStateSnapshot) -> InvariantOutcome:
+        drift = self._total(after) - self._total(before)
+        if abs(drift) <= self.tolerance:
+            return InvariantOutcome(after)
+        return InvariantOutcome(
+            after,
+            (
+                InvariantBreach(
+                    invariant=self.name,
+                    slice_ref=self.slice_ref,
+                    field="+".join(self.fields),
+                    value=drift,
+                    limit=self.tolerance,
+                ),
+            ),
+        )
 
 
 def apply_delta(snapshot: WorldStateSnapshot, delta: StateDelta) -> WorldStateSnapshot:

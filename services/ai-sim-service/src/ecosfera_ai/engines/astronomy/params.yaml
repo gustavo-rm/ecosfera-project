@@ -1,0 +1,19 @@
+# Astronomy Engine — parâmetros orbitais versionados (Spec §5.1).
+#
+# Portados SEM recalibração do subsystem `physics`, que este Engine substitui
+# (ADR 0013). Unidades internas normalizadas: com GM = 1 e raio = 1 o período
+# orbital é 2*pi, então dt = 0.05 dá ~126 ticks por volta completa.
+version: 1
+
+gravitational_parameter: 1.0  # GM da estrela (UA³/tick²)
+timestep: 0.05                # dt de integração por tick
+luminosity: 1.0               # irradiância a 1 UA (normalizada)
+orbital_radius: 1.0           # raio inicial da órbita (UA)
+eccentricity_kick: 0.0        # 0 = órbita circular; >0 gera elipse
+
+# Variação RELATIVA de insolação que caracteriza uma estação notável.
+insolation_shift_threshold: 0.02
+
+budget:
+  max_duration_s: 0.05
+  max_events: 50

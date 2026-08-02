@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ecosfera_ai.simulation_engine.params import build_orchestrator, initial_state, load_params
+from tests.support import build_orchestrator
+
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed, StateDelta
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))

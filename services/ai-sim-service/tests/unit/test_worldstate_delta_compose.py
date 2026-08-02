@@ -7,6 +7,8 @@ import pytest
 from ecosfera_ai.shared_kernel.world_state import (
     BoundedFraction,
     ClimateSlice,
+    ConservedTotal,
+    HydrologySlice,
     NonNegativeStocks,
     SliceRef,
     StateDelta,
@@ -23,6 +25,17 @@ def _snapshot(**climate: float) -> WorldStateSnapshot:
 
 def _delta(engine: str, **values: float) -> StateDelta:
     return StateDelta(engine_id=engine, tick=0, writes=SliceRef.CLIMATE, values=values)
+
+
+def _water(**hydrology: float) -> WorldStateSnapshot:
+    """A criosfera saiu do clima no M2: a fração de gelo é da hidrologia."""
+    return WorldStateSnapshot(
+        planet_id="p", seed=1, tick=0, era=0, hydrology=HydrologySlice(**hydrology)
+    )
+
+
+def _water_delta(engine: str, **values: float) -> StateDelta:
+    return StateDelta(engine_id=engine, tick=0, writes=SliceRef.HYDROLOGY, values=values)
 
 
 def test_merge_is_associative() -> None:
@@ -100,34 +113,60 @@ def test_non_negative_stocks_clamps_and_reports() -> None:
 
 
 def test_bounded_fraction_keeps_ice_cover_physical() -> None:
-    base = _snapshot(ice_cover=0.9)
-    invariant = BoundedFraction({SliceRef.CLIMATE: ("ice_cover",)})
+    base = _water(ice_fraction=0.9)
+    invariant = BoundedFraction({SliceRef.HYDROLOGY: ("ice_fraction",)})
 
-    outcome = compose(base, [_delta("climate", ice_cover=0.5)], [invariant])
+    outcome = compose(base, [_water_delta("hydrology", ice_fraction=0.5)], [invariant])
 
-    assert outcome.snapshot.climate.ice_cover == 1.0
+    assert outcome.snapshot.hydrology.ice_fraction == 1.0
     assert outcome.breaches[0].limit == 1.0
 
 
 def test_invariants_do_not_fire_inside_the_valid_range() -> None:
-    base = _snapshot(ice_cover=0.4, energy=2.0)
+    base = _water(ice_fraction=0.4, ocean=2.0)
     invariants = [
-        NonNegativeStocks({SliceRef.CLIMATE: ("energy",)}),
-        BoundedFraction({SliceRef.CLIMATE: ("ice_cover",)}),
+        NonNegativeStocks({SliceRef.HYDROLOGY: ("ocean",)}),
+        BoundedFraction({SliceRef.HYDROLOGY: ("ice_fraction",)}),
     ]
 
-    outcome = compose(base, [_delta("climate", ice_cover=0.1, energy=1.0)], invariants)
+    outcome = compose(base, [_water_delta("hydrology", ice_fraction=0.1, ocean=1.0)], invariants)
 
     assert outcome.breaches == ()
-    assert outcome.snapshot.climate.ice_cover == pytest.approx(0.5)
+    assert outcome.snapshot.hydrology.ice_fraction == pytest.approx(0.5)
+
+
+def test_conserved_total_registers_drift_without_repairing_it() -> None:
+    """A água só MUDA de reservatório; criar massa é violação, não arredondamento.
+
+    E a invariante NÃO repara: saber que a soma se moveu não diz de qual
+    reservatório tirar a diferença, e escolher um esconderia o defeito exatamente
+    onde ele precisa ser visto (ADR 0012).
+    """
+    base = _water(ocean=1.0, ice=0.5)
+    invariant = ConservedTotal(
+        name="water_conservation",
+        slice_ref=SliceRef.HYDROLOGY,
+        fields=("ocean", "ice", "vapour", "freshwater"),
+    )
+
+    # Transferência pura: sai do oceano, entra no gelo. A soma não se move.
+    moved = compose(base, [_water_delta("hydrology", ocean=-0.25, ice=0.25)], [invariant])
+    assert moved.breaches == ()
+
+    # Criação de massa do nada: a soma sobe e a violação é registrada.
+    created = compose(base, [_water_delta("hydrology", ocean=0.25)], [invariant])
+    assert [b.invariant for b in created.breaches] == ["water_conservation"]
+    assert created.breaches[0].value == pytest.approx(0.25)
+    # O valor errado permanece à vista, não silenciosamente corrigido.
+    assert created.snapshot.hydrology.ocean == pytest.approx(1.25)
 
 
 def test_difference_round_trips_through_a_delta() -> None:
     """Ler a variação e reaplicá-la reproduz a fatia — base do adaptador legado."""
-    before = ClimateSlice(temperature=5.0, ice_cover=0.2, energy=1.0)
-    after = ClimateSlice(temperature=7.5, ice_cover=0.1, energy=1.0)
+    before = ClimateSlice(temperature=5.0, energy=1.0)
+    after = ClimateSlice(temperature=7.5, energy=2.5)
 
-    base = _snapshot(temperature=5.0, ice_cover=0.2, energy=1.0)
+    base = _snapshot(temperature=5.0, energy=1.0)
     rebuilt = apply_delta(
         base,
         StateDelta(
