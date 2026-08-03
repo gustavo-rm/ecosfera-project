@@ -18,7 +18,8 @@ ENGINE_ID = "hydrology"
 # bidirecional água<->clima se resolve sem ciclo (ADR 0012).
 WRITES = SliceRef.HYDROLOGY
 READS: frozenset[SliceRef] = frozenset({SliceRef.CLIMATE})
-LAGGED_READS: frozenset[SliceRef] = frozenset()
+# A seca chega pela `EventSlice`, lida DEFASADA (o Event roda por último).
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.EVENT})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 

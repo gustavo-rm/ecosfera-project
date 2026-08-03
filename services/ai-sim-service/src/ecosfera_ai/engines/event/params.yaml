@@ -1,0 +1,117 @@
+# Event Engine — eventos extraordinários e o Diretor (Spec §5.1, §8; ADR 0018).
+#
+# O catálogo é DADO versionado, não código: acrescentar um evento ou mudar a
+# severidade de um existente é editar este arquivo. É o que permite calibrar o
+# ritmo do jogo sem tocar na ciência dos Engines afetados.
+version: 1
+
+# --- Ritmo do Diretor ---------------------------------------------------------
+# Probabilidade de agendar um evento a cada tick, quando nenhum está pendente.
+# Calibrada para ~1 evento a cada 60 ticks: raro o bastante para ser
+# extraordinário, frequente o bastante para o aluno viver mais de um por partida.
+scheduling_probability: 0.017
+
+# Silêncio mínimo depois de um evento terminar. Sem ele o sorteio pode encadear
+# catástrofes e o planeta nunca volta à linha de base — o aluno perderia a
+# referência do que é "normal", que é o contraste de que a lição depende.
+quiet_ticks_after: 40
+
+# Tetos de custo (RSK) — contenção, não ciência.
+max_active_events: 2
+
+budget:
+  max_duration_s: 0.05
+  max_events: 20
+
+# --- Catálogo -----------------------------------------------------------------
+# `duration` em ticks; `decay` é a constante do decaimento exponencial.
+# `mortality` > 0 marca o evento como CATASTRÓFICO (mata independentemente de
+# adaptação — ADR 0019). Seca e incêndio NÃO a têm de propósito: eles matam pela
+# via ecológica, reduzindo água e recurso.
+catalog:
+  meteor:
+    kind: 1
+    duration: 40
+    decay: 0.08
+    dust: 0.55
+    cooling: 4.5
+    drought: 0.0
+    impact: 1.0
+    mortality: 0.45          # o impacto mata quem estava embaixo, não quem era pior
+    supervolcanic: 0.0
+    forecast_lead: 12        # dá tempo de reagir: é o evento mais anunciável
+    weight: 1.0
+
+  drought:
+    kind: 2
+    duration: 35
+    decay: 0.0               # degrau: a seca dura enquanto dura
+    dust: 0.0
+    cooling: 0.0
+    drought: 0.55
+    impact: 0.0
+    mortality: 0.0           # mata pela via ECOLÓGICA (menos água, menos recurso)
+    supervolcanic: 0.0
+    forecast_lead: 8
+    weight: 1.4
+
+  wildfire:
+    kind: 3
+    duration: 10
+    decay: 0.25
+    dust: 0.12
+    cooling: 0.0
+    drought: 0.10
+    impact: 0.0
+    mortality: 0.18          # o fogo alcança quem está no caminho dele
+    supervolcanic: 0.0
+    forecast_lead: 3         # quase sem aviso: é o evento que pega de surpresa
+    weight: 1.2
+
+  ice_age:
+    kind: 4
+    duration: 120
+    decay: 0.0
+    dust: 0.0
+    cooling: 6.0
+    drought: 0.15
+    impact: 0.0
+    mortality: 0.0           # mata pela via ECOLÓGICA (intolerância térmica)
+    supervolcanic: 0.0
+    forecast_lead: 25        # o mais lento, e o mais anunciado
+    weight: 0.5
+
+  storm:
+    kind: 5
+    duration: 6
+    decay: 0.30
+    dust: 0.03
+    cooling: 0.2
+    drought: 0.0
+    impact: 0.0
+    mortality: 0.05
+    supervolcanic: 0.0
+    forecast_lead: 2
+    weight: 1.6
+
+  supervolcano:
+    kind: 6
+    duration: 70
+    decay: 0.05
+    dust: 0.70
+    cooling: 5.5
+    drought: 0.0
+    impact: 0.0
+    mortality: 0.30
+    supervolcanic: 1.0       # lido pela GEOLOGY, não somado na atmosfera
+    forecast_lead: 15
+    weight: 0.4
+
+# --- Contexto: quando cada evento FAZ SENTIDO ---------------------------------
+# O Diretor lê o world-state (Canal A) para adequar o evento ao contexto. Não é
+# roteiro: é recusa do absurdo. Uma era glacial num planeta a 45 C não ensina
+# nada — ensina que o simulador sorteia.
+context:
+  ice_age_max_temperature: 24.0    # acima disso, era glacial não é sorteada
+  drought_min_temperature: 5.0     # num mundo congelado a seca não é o limitante
+  wildfire_min_biomass: 5.0        # não há incêndio sem o que queimar

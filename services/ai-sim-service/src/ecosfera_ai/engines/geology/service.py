@@ -52,7 +52,19 @@ class GeologyEngine:
         volcanism = current.volcanism + d_volcanism
 
         d_relief = relief_change(current.volcanism, current.relief, water, self.params)
-        flux = outgassing_flux(volcanism, self.params)
+        # FRONTEIRA basal x catastrófico (ADR 0018). O supervulcanismo é evento
+        # extraordinário, mas o carbono que ele injeta é carbono VULCÂNICO — e
+        # quem detém o fluxo vulcânico é este Engine. O Event publica a
+        # INTENSIDADE na `EventSlice`; a soma acontece aqui, num único termo.
+        #
+        # A alternativa — o Event publicar um pulso de CO2 que a atmosfera
+        # somasse ao lado de `geology.co2_flux` — criaria DUAS entradas de
+        # carbono vulcânico no mundo, e a dupla contagem passaria a depender de
+        # disciplina em vez de estrutura. O M2 já pagou esse preço uma vez.
+        supervolcanic = ctx.snapshot.event.supervolcanic_intensity
+        flux = outgassing_flux(volcanism, self.params) * (
+            1.0 + supervolcanic * self.params.supervolcanic_multiplier
+        )
 
         events: tuple[DomainEvent, ...] = ()
         if is_eruption(volcanism, self.params):

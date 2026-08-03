@@ -19,7 +19,8 @@ ENGINE_ID = "geology"
 # continua sendo a mesma, e por isso o comportamento não muda (ADR 0014).
 WRITES = SliceRef.GEOLOGY
 READS: frozenset[SliceRef] = frozenset()
-LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.HYDROLOGY})
+# A `EventSlice` traz o supervulcanismo, lido DEFASADO (o Event roda por último).
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.HYDROLOGY, SliceRef.EVENT})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 
@@ -36,6 +37,7 @@ class GeologyEngineParams:
     erosion_coeff: float
     # Desgaseificação: fluxo de CO2 que o vulcanismo entrega à atmosfera.
     outgassing_base: float
+    supervolcanic_multiplier: float
     volcanism_sensitivity: float
     # Acima deste vulcanismo o tick conta como erupção notável (Canal B).
     eruption_threshold: float
@@ -55,6 +57,7 @@ def load_params(path: Path = PARAMS_PATH) -> GeologyEngineParams:
         uplift_coeff=float(raw["uplift_coeff"]),
         erosion_coeff=float(raw["erosion_coeff"]),
         outgassing_base=float(raw["outgassing_base"]),
+        supervolcanic_multiplier=float(raw["supervolcanic_multiplier"]),
         volcanism_sensitivity=float(raw["volcanism_sensitivity"]),
         eruption_threshold=float(raw["eruption_threshold"]),
         max_duration_s=float(budget.get("max_duration_s", 0.25)),

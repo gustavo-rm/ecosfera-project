@@ -31,6 +31,7 @@ from ecosfera_ai.engines.composition import (
     build_planet_engine,
 )
 from ecosfera_ai.engines.ecology.observability import EcologyMetricsSink
+from ecosfera_ai.engines.event.observability import EventMetricsSink
 from ecosfera_ai.engines.evolution.observability import EvolutionMetricsSink
 from ecosfera_ai.engines.geology.observability import GeologyMetricsSink
 from ecosfera_ai.engines.hydrology.observability import HydrologyMetricsSink
@@ -114,6 +115,7 @@ def get_observability_sink() -> ObservabilitySink:
             ResourceMetricsSink(),
             EvolutionMetricsSink(),
             EcologyMetricsSink(),
+            EventMetricsSink(),
         ]
     )
 

@@ -19,7 +19,7 @@ Duas fronteiras que este módulo respeita de propósito:
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +39,14 @@ class EventMapping:
     field: str | None = None
     minuend: str | None = None
     subtrahend: str | None = None
+    # Quando presente, esta entrada só vale para o `cause_code` nomeado. É o que
+    # permite ao MESMO tipo de evento virar observações DIFERENTES conforme o
+    # mecanismo — a distinção entre extinção catastrófica e ecológica (ADR 0019).
+    #
+    # Sem isso, `SpeciesExtinct` viraria sempre a mesma observação, o motor de
+    # regras dispararia as mesmas regras, e o aluno ouviria "a espécie não
+    # tolerou o ambiente" mesmo quando um meteoro a matou.
+    cause_code: str | None = None
 
     def delta_of(self, detail: Mapping[str, Any]) -> float | None:
         """Extrai a magnitude do `cause_detail`, ou None se o evento não a traz."""
@@ -59,6 +67,14 @@ class EventTranslation:
 
     version: int
     mappings: Mapping[str, EventMapping]
+    # Entradas especializadas por (tipo, cause_code). Consultadas ANTES das
+    # genéricas: o específico ganha do geral.
+    by_cause: Mapping[tuple[str, str], EventMapping] = field(default_factory=dict)
+
+    def mapping_for(self, event: DomainEvent) -> EventMapping | None:
+        """Escolhe a tradução: a especializada por causa, se houver."""
+        specific = self.by_cause.get((event.event_type, str(event.cause_code)))
+        return specific if specific is not None else self.mappings.get(event.event_type)
 
     def observations(self, events: Iterable[DomainEvent]) -> list[Observation]:
         """Traduz a trilha, ignorando diagnóstico técnico e tipos desconhecidos.
@@ -71,7 +87,7 @@ class EventTranslation:
         for event in events:
             if event.is_diagnostic:
                 continue
-            mapping = self.mappings.get(event.event_type)
+            mapping = self.mapping_for(event)
             if mapping is None:
                 continue
             delta = mapping.delta_of(event.cause_detail)
@@ -85,16 +101,24 @@ def load_translation(path: Path) -> EventTranslation:
     """Lê a tabela do YAML versionado."""
     raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     mappings: dict[str, EventMapping] = {}
+    by_cause: dict[tuple[str, str], EventMapping] = {}
     for entry in raw.get("mappings", []):
         source = entry.get("delta_from", {})
-        mappings[str(entry["event_type"])] = EventMapping(
+        mapping = EventMapping(
             event_type=str(entry["event_type"]),
             variable=str(entry["variable"]),
             field=source.get("field"),
             minuend=source.get("minuend"),
             subtrahend=source.get("subtrahend"),
+            cause_code=(None if entry.get("cause_code") is None else str(entry["cause_code"])),
         )
-    return EventTranslation(version=int(raw.get("version", 1)), mappings=mappings)
+        if mapping.cause_code is None:
+            mappings[mapping.event_type] = mapping
+        else:
+            by_cause[(mapping.event_type, mapping.cause_code)] = mapping
+    return EventTranslation(
+        version=int(raw.get("version", 1)), mappings=mappings, by_cause=by_cause
+    )
 
 
 @dataclass(frozen=True, slots=True)

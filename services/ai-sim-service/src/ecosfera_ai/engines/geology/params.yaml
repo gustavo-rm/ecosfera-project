@@ -24,3 +24,10 @@ eruption_threshold: 1.5
 budget:
   max_duration_s: 0.05
   max_events: 50
+
+# Quanto o SUPERVULCANISMO multiplica a desgaseificação basal, no pico do evento
+# (ADR 0018). O carbono vulcânico tem UM dono — este Engine —, e o Event Engine
+# publica só a intensidade; a soma acontece aqui, num termo só. O valor põe uma
+# supererupção uma ordem de grandeza acima do vulcanismo de fundo, que é a razão
+# pela qual ela é um evento e não um tick ruim.
+supervolcanic_multiplier: 9.0

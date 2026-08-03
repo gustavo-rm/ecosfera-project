@@ -8,7 +8,7 @@ bidirecional se resolve sem ciclo no grafo.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from ecosfera_ai.engines.hydrology.contracts import (
     ENGINE_ID,
@@ -57,6 +57,17 @@ class HydrologyEngine:
             temperature,
             self.params,
         )
+        # SECA (ADR 0018): o evento suprime uma FRAÇÃO da precipitação. Ela é
+        # aplicada aqui, na fatia de quem detém a água, e não escrita pelo Event
+        # Engine — que só publica a intensidade.
+        #
+        # Suprimir a precipitação NÃO destrói água: o que não chove permanece
+        # como vapor. É por isso que a invariante de conservação continua
+        # valendo com a seca ativa, e é o que o teste exige.
+        drought = min(1.0, max(0.0, ctx.snapshot.event.drought_intensity))
+        if drought > 0.0:
+            fluxes = replace(fluxes, precipitation=fluxes.precipitation * (1.0 - drought))
+
         ocean, ice, vapour, freshwater = apply_fluxes(
             current.ocean, current.ice, current.vapour, current.freshwater, fluxes
         )

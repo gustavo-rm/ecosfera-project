@@ -95,6 +95,26 @@ mappings:
     variable: biomass
     delta_from: { minuend: biomass, subtrahend: biomass_before }
 
+  # --- A DISTINÇÃO PEDAGÓGICA DO M4 (Q8, ADR 0019) ---------------------------
+  # As entradas abaixo especializam por `cause_code`: o MESMO tipo de evento vira
+  # uma observação DIFERENTE conforme o mecanismo que o produziu.
+  #
+  # Sem elas, uma espécie morta por meteoro e uma morta por calor produziriam a
+  # mesma observação, o motor de regras dispararia as mesmas regras, e o aluno
+  # ouviria "não tolerou o ambiente" nos dois casos — a concepção equivocada que
+  # o marco existe para desfazer, reintroduzida na camada de explicação.
+  #
+  # O específico ganha do genérico: estas são consultadas antes.
+  - event_type: SpeciesExtinct
+    cause_code: CATASTROPHIC_EVENT
+    variable: catastrophic_loss
+    delta_from: { minuend: biomass, subtrahend: biomass_before }
+
+  - event_type: MassMortality
+    cause_code: CATASTROPHIC_EVENT
+    variable: catastrophic_loss
+    delta_from: { minuend: biomass, subtrahend: biomass_before }
+
   - event_type: SpeciationOccurred
     variable: species_richness
     delta_from: { field: distance }

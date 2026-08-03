@@ -16,7 +16,10 @@ ENGINE_ID = "ecology"
 # que o Resource publicou. Fecha a ordem do tick, então não precisa de defasagem.
 WRITES = SliceRef.ECOLOGY
 READS: frozenset[SliceRef] = frozenset({SliceRef.BIOTA, SliceRef.RESOURCE})
-LAGGED_READS: frozenset[SliceRef] = frozenset()
+# A mortalidade catastrófica chega pela `EventSlice`, lida DEFASADA (o Event
+# roda por último). É por ela que uma espécie BEM ADAPTADA pode morrer — a
+# correção de concepção equivocada do M4 (ADR 0019).
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.EVENT})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 
@@ -36,6 +39,7 @@ class EcologyEngineParams:
     herbivore_share: float
     predator_share: float
     max_consumer_share: float
+    consumer_capacity_share: float
     collapse_threshold: float
     decline_threshold: float
     max_agents: int

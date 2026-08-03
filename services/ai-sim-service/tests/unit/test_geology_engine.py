@@ -53,7 +53,7 @@ def test_declares_its_slice_and_the_lagged_read() -> None:
     engine = GeologyEngine()
     assert engine.writes is SliceRef.GEOLOGY
     # A água vem da hidrologia, que roda DEPOIS — defasagem declarada, não presumida.
-    assert engine.lagged_reads == frozenset({SliceRef.HYDROLOGY})
+    assert engine.lagged_reads == frozenset({SliceRef.HYDROLOGY, SliceRef.EVENT})
     assert SliceRef.ATMOSPHERE not in engine.reads | engine.lagged_reads
 
 
