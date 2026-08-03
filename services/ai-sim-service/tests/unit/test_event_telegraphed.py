@@ -117,3 +117,32 @@ def test_every_occurrence_was_announced_first() -> None:
         )
         for onset in onsets:
             assert any(f.occurred_at.tick < onset.occurred_at.tick for f in forecasts)
+
+
+def test_the_perturbation_is_exactly_zero_outside_the_event_window() -> None:
+    """Fora da janela, ZERO — e não um resíduo numérico.
+
+    Um resíduo que nunca zera manteria o planeta perturbado para sempre e faria a
+    linha de base derivar sem causa. É a afirmação de que o teste de
+    quase-estacionariedade depende.
+    """
+    from ecosfera_ai.engines.event.domain import decay_at, perturbation_at
+
+    profile = CATALOG.profile(EventKind.METEOR)
+    assert decay_at(profile, -1) == 0.0, "antes do evento já havia perturbação"
+    assert decay_at(profile, profile.duration) == 0.0, "a perturbação sobreviveu à janela"
+    assert decay_at(profile, profile.duration + 50) == 0.0
+
+    spent = perturbation_at(profile, profile.duration)
+    assert all(value == 0.0 for value in spent.values()), f"resíduo após a janela: {spent}"
+
+
+def test_a_step_profile_does_not_decay_inside_its_window() -> None:
+    """`decay = 0` é degrau: a seca dura enquanto dura, com intensidade cheia."""
+    from dataclasses import replace
+
+    from ecosfera_ai.engines.event.domain import decay_at
+
+    step = replace(CATALOG.profile(EventKind.DROUGHT), decay=0.0)
+    assert decay_at(step, 0) == 1.0
+    assert decay_at(step, step.duration // 2) == 1.0

@@ -150,3 +150,19 @@ rules:
     effect: mean_temp_optimum
     same_direction: true
     template: "As coortes que toleram a nova {cause} deixaram mais descendentes, e o {effect} da comunidade seguiu junto."
+  # --- Extinção CATASTRÓFICA (Q8, ADR 0019) ---
+  # A regra que impede o Tutor de culpar a espécie pela própria morte.
+  #
+  # `catastrophic_loss` é variável PRÓPRIA justamente para não cair nas regras de
+  # adaptação acima. A frase não menciona tolerância, aptidão nem recurso: um
+  # evento extremo não seleciona, ele elimina.
+  - id: R-CATASTROPHE-EXTINCTION
+    cause: catastrophic_loss
+    effect: biodiversity
+    same_direction: true
+    template: "Um evento extremo eliminou a espécie, por mais bem adaptada que ela fosse: a {effect} caiu de uma vez, e não por falha dela."
+  - id: R-CATASTROPHE-BIOMASS
+    cause: catastrophic_loss
+    effect: biomass
+    same_direction: true
+    template: "A perda foi causada pelo evento, não pelo ambiente do dia a dia: a {effect} despencou de repente."

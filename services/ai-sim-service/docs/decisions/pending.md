@@ -46,3 +46,28 @@ pedagogia, e por isso volta ao dono do produto e à especialista.
 
 **Coortes/DEC-04 seguem FORA de escopo até essa decisão.** O caminho B permanece
 dormente, e `test_path_b_is_dormant` guarda isso.
+
+---
+
+## P-02 — Termostato de carbono de longo prazo
+
+**Estado:** aberto. **Bloqueia:** sessões longas e pilotos (não o desenvolvimento).
+**Registro completo:** `docs/adr/0020-long-horizon-carbon-instability.md`.
+
+Não existe equilíbrio de CO₂: o carbono passa de 870 ppm e continua subindo em
+t=3000, com deriva positiva em toda semente medida, e em parte delas a biosfera
+colapsa sem retornar.
+
+**A dívida é HERDADA** — o M3 é igual ou pior, e a Q11 do M4 não é a causa (ela
+melhora a semente 99). Ficou invisível porque nenhum teste passava de ~600 ticks:
+a suíte verifica correção POR TICK, e o sistema derrapa com cada passo correto.
+
+**Hipótese:** falta a dependência TÉRMICA do intemperismo de silicatos, que na
+Terra fecha o laço negativo (mais CO₂ → mais calor → mais intemperismo → menos
+CO₂). O modelo tem intemperismo proporcional ao estoque, não à temperatura.
+
+**Consequência de produto:** horizonte de jogo válido de ~500 ticks até a
+correção.
+
+**Precisa de:** um marco científico próprio, com dono. Investigar a hipótese
+antes de implementar — o número não foi verificado, só é coerente com os dados.

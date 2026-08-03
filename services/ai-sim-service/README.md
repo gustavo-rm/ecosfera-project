@@ -266,6 +266,32 @@ acontecer.
 
 Rastreabilidade completa em `docs/decisions/tassia-validation.md`.
 
+### Horizonte de jogo válido: ~500 ticks
+
+**Dívida HERDADA, descoberta no M4 e anterior a ele (ADR 0020).** Não existe
+equilíbrio de CO₂: além de ~500 ticks o carbono vira rampa — passa de 870 ppm e
+ainda sobe em t=3000 — e em parte das sementes a biosfera colapsa sem retornar.
+
+O M3 é igual ou pior, e a Q11 **não** é a causa (ela melhora a semente 99).
+Ficou invisível porque nenhum teste passava de ~600 ticks: a suíte verifica
+correção POR TICK, e o sistema derrapa com cada passo correto. Faltava a classe
+de teste de **trajetória longa**.
+
+Hipótese: falta a dependência TÉRMICA do intemperismo de silicatos, que fecha o
+laço negativo (Walker/Hays/Kasting 1981). É marco científico próprio.
+
+`test_baseline_planet_is_quasi_stationary` afirma o que é verdade — quase-
+estacionariedade dentro do horizonte, em quatro sementes — e
+`test_carbon_stable_long_horizon` fica como **`xfail` anotado**, para que a
+dívida apareça no relatório de teste a cada execução em vez de sumir.
+
+### Smoke test
+
+```bash
+uv run python scripts/smoke_m4.py                    # com o extra `sim`
+uv run --no-extra sim python scripts/smoke_m4.py     # só física
+```
+
 ## Rodar
 ```bash
 uv sync            # cria .venv e instala deps (modo inmemory, sem banco)

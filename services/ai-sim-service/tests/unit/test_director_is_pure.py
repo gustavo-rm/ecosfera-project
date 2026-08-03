@@ -110,3 +110,33 @@ def test_the_candidate_order_is_stable() -> None:
     snapshot = _snapshot(temperature=18.0)
     assert plausible_kinds(snapshot, PARAMS) == plausible_kinds(snapshot, PARAMS)
     assert plausible_kinds(snapshot, PARAMS) == sorted(plausible_kinds(snapshot, PARAMS), key=int)
+
+
+def test_a_world_where_nothing_fits_schedules_nothing() -> None:
+    """Contexto pode excluir TUDO — e o Diretor não pode quebrar por isso.
+
+    Um planeta fervendo exclui a era glacial; um catálogo mais restrito pode
+    excluir todo o resto. O caminho degenerado existe e é atingível, e o
+    comportamento certo é o silêncio — não uma exceção no meio do tick.
+    """
+    from dataclasses import replace
+
+    empty = replace(PARAMS, catalog={})
+    for seed in range(10):
+        assert decide(
+            _snapshot(temperature=18.0), np.random.default_rng(seed), empty, quiet=False
+        ) == Schedule(EventKind.NONE, 0, 0.0)
+
+
+def test_a_catalog_without_weight_schedules_nothing() -> None:
+    """Pesos todos zero: nada a sortear, e nada de divisão por zero."""
+    from dataclasses import replace
+
+    weightless = replace(
+        PARAMS,
+        catalog={k: replace(v, weight=0.0) for k, v in PARAMS.catalog.items()},
+        scheduling_probability=1.0,
+    )
+    assert decide(
+        _snapshot(temperature=18.0), np.random.default_rng(3), weightless, quiet=False
+    ) == Schedule(EventKind.NONE, 0, 0.0)
