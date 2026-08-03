@@ -13,10 +13,10 @@ Quem liga causa a efeito é a projeção sobre o Event Store, depois do fato
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from tests.support import build_scripted_planet
 
 from ecosfera_ai.engines.bridge import snapshot_of
 from ecosfera_ai.engines.event.domain import EventKind
@@ -24,7 +24,6 @@ from ecosfera_ai.shared_kernel.events import DomainEvent
 from ecosfera_ai.shared_kernel.observability import InMemoryEventStore
 from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
-from tests.support import build_scripted_planet
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
 

@@ -40,9 +40,10 @@ class EvolutionCauseCode(CauseCodeEnum):
     # CATASTRÓFICA — abrupta e INDEPENDENTE de aptidão (Q11/Q8, ADR 0019).
     #
     # As causas acima são ECOLÓGICAS: a comunidade não se sustentou nas condições
-    # que encontrou, e o traço dela explica por quê. Esta não é: um meteoro mata
-    # quem estava embaixo. Uma espécie perfeitamente adaptada ao seu ambiente
-    # pode ser eliminada por ela.
+    # que encontrou, e o traço dela explica por quê — a aptidão CONTEXTUAL dela
+    # àquele ambiente era baixa. Esta não é: um meteoro mata quem estava embaixo.
+    # Uma espécie de aptidão contextual ALTA pode ser eliminada por ela, e é isso
+    # que separa as duas famílias (Q5, Q8).
     #
     # Manter as duas famílias SEPARADAS é o ponto pedagógico do M4. Colapsá-las
     # numa só faria o Tutor narrar toda extinção como falha de adaptação, que é a

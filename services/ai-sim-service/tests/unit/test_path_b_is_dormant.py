@@ -1,4 +1,6 @@
-"""CONTENÇÃO (ADR 0017, tempo 1): a ciência inválida não roda sem ser pedida.
+"""O CAMINHO B ESTÁ DORMENTE (ADR 0017, tempo 1).
+
+A ciência inválida não roda sem ser pedida.
 
 `biology_enabled` liga o caminho de biologia POR ERA — `simulation_engine/biology/`,
 um AG do DEAP com `selTournament` sobre uma função de aptidão ESCALAR. A DEC-01 diz

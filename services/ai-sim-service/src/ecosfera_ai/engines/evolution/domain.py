@@ -1,10 +1,23 @@
 """Seleção natural EMERGENTE: sobrevivência e reprodução por condição local.
 
+## Aptidão CONTEXTUAL, não ausência de aptidão (Q5, validação Tássia)
+
+Dizer "não há aptidão neste modelo" seria impreciso, e ensinaria outra coisa
+errada. A aptidão EXISTE — o que não existe é aptidão **ABSOLUTA**. Uma coorte é
+apta *àquele* ambiente, naquele momento: o mesmo genoma que prospera a 20 °C
+perece a 60 °C sem ter mudado em nada. A aptidão é propriedade da RELAÇÃO entre
+organismo e ambiente, não um atributo que o organismo carrega consigo.
+
+É por isso que o ambiente mudar redefine quem é apto, sem que ninguém tenha
+"melhorado" ou "piorado". E é por isso que uma catástrofe pode eliminar uma
+coorte perfeitamente apta ao ambiente dela (ADR 0019).
+
 ## O que este módulo NÃO faz
 
-Não existe função de aptidão global, nem número maximizado, nem torneio, nem
-população otimizada geração a geração. Isso é deliberado e é a decisão central do
-M3 (ADR-ARCH-0001, decisão adicional; ADR 0016).
+Não existe função de aptidão GLOBAL, nem número maximizado, nem torneio, nem
+população otimizada geração a geração. O que se recusa é o número único que
+ordenaria as espécies independentemente do contexto. Isso é deliberado e é a
+decisão central do M3 (ADR-ARCH-0001, decisão adicional; ADR 0016).
 
 A cadeia da decisão, para que ninguém a desfaça por engano:
 
@@ -33,7 +46,8 @@ A diferença entre isto e uma função de fitness não é cosmética. Aqui o nú
 não é comparado entre espécies nem usado para ordená-las: **cada coorte é
 avaliada contra o ambiente, não contra as concorrentes.** Duas espécies podem
 prosperar ao mesmo tempo, ou perecer ao mesmo tempo; não há competição por um
-posto no ranking. A "aptidão" é o RESULTADO de sobreviver, não um alvo.
+posto no ranking. A aptidão CONTEXTUAL é o RESULTADO de sobreviver naquele
+ambiente, não um alvo que se persiga.
 
 ## Mutação e especiação
 
@@ -135,9 +149,10 @@ def local_suitability(
 ) -> float:
     """Adequação [0,1] desta coorte ao ambiente que ela encontra.
 
-    Produto dos fatores limitantes (lei do mínimo, em versão suave). **Não é uma
-    função de fitness**: não é comparada entre espécies nem maximizada. É a
-    probabilidade local de a coorte se sustentar.
+    Produto dos fatores limitantes (lei do mínimo, em versão suave). É a
+    aptidão **CONTEXTUAL** desta coorte a ESTE ambiente — não uma função de
+    fitness global: não é comparada entre espécies nem maximizada, e muda quando
+    o ambiente muda, sem que o genoma tenha mudado (Q5).
     """
     return (
         thermal_match(genome, conditions.temperature)

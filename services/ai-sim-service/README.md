@@ -35,11 +35,12 @@ motor a partir do checkpoint anterior e responde `matches_checkpoint`, indicando
 reconstrução bateu com o estado gravado na época.
 
 ### Ordem do tick
-Desde o M3 o tick roda por **nove Engines**, sem adaptador nem fatia órfã
-(ADR 0012/0013/0014/0016):
+Desde o M4 o tick roda por **dez Engines**, sem adaptador nem fatia órfã
+(ADR 0012/0013/0014/0016/0018):
 
 ```
-astronomy -> geology -> chemistry -> atmosphere -> climate -> hydrology -> resource -> evolution -> ecology
+astronomy -> geology -> chemistry -> atmosphere -> climate -> hydrology
+          -> resource -> evolution -> ecology -> event
 ```
 
 `ENGINE_ORDER` é a **única** fonte dessa ordem: o registro é construído a partir
@@ -93,19 +94,22 @@ engines/hydrology/     quatro reservatórios de água e a criosfera       (M2)
 engines/resource/      capacidade de suporte (lei do mínimo de Liebig)  (M2)
 engines/evolution/     seleção local emergente, sem fitness global      (M3)
 engines/ecology/       níveis tróficos e predação (pirâmide de Elton)    (M3)
+engines/event/         eventos extraordinários + o Diretor determinístico (M4)
 engines/noop/          Engine trivial que prova a moldura (critério do M0, §8)
 ```
 
 ### Ordem de acoplamento
 ```
-astronomy → geology → chemistry → atmosphere → climate → hydrology → resource → evolution → ecology
+astronomy → geology → chemistry → atmosphere → climate → hydrology
+          → resource → evolution → ecology → event
 ```
 Cada posição tem razão física: a insolação é a entrada de energia de tudo abaixo,
 a geologia desgaseifica, a química publica a troca com o oceano, a atmosfera
 integra o carbono já debitado, o clima converte forçamento em temperatura, a água
 se move com o calor recém-resolvido, o recurso traduz o ambiente em capacidade de
-suporte, a evolução decide quanto dele a comunidade ocupa, e a ecologia reparte
-essa ocupação entre níveis tróficos.
+suporte, a evolução decide quanto dele a comunidade ocupa, a ecologia reparte
+essa ocupação entre níveis tróficos, e o **Event** fecha o tick decidindo se um
+acontecimento extraordinário cabe no mundo que acabou de se resolver.
 
 A ordem é **verificada no boot**, não apenas documentada: `validate_graph` recusa
 qualquer leitura para trás que não esteja declarada em `lagged_reads`.
@@ -213,8 +217,54 @@ porque há dois Engines produtores e a moldura exige um dono por fatia. A
 divergência está registrada no ADR 0016.
 
 **Dívida do M3:** o caminho de biologia por era (`simulation_engine/biology/`,
-com AG e fitness global) ainda existe e alimenta o códex de espécies. Ele
-contradiz o ADR 0016 e precisa de decisão — ADR 0017, parte (3).
+com AG e aptidão escalar) ainda existe, mas está **DORMENTE** desde o M4
+(`biology_enabled=False`, guardado por `test_path_b_is_dormant`). O que fazer com
+o códex está registrado em `docs/decisions/pending.md` — e **coortes por espécie
+(DEC-04) estão explicitamente FORA de escopo** até essa decisão.
+
+## Event Engine e o Diretor (M4)
+
+O décimo Engine traz os acontecimentos extraordinários — meteoro, seca, incêndio,
+era glacial, tempestade, supervulcanismo — e o **Diretor** que decide quais e
+quando.
+
+**A perturbação não é escrita onde cai.** Um meteoro esfria o clima, uma seca
+seca a hidrologia — fatias que já têm dono, e a moldura admite um escritor por
+fatia. Então o Event Engine possui a `EventSlice` e publica ali a perturbação
+como escalar; cada Engine afetado **lê** e a incorpora à própria dinâmica. O
+Event descreve a causa; quem decide o efeito é quem detém a grandeza (ADR 0018).
+
+**O Diretor é puro e não aprende.** Decide a partir do world-state e de um RNG
+semeado — nunca de logs, métricas ou do Event Store. Ler a trilha tornaria o
+replay impossível, porque a trilha é efeito da execução e não entrada dela. Sem
+RL, e a ausência é decisão registrada.
+
+**Os eventos são TELEGRAFADOS** (RF-019/020): anunciados com antecedência pelo
+`EventForecast` e expostos na `EventSlice` para a interface avisar o jogador. Um
+evento sem aviso não ensina antecipação — ensina azar. O horizonte é por evento:
+a era glacial avisa muito, o incêndio quase nada.
+
+### A cadeia meteoro → extinção
+
+```
+MeteorImpact ─┬─ (EventSlice.dust/cooling) → Climate  → TemperatureShift
+              └─ (EventSlice.catastrophic_mortality)  → SpeciesExtinct
+                                                        cause=CATASTROPHIC_EVENT
+```
+
+Os dois braços fecham por `causation_id`, e a relação é **derivada** do Event
+Store depois do fato — o `MeteorImpact` não declara consequências que podem não
+acontecer.
+
+### As três correções da especialista em Biologia
+
+| # | Correção | Onde |
+| --- | --- | --- |
+| **Q5** | A aptidão é **CONTEXTUAL**, não inexistente. Nega-se a aptidão ABSOLUTA — o número único que ordenaria espécies fora de contexto | ADR 0019 §5 |
+| **Q8** | Extinção **catastrófica** é independente de aptidão: uma espécie bem adaptada pode morrer num evento extremo, e o `cause_code` diz isso | ADR 0019 §1–§4 |
+| **Q11** | Capacidade de suporte em **todos** os níveis tróficos, não só produtores | ADR 0019 §6 |
+
+Rastreabilidade completa em `docs/decisions/tassia-validation.md`.
 
 ## Rodar
 ```bash
