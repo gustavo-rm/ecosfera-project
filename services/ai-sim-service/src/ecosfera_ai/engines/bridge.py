@@ -33,13 +33,13 @@ planeta — quem ganhou detalhe foi o modelo, não a interface.
 from __future__ import annotations
 
 from ecosfera_ai.shared_kernel.world_state import (
-    EventSlice,
     AstronomySlice,
     AtmosphereSlice,
     BiotaSlice,
     ChemistrySlice,
     ClimateSlice,
     EcologySlice,
+    EventSlice,
     GeologySlice,
     HydrologySlice,
     ResourceSlice,

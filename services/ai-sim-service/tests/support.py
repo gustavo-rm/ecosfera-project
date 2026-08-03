@@ -26,6 +26,7 @@ from ecosfera_ai.engines.composition import (
 )
 from ecosfera_ai.engines.ecology.service import EcologyEngine
 from ecosfera_ai.engines.event.contracts import load_params as event_params
+from ecosfera_ai.engines.event.domain import EventKind
 from ecosfera_ai.engines.event.service import EventEngine
 from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
@@ -134,4 +135,52 @@ def build_quiet_planet() -> PlanetEngine:
             params.bounds, water_tolerance=hydrology_params().conservation_tolerance
         ),
         budget=params.engine_budget,
+    )
+
+
+def scripted_event_engine(kind: EventKind, *, lead: int = 3) -> EventEngine:
+    """Event Engine que agenda SEMPRE o mesmo evento — cenário declarado.
+
+    O Diretor sorteia, e sorteio não serve de fixture: um teste que espera o
+    meteoro cair na janela certa passa ou falha por semente, não por regressão.
+    Aqui a probabilidade vai a 1 e o catálogo fica com um evento só, então o
+    QUE acontece é declarado e o QUANDO é previsível. É o mesmo princípio do
+    `build_volcanic_planet` do M2.
+    """
+    base = event_params()
+    profile = base.catalog[kind]
+    return EventEngine(
+        replace(
+            base,
+            scheduling_probability=1.0,
+            quiet_ticks_after=0,
+            catalog={kind: replace(profile, forecast_lead=lead)},
+        )
+    )
+
+
+def build_scripted_planet(
+    kind: EventKind, *, lead: int = 3, sink: ObservabilitySink | None = None
+) -> PlanetEngine:
+    """Composição de produção com um evento DECLARADO no lugar do sorteio."""
+    params = test_params()
+    engines = [
+        AstronomyEngine(),
+        GeologyEngine(),
+        ChemistryEngine(),
+        AtmosphereEngine(),
+        ClimateEngine(),
+        HydrologyEngine(),
+        ResourceEngine(),
+        EvolutionEngine(),
+        EcologyEngine(),
+        scripted_event_engine(kind, lead=lead),
+    ]
+    return PlanetEngine(
+        EngineRegistry.of(engines),
+        invariants=planet_invariants(
+            params.bounds, water_tolerance=hydrology_params().conservation_tolerance
+        ),
+        budget=params.engine_budget,
+        sink=sink,
     )
