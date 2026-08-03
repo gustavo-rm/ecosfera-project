@@ -5,8 +5,15 @@ name: ai-sim-service
 # que transforma a regra de ouro da moldura de Engines ("um Engine não importa
 # outro") em barreira efetiva, e não em convenção (ADR-ARCH-0001, Spec §8).
 #
-# Os testes de integração com Postgres/Redis usam Testcontainers e são PULADOS
-# quando não há Docker; subi-los aqui é trabalho do marco de infraestrutura (M5).
+# Os testes de integração com Postgres/Redis usam Testcontainers. No runner
+# `ubuntu-latest` há daemon Docker, então eles RODAM aqui — e a prova é a
+# contagem: 581 no CI contra 574 localmente, exatamente os 7 que pulam sem
+# Docker.
+#
+# Mas rodar por acaso não é garantia. Se um runner futuro não tiver Docker, o
+# guard de skip os silenciaria e ninguém notaria — o skip viraria esconderijo.
+# `ECOSFERA_REQUIRE_POSTGRES` fecha isso: com ela ligada, a ausência de Docker
+# FALHA em vez de pular (M5).
 
 on:
   push:
@@ -26,6 +33,9 @@ defaults:
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
+    env:
+      # No CI, persistência não é opcional: sem Docker o teste FALHA, não pula.
+      ECOSFERA_REQUIRE_POSTGRES: "1"
     steps:
       - uses: actions/checkout@v4
 

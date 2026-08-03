@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from tests.docker_guard import requires_postgres
 
 from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
@@ -41,9 +42,8 @@ def _docker_available() -> bool:
     return True
 
 
-pytestmark = pytest.mark.skipif(
-    not _docker_available(), reason="daemon Docker indisponível para Testcontainers"
-)
+# Pula onde pular é honesto; FALHA onde pular seria esconder (ver docker_guard).
+pytestmark = requires_postgres()
 
 
 def _run_migrations(async_url: str) -> None:
