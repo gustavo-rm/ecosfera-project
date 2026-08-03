@@ -138,7 +138,9 @@ def build_quiet_planet() -> PlanetEngine:
     )
 
 
-def scripted_event_engine(kind: EventKind, *, lead: int = 3) -> EventEngine:
+def scripted_event_engine(
+    kind: EventKind, *, lead: int = 3, mortality: float | None = None
+) -> EventEngine:
     """Event Engine que agenda SEMPRE o mesmo evento — cenário declarado.
 
     O Diretor sorteia, e sorteio não serve de fixture: um teste que espera o
@@ -149,6 +151,12 @@ def scripted_event_engine(kind: EventKind, *, lead: int = 3) -> EventEngine:
     """
     base = event_params()
     profile = base.catalog[kind]
+    if mortality is not None:
+        # Severidade DECLARADA. O catálogo de produção calibra o meteoro para
+        # ferir sem aniquilar, que é o certo para o jogo; um teste da cadeia
+        # meteoro->EXTINÇÃO precisa do caso letal, e esperá-lo do sorteio seria
+        # voltar à loteria que este helper existe para evitar.
+        profile = replace(profile, mortality=mortality)
     return EventEngine(
         replace(
             base,
@@ -160,7 +168,11 @@ def scripted_event_engine(kind: EventKind, *, lead: int = 3) -> EventEngine:
 
 
 def build_scripted_planet(
-    kind: EventKind, *, lead: int = 3, sink: ObservabilitySink | None = None
+    kind: EventKind,
+    *,
+    lead: int = 3,
+    mortality: float | None = None,
+    sink: ObservabilitySink | None = None,
 ) -> PlanetEngine:
     """Composição de produção com um evento DECLARADO no lugar do sorteio."""
     params = test_params()
@@ -174,7 +186,7 @@ def build_scripted_planet(
         ResourceEngine(),
         EvolutionEngine(),
         EcologyEngine(),
-        scripted_event_engine(kind, lead=lead),
+        scripted_event_engine(kind, lead=lead, mortality=mortality),
     ]
     return PlanetEngine(
         EngineRegistry.of(engines),

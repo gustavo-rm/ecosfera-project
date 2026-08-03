@@ -250,10 +250,21 @@ class EvolutionEngine:
                         "thermal_match": thermal_match(genome, conditions.temperature),
                         "carrying_capacity": conditions.carrying_capacity,
                     },
-                    # Encadeia com o CLIMA: é o que fecha a cadeia
-                    # ambiental→biológica sem que este Engine conheça o Climate.
-                    causation_id=ctx.caused_by_slice(SliceRef.CLIMATE)
-                    or ctx.caused_by_slice(SliceRef.RESOURCE),
+                    # A cadeia aponta para o EVENTO quando a causa é
+                    # catastrófica, e para o CLIMA quando é ecológica. É o elo
+                    # que liga `MeteorImpact` a `SpeciesExtinct` e que o Tutor
+                    # percorre (ADR 0019).
+                    #
+                    # Encadear uma morte por meteoro ao `TemperatureShift` faria
+                    # o Tutor narrar a extinção como intolerância térmica — a
+                    # concepção equivocada que este marco existe para desfazer,
+                    # reintroduzida pela própria trilha causal.
+                    causation_id=(
+                        ctx.caused_by_slice(SliceRef.EVENT)
+                        if cause is EvolutionCauseCode.CATASTROPHIC_EVENT
+                        else ctx.caused_by_slice(SliceRef.CLIMATE)
+                        or ctx.caused_by_slice(SliceRef.RESOURCE)
+                    ),
                 )
             )
             return tuple(events)
