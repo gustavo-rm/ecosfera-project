@@ -68,14 +68,14 @@ def test_the_engine_framework_imports_without_the_sim_extra() -> None:
     done = _run_without_sim(
         """
         from ecosfera_ai.engines.composition import ENGINE_ORDER, build_planet_engine
-        assert len(ENGINE_ORDER) == 9, ENGINE_ORDER
+        assert len(ENGINE_ORDER) == 10, ENGINE_ORDER
         import sys
         assert "deap" not in sys.modules and "mesa" not in sys.modules
         print("IMPORTOU", len(ENGINE_ORDER))
         """
     )
     assert done.returncode == 0, done.stderr
-    assert "IMPORTOU 9" in done.stdout
+    assert "IMPORTOU 10" in done.stdout
 
 
 def test_the_whole_tick_runs_without_the_sim_extra() -> None:

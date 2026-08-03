@@ -21,7 +21,10 @@ ENGINE_ID = "climate"
 # Engine abrir a ordem (ADR 0013).
 WRITES = SliceRef.CLIMATE
 READS: frozenset[SliceRef] = frozenset({SliceRef.ATMOSPHERE, SliceRef.ASTRONOMY})
-LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.HYDROLOGY})
+# A `EventSlice` é lida DEFASADA: o Event Engine roda por último, então a
+# perturbação escrita no tick N chega aqui no tick N+1 (ADR 0018). É a mesma
+# disciplina da água<->clima acima, e o `validate_graph` a exige declarada.
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.HYDROLOGY, SliceRef.EVENT})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 

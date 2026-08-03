@@ -21,6 +21,7 @@ from ecosfera_ai.engines.bridge import planet_state_of, snapshot_of
 from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.service import ClimateEngine
 from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.event.service import EventEngine
 from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.service import GeologyEngine
 from ecosfera_ai.engines.hydrology.contracts import load_params as hydrology_params
@@ -54,8 +55,11 @@ from ecosfera_ai.simulation_engine.state import PlanetState, StateBounds
 # 7. resource  — traduz o ambiente fechado em capacidade de suporte.
 # 8. evolution — a comunidade se sustenta (ou não) nas condições que encontra e
 #    gasta o orçamento; o genoma médio deriva na direção do ótimo LOCAL.
-# 9. ecology   — reparte essa biomassa entre níveis tróficos e resolve a predação;
-#    fecha o tick porque precisa da comunidade já resolvida (ADR 0016).
+# 9. ecology   — reparte essa biomassa entre níveis tróficos e resolve a predação.
+# 10. event    — o Diretor observa o mundo JÁ RESOLVIDO deste tick e decide se um
+#    evento extraordinário cabe no contexto. Fecha o tick (Spec §5.3): a
+#    perturbação que ele publica é lida no tick SEGUINTE por quem a sofre, que é
+#    a mesma disciplina de defasagem da água<->clima e da biomassa (ADR 0018).
 #
 # A ordem é DADO verificável, não convenção implícita: `validate_graph` recusa no
 # boot qualquer leitura para trás que não esteja declarada em `lagged_reads`.
@@ -75,6 +79,7 @@ ENGINE_ORDER: tuple[str, ...] = (
     "resource",
     "evolution",
     "ecology",
+    "event",
 )
 
 # Construtores por identificador. O `engine_id` de cada Engine é o que casa com a
@@ -90,6 +95,7 @@ _ENGINE_FACTORIES: Mapping[str, Callable[[], Engine]] = {
     "resource": ResourceEngine,
     "evolution": EvolutionEngine,
     "ecology": EcologyEngine,
+    "event": EventEngine,
 }
 
 

@@ -72,6 +72,15 @@ class EcologyEngine:
         # A biomassa total é da Evolution; a ecologia apenas a REPARTE. Renormalizar
         # é o que impede este Engine de virar uma segunda fonte de biomassa — a
         # dupla contagem que o ADR 0016 proíbe.
+        # Q8 (ADR 0019): a catástrofe NÃO é aplicada aqui. Quem a aplica é a
+        # Evolution, dona do total — este Engine apenas REPARTE o que recebe.
+        #
+        # Aplicá-la aqui foi tentado e quebrou a invariante do M3: a soma dos
+        # níveis descolaria de `biota.biomass`, e a Ecology viraria um segundo
+        # SUMIDOURO de biomassa, do mesmo modo que seria uma segunda fonte se
+        # inflasse a pirâmide. A catástrofe chega a este Engine já embutida no
+        # total que a Evolution publicou, e a renormalização a propaga aos três
+        # níveis sozinha.
         levels = _renormalised(levels, biomass, self.params)
         pressure = _predation_pressure(levels, self.params)
         events = self._notable(ctx, current, levels, pressure)
@@ -214,6 +223,20 @@ def _seeded_levels(
     return (max(0.0, producer), max(0.0, herbivore), max(0.0, predator))
 
 
+def _room(occupied: float, ceiling: float) -> float:
+    """Fração do ganho ainda admitida pelo teto ambiental — logística de Verhulst.
+
+    Vai a 1 num nível vazio e a 0 quando o nível enche o teto que lhe cabe. É o
+    mesmo termo `(1 - N/K)` que o produtor sempre teve; Q11 apenas o estende aos
+    consumidores. Nunca fica negativo: um nível acima do teto para de ganhar, e
+    quem o reduz é a mortalidade, não um ganho negativo (que seria uma segunda
+    via de morte, contabilizada duas vezes).
+    """
+    if ceiling <= _EPS:
+        return 0.0
+    return max(0.0, 1.0 - occupied / ceiling)
+
+
 def _trophic_step(
     levels: tuple[float, float, float],
     capacity: float,
@@ -238,9 +261,26 @@ def _trophic_step(
 
     noise = float(ctx.rng.normal(0.0, params.demographic_noise))
     new_producer = producer + growth - grazed + noise * producer
-    new_herbivore = herbivore + params.conversion_efficiency * grazed
+
+    # Q11 (validação Tássia, ADR 0019): o teto de suporte vale para TODOS os
+    # níveis, não só para os produtores. Antes, herbívoro e predador cresciam
+    # apenas pelo que conseguiam converter, sem qualquer limite ambiental — um
+    # ambiente pobre podia sustentar uma pirâmide de consumidores desde que a
+    # predação corresse bem.
+    #
+    # O ganho de cada consumidor é amortecido pela ocupação do nível contra a
+    # fatia da capacidade ambiental disponível a ele. Não é uma segunda
+    # capacidade: é a MESMA `carrying_capacity` do Resource, agora lida por mais
+    # níveis. A `_renormalised` continua ajustando o total à biomassa da
+    # Evolution, então nada disso cria biomassa.
+    consumer_ceiling = capacity * params.consumer_capacity_share
+    new_herbivore = herbivore + params.conversion_efficiency * grazed * _room(
+        herbivore, consumer_ceiling
+    )
     new_herbivore -= params.mortality_rate * herbivore + hunted
-    new_predator = predator + params.conversion_efficiency * hunted
+    new_predator = predator + params.conversion_efficiency * hunted * _room(
+        predator, consumer_ceiling
+    )
     new_predator -= params.mortality_rate * predator
 
     return tuple(  # type: ignore[return-value]

@@ -48,7 +48,15 @@ from typing import Any, Protocol, cast
 # fatia (`validate_graph`), a biota foi desdobrada em `BiotaSlice` (Evolution) e
 # `EcologySlice` (Ecology). Divergência consciente da letra da Spec para honrar
 # a regra normativa dela (ADR 0016).
-WORLD_STATE_VERSION = 3
+#
+# 3 -> 4 (M4): entra a `EventSlice`, dona das perturbações extraordinárias. Ela
+# existe porque um evento perturba grandezas de fatias que JÁ TÊM DONO — o
+# Event Engine não pode escrever `climate.temperature` sem quebrar a regra de um
+# escritor. A perturbação vira ESCALAR publicado aqui, e cada Engine afetado a
+# lê e a incorpora à própria dinâmica (ADR 0018). Checkpoints da versão 3 não
+# trazem a fatia; ler um deles como 4 devolve a `EventSlice` zerada, que é o
+# mundo sem perturbação ativa — degradação correta, não silenciosa.
+WORLD_STATE_VERSION = 4
 
 
 class SliceRef(StrEnum):
@@ -67,6 +75,7 @@ class SliceRef(StrEnum):
     RESOURCE = "resource"
     BIOTA = "biota"
     ECOLOGY = "ecology"
+    EVENT = "event"
 
 
 @dataclass(frozen=True, slots=True)
@@ -261,8 +270,91 @@ SLICE_ATTRIBUTE: Mapping[SliceRef, str] = MappingProxyType(
         SliceRef.RESOURCE: "resource",
         SliceRef.BIOTA: "biota",
         SliceRef.ECOLOGY: "ecology",
+        SliceRef.EVENT: "event",
     }
 )
+
+
+@dataclass(frozen=True, slots=True)
+class EventSlice:
+    """Perturbações extraordinárias ATIVAS — escrita pelo **Event Engine** (M4).
+
+    ## Por que os eventos extraordinários precisam de fatia própria
+
+    Um meteoro esfria o planeta, uma seca reduz a precipitação, uma era glacial
+    baixa a temperatura. Todas essas grandezas pertencem a fatias que JÁ TÊM
+    DONO — `atmosphere`, `climate`, `hydrology` —, e a moldura admite **um
+    escritor por fatia** (Spec §3): `validate_graph` recusa no boot um segundo
+    escritor. O Event Engine, portanto, **não pode** aplicar a perturbação
+    escrevendo na fatia perturbada.
+
+    A saída é inverter a direção: o Event Engine publica a perturbação como
+    ESCALAR na fatia dele, e cada Engine afetado **lê** esse escalar e o
+    incorpora à própria dinâmica, na própria fatia. A física continua sendo
+    decidida por quem a detém — o Event Engine descreve a causa, não o efeito.
+
+    Isso mantém três coisas de pé ao mesmo tempo (ADR 0018):
+
+    1. **um dono por fatia**, verificado no boot;
+    2. **as perturbações no Canal A** (float, aditivo, replayável), e não no
+       Canal B — o Canal B narra a OCORRÊNCIA (`MeteorImpact`), o Canal A carrega
+       a CONSEQUÊNCIA física contínua;
+    3. **nenhum Engine lendo o estado interno de outro** — tudo pelo world-state.
+
+    ## Perturbações são estoques que decaem, não pulsos
+
+    Cada campo é a intensidade CORRENTE da perturbação, já integrada pelo Event
+    Engine (um meteoro injeta poeira que decai ao longo de dezenas de ticks). Os
+    Engines afetados leem o valor de agora e não precisam saber há quanto tempo o
+    evento ocorreu — o que os mantém ignorantes do catálogo de eventos.
+    """
+
+    # Poeira em suspensão: aumenta o albedo e reflete irradiância (meteoro,
+    # supervulcanismo). Adimensional, 0 = céu limpo.
+    dust_load: float = 0.0
+    # Forçamento radiativo NEGATIVO imposto por evento (era glacial, inverno de
+    # impacto). Em W/m², somado ao forçamento do Climate.
+    cooling_forcing: float = 0.0
+    # Intensidade da seca em [0,1]: fração da precipitação suprimida.
+    drought_intensity: float = 0.0
+    # Energia do impacto no tick em que ele ocorre — pico, não estoque. Alimenta
+    # a magnitude do `MeteorImpact` e a mortalidade catastrófica.
+    impact_energy: float = 0.0
+    # Fração da biomassa removida por catástrofe neste tick, INDEPENDENTE de
+    # adaptação (ADR 0019). É o mecanismo que torna possível uma espécie bem
+    # adaptada ser extinta — a correção de concepção equivocada do M4.
+    catastrophic_mortality: float = 0.0
+    # Pulso de CO2 do SUPERVULCANISMO. Não é somado à atmosfera por este Engine:
+    # quem o lê é a **Geology**, que o funde à própria desgaseificação para que
+    # exista UM único fluxo de carbono vulcânico no mundo (ADR 0018, fronteira
+    # basal x catastrófico). Publicá-lo aqui e somá-lo na atmosfera criaria dois
+    # termos de entrada e a dupla contagem que o M2 já pagou uma vez para evitar.
+    supervolcanic_intensity: float = 0.0
+
+    # --- Telegrafia (RF-019/020) ----------------------------------------------
+    # O evento agendado é ANUNCIADO antes de acontecer, para que o jogador possa
+    # agir. Estes campos são o que a API expõe ao frontend.
+    #
+    # Escalares, e não uma lista de eventos, porque o Canal A é aditivo e de
+    # floats: a identidade do evento anunciado viaja pelo Canal B
+    # (`EventForecast`), e aqui fica o que a interface precisa para o aviso.
+    forecast_kind: float = 0.0  # índice do evento no catálogo; 0 = nada anunciado
+    forecast_ticks_ahead: float = 0.0  # quantos ticks faltam para ele ocorrer
+    forecast_severity: float = 0.0  # intensidade prevista, em [0,1]
+
+    # --- Bookkeeping do evento em curso ---------------------------------------
+    # Mora AQUI, e não num atributo do Event Engine, por uma razão dura: `tick()`
+    # tem de ser função PURA do snapshot — é disso que o replay bit-a-bit depende
+    # (Spec §7). Um Engine que guardasse "qual evento está ativo e há quantos
+    # ticks" num campo próprio deixaria de depender só do que recebe, e
+    # reconstruir uma era a partir de `(seed, checkpoint)` pararia de funcionar.
+    #
+    # É o mesmo motivo pelo qual a Evolution carrega o genoma médio na fatia em
+    # vez de guardar a lista de espécies (ADR 0016).
+    active_kind: float = 0.0  # evento perturbando agora; 0 = nenhum
+    active_elapsed: float = 0.0  # ticks desde o início dele
+    active_severity: float = 0.0  # severidade sorteada quando foi agendado
+    quiet_remaining: float = 0.0  # silêncio obrigatório após o último evento
 
 
 @dataclass(frozen=True, slots=True)
@@ -290,6 +382,7 @@ class WorldStateSnapshot:
     resource: ResourceSlice = ResourceSlice()
     biota: BiotaSlice = BiotaSlice()
     ecology: EcologySlice = EcologySlice()
+    event: EventSlice = EventSlice()
     # Proveniência causal: para cada fatia, os eventos que produziram o valor
     # corrente dela. Vive AQUI, e não em atributo do Planet Engine, por uma razão
     # de pureza: guardá-la fora do snapshot tornaria `tick()` dependente de

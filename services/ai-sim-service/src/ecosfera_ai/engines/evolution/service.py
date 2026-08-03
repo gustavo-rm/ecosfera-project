@@ -108,6 +108,9 @@ class EvolutionEngine:
             occupied=current.biomass,
             # Leitura DEFASADA: a Ecology roda depois deste Engine.
             predation_pressure=ctx.snapshot.ecology.predation_pressure,
+            # Leitura DEFASADA da EventSlice: a mesma catástrofe que a Ecology
+            # aplicou é a que este Engine vê para atribuir a causa (ADR 0019).
+            catastrophe=ctx.snapshot.event.catastrophic_mortality,
         )
 
         if current.biomass <= 0.0:
@@ -169,6 +172,17 @@ class EvolutionEngine:
         suitability = local_suitability(genome, conditions, self.params)
         d_biomass = population_change(genome, current.biomass, conditions, self.params)
         biomass = max(0.0, current.biomass + d_biomass)
+
+        # CATÁSTROFE (Q8, ADR 0019): remove uma fração da comunidade SEM olhar
+        # para o genoma dela. Não passa por `local_suitability`, não é atenuada
+        # por adaptação, não poupa quem está no próprio ótimo — é o que torna
+        # possível uma espécie bem adaptada ser extinta por um meteoro.
+        #
+        # Aplicada AQUI, e não na Ecology, porque a biomassa TOTAL é desta fatia:
+        # tirá-la na Ecology faria a soma trófica descolar do total e a ecologia
+        # virar um segundo sumidouro (a invariante que o M3 fixou).
+        if conditions.catastrophe > 0.0:
+            biomass = max(0.0, biomass * (1.0 - min(1.0, conditions.catastrophe)))
 
         # A média DERIVA na direção do ótimo local: quem está mais perto dele
         # deixa mais descendência, e o traço médio segue. Não há alvo global —
@@ -269,8 +283,15 @@ class EvolutionEngine:
                             "thermal_match": thermal_match(genome, conditions.temperature),
                             "carrying_capacity": conditions.carrying_capacity,
                         },
-                        causation_id=ctx.caused_by_slice(SliceRef.CLIMATE)
-                        or ctx.caused_by_slice(SliceRef.RESOURCE),
+                        # A cadeia aponta para o EVENTO quando a causa é
+                        # catastrófica — é o elo que liga MeteorImpact a
+                        # SpeciesExtinct e o que o Tutor percorre (ADR 0019).
+                        causation_id=(
+                            ctx.caused_by_slice(SliceRef.EVENT)
+                            if cause is EvolutionCauseCode.CATASTROPHIC_EVENT
+                            else ctx.caused_by_slice(SliceRef.CLIMATE)
+                            or ctx.caused_by_slice(SliceRef.RESOURCE)
+                        ),
                     )
                 )
 
@@ -358,6 +379,14 @@ def _limiting_cause(
     Nomear a causa é o que o Tutor consome; um `SpeciesExtinct` sem causa
     estruturada obrigaria o consumidor a recalcular ciência para explicar.
     """
+    # A catástrofe vem PRIMEIRO, e não como mais um candidato a limitante: se
+    # uma estava ativa quando a população cruzou o piso, foi ela que matou —
+    # independentemente de quão bem adaptada a comunidade estivesse. Ordenar
+    # assim é o que impede o diagnóstico de atribuir a um meteoro a "culpa" de
+    # uma intolerância térmica que a comunidade nem chegou a sofrer.
+    if conditions.catastrophe > 0.0:
+        return EvolutionCauseCode.CATASTROPHIC_EVENT
+
     thermal = thermal_match(genome, conditions.temperature)
     predation = params.predation_weight * max(0.0, conditions.predation_pressure)
     resource_gap = 1.0 - min(1.0, conditions.carrying_capacity / max(1.0, conditions.occupied))
@@ -377,4 +406,5 @@ def _factor_of(cause: EvolutionCauseCode) -> str:
         EvolutionCauseCode.THERMAL_INTOLERANCE: "climate:temperature#extreme",
         EvolutionCauseCode.PREDATION_PRESSURE: "ecology:predation#high",
         EvolutionCauseCode.RESOURCE_SCARCITY: "resource:carrying_capacity#low",
+        EvolutionCauseCode.CATASTROPHIC_EVENT: "event:catastrophe#active",
     }.get(cause, "resource:carrying_capacity#low")

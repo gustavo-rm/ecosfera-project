@@ -97,16 +97,16 @@ def test_every_backward_read_is_declared_as_lagged() -> None:
     """
     assert ChemistryEngine().lagged_reads == frozenset({SliceRef.ATMOSPHERE, SliceRef.HYDROLOGY})
     assert AtmosphereEngine().lagged_reads == frozenset({SliceRef.BIOTA})
-    assert ClimateEngine().lagged_reads == frozenset({SliceRef.HYDROLOGY})
-    assert GeologyEngine().lagged_reads == frozenset({SliceRef.HYDROLOGY})
+    assert ClimateEngine().lagged_reads == frozenset({SliceRef.HYDROLOGY, SliceRef.EVENT})
+    assert GeologyEngine().lagged_reads == frozenset({SliceRef.HYDROLOGY, SliceRef.EVENT})
     assert ResourceEngine().lagged_reads == frozenset({SliceRef.BIOTA})
     # Quem abre e quem fecha a ordem não precisam de defasagem alguma.
     assert AstronomyEngine().lagged_reads == frozenset()
-    assert HydrologyEngine().lagged_reads == frozenset()
+    assert HydrologyEngine().lagged_reads == frozenset({SliceRef.EVENT})
     # A Evolution lê a pressão de predação DEFASADA: a Ecology roda depois dela.
-    assert EvolutionEngine().lagged_reads == frozenset({SliceRef.ECOLOGY})
+    assert EvolutionEngine().lagged_reads == frozenset({SliceRef.ECOLOGY, SliceRef.EVENT})
     # A Ecology fecha o tick, então não precisa de defasagem alguma.
-    assert EcologyEngine().lagged_reads == frozenset()
+    assert EcologyEngine().lagged_reads == frozenset({SliceRef.EVENT})
 
 
 def test_nobody_reads_a_slice_it_did_not_declare() -> None:

@@ -199,6 +199,24 @@ class PlanetState:
     predation_pressure: float = 0.0
     total_population: float = 0.0
 
+    # Perturbações extraordinárias e bookkeeping do Diretor (Event Engine, M4).
+    # Precisam de casa AQUI ou a ponte as zeraria a cada tick — a dívida de
+    # rehidratação que o ADR 0015 registrou e que o M4 não repete para a fatia
+    # nova. Prefixadas com `event_` para não colidirem com nomes já usados.
+    event_dust_load: float = 0.0
+    event_cooling_forcing: float = 0.0
+    event_drought_intensity: float = 0.0
+    event_impact_energy: float = 0.0
+    event_catastrophic_mortality: float = 0.0
+    event_supervolcanic_intensity: float = 0.0
+    event_forecast_kind: float = 0.0
+    event_forecast_ticks_ahead: float = 0.0
+    event_forecast_severity: float = 0.0
+    event_active_kind: float = 0.0
+    event_active_elapsed: float = 0.0
+    event_active_severity: float = 0.0
+    event_quiet_remaining: float = 0.0
+
     def value(self, variable: str) -> float:
         """Lê uma variável de estado pelo nome da linguagem ubíqua do domínio."""
         return float(getattr(self, variable))

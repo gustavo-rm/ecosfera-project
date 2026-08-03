@@ -57,7 +57,7 @@ def test_declares_the_climate_read_and_owns_the_water() -> None:
     engine = HydrologyEngine()
     assert engine.writes is SliceRef.HYDROLOGY
     assert engine.reads == frozenset({SliceRef.CLIMATE})
-    assert engine.lagged_reads == frozenset()
+    assert engine.lagged_reads == frozenset({SliceRef.EVENT})
 
 
 def test_the_fluxes_only_move_mass_they_never_create_it() -> None:

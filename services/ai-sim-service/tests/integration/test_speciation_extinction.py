@@ -17,6 +17,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from tests.support import build_quiet_planet
 
 from ecosfera_ai.engines.bridge import snapshot_of
 from ecosfera_ai.engines.composition import build_planet_engine
@@ -151,7 +152,9 @@ def test_a_thermal_shock_is_what_produces_thermal_extinction() -> None:
 
 def test_the_shock_leaves_a_mark_on_the_community() -> None:
     """Contraprova física: o choque tem de mudar a trajetória, não só a trilha."""
-    planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget)
+    # Diretor mudo: o choque sob teste é o DECLARADO aqui, não um
+    # evento sorteado que caísse na mesma janela.
+    planet = build_quiet_planet()
     snapshot = snapshot_of(initial_state(PlanetSeed("mark", 2027), PARAMS))
     for _ in range(200):
         snapshot = planet.tick(snapshot, publish=False).snapshot

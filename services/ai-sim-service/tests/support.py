@@ -25,6 +25,8 @@ from ecosfera_ai.engines.composition import (
     planet_invariants,
 )
 from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.event.contracts import load_params as event_params
+from ecosfera_ai.engines.event.service import EventEngine
 from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
 from ecosfera_ai.engines.geology.service import GeologyEngine
@@ -84,6 +86,7 @@ def build_volcanic_planet(sink: ObservabilitySink | None = None) -> PlanetEngine
         ResourceEngine(),
         EvolutionEngine(),
         EcologyEngine(),
+        EventEngine(),
     ]
     return PlanetEngine(
         EngineRegistry.of(engines),
@@ -92,4 +95,43 @@ def build_volcanic_planet(sink: ObservabilitySink | None = None) -> PlanetEngine
         ),
         budget=params.engine_budget,
         sink=sink,
+    )
+
+
+def quiet_event_engine() -> EventEngine:
+    """Event Engine com o Diretor MUDO: nunca agenda nada.
+
+    A linha de base do planeta é FÍSICA — o que ela afirma é que nada se move sem
+    causa. Um evento extraordinário é, por definição, uma causa: deixar o Diretor
+    sorteando durante o teste de quase-estacionariedade mediria outra coisa (que
+    um supervulcão injeta carbono, o que já é afirmado em outro lugar) e a
+    baseline passaria a falhar por semente, não por regressão.
+
+    O Engine continua no registro — a fatia precisa de dono e a ordem do tick não
+    muda. O que se silencia é a DECISÃO, não a moldura.
+    """
+    return EventEngine(replace(event_params(), scheduling_probability=0.0))
+
+
+def build_quiet_planet() -> PlanetEngine:
+    """Composição de produção, com o Diretor mudo (linha de base física)."""
+    params = test_params()
+    engines = [
+        AstronomyEngine(),
+        GeologyEngine(),
+        ChemistryEngine(),
+        AtmosphereEngine(),
+        ClimateEngine(),
+        HydrologyEngine(),
+        ResourceEngine(),
+        EvolutionEngine(),
+        EcologyEngine(),
+        quiet_event_engine(),
+    ]
+    return PlanetEngine(
+        EngineRegistry.of(engines),
+        invariants=planet_invariants(
+            params.bounds, water_tolerance=hydrology_params().conservation_tolerance
+        ),
+        budget=params.engine_budget,
     )

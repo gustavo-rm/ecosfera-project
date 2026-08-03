@@ -30,6 +30,21 @@ predator_share: 0.05
 # quando os produtores colapsassem, criando um planeta de predadores sem presa.
 max_consumer_share: 0.50
 
+# Q11 (validação Tássia): a capacidade de suporte limita TODOS os níveis
+# tróficos, não só os produtores. Um ambiente que comporta N de biomassa não
+# comporta N de herbívoros ADEMAIS dos produtores — o teto é do ambiente.
+#
+# Esta é a fração da capacidade ambiental disponível a CADA nível consumidor.
+# Ela não reapropria a `carrying_capacity` (que continua sendo do Resource):
+# apenas a usa como teto dentro da dinâmica da Ecology, do mesmo modo que o
+# produtor já usava. Sem dupla contagem — é o mesmo teto, lido por mais níveis.
+# Fração do nível ABAIXO que cada consumidor pode ocupar. Calibrada medindo a
+# pirâmide resultante: 0,25 achatava a cadeia em dois níveis (os predadores
+# morriam de fome); 0,60 preserva os três e produz uma pirâmide melhor formada
+# que a do M3, onde produtores e herbívoros empatavam (56 x 56) — base quase
+# plana, que Elton (1927) não admite.
+consumer_capacity_share: 0.60
+
 # Limiares de evento.
 collapse_threshold: 0.05   # fração da biomassa abaixo da qual o nível colapsa
 decline_threshold: 0.20    # queda relativa que caracteriza declínio notável

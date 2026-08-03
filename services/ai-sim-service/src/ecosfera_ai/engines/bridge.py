@@ -33,6 +33,7 @@ planeta — quem ganhou detalhe foi o modelo, não a interface.
 from __future__ import annotations
 
 from ecosfera_ai.shared_kernel.world_state import (
+    EventSlice,
     AstronomySlice,
     AtmosphereSlice,
     BiotaSlice,
@@ -149,6 +150,21 @@ def snapshot_of(state: PlanetState, *, era: int = 0) -> WorldStateSnapshot:
             predation_pressure=state.predation_pressure,
             total_population=state.total_population,
         ),
+        event=EventSlice(
+            dust_load=state.event_dust_load,
+            cooling_forcing=state.event_cooling_forcing,
+            drought_intensity=state.event_drought_intensity,
+            impact_energy=state.event_impact_energy,
+            catastrophic_mortality=state.event_catastrophic_mortality,
+            supervolcanic_intensity=state.event_supervolcanic_intensity,
+            forecast_kind=state.event_forecast_kind,
+            forecast_ticks_ahead=state.event_forecast_ticks_ahead,
+            forecast_severity=state.event_forecast_severity,
+            active_kind=state.event_active_kind,
+            active_elapsed=state.event_active_elapsed,
+            active_severity=state.event_active_severity,
+            quiet_remaining=state.event_quiet_remaining,
+        ),
     )
 
 
@@ -212,4 +228,17 @@ def planet_state_of(snapshot: WorldStateSnapshot) -> PlanetState:
         predator_biomass=snapshot.ecology.predator_biomass,
         predation_pressure=snapshot.ecology.predation_pressure,
         total_population=snapshot.ecology.total_population,
+        event_dust_load=snapshot.event.dust_load,
+        event_cooling_forcing=snapshot.event.cooling_forcing,
+        event_drought_intensity=snapshot.event.drought_intensity,
+        event_impact_energy=snapshot.event.impact_energy,
+        event_catastrophic_mortality=snapshot.event.catastrophic_mortality,
+        event_supervolcanic_intensity=snapshot.event.supervolcanic_intensity,
+        event_forecast_kind=snapshot.event.forecast_kind,
+        event_forecast_ticks_ahead=snapshot.event.forecast_ticks_ahead,
+        event_forecast_severity=snapshot.event.forecast_severity,
+        event_active_kind=snapshot.event.active_kind,
+        event_active_elapsed=snapshot.event.active_elapsed,
+        event_active_severity=snapshot.event.active_severity,
+        event_quiet_remaining=snapshot.event.quiet_remaining,
     )

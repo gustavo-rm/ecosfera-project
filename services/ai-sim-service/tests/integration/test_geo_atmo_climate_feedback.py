@@ -123,6 +123,8 @@ def test_each_arrow_crosses_only_through_the_world_state() -> None:
         # regra de um-escritor da moldura força a divisão (ADR 0016).
         SliceRef.BIOTA: "evolution",
         SliceRef.ECOLOGY: "ecology",
+        # O Event Engine fecha o tick e é dono das perturbacoes (ADR 0018).
+        SliceRef.EVENT: "event",
     }
     # Desde o M2 nao sobra fatia sem dono: a `LegacySlice` deixou de existir.
     assert set(planet.registry.owned_slices) == set(SliceRef)

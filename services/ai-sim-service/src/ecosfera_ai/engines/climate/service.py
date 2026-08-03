@@ -46,7 +46,12 @@ class ClimateEngine:
     def tick(self, ctx: TickContext) -> TickResult:
         current = ctx.snapshot.climate
         hydrology = ctx.snapshot.hydrology
-        forcing = ctx.snapshot.atmosphere.greenhouse_forcing
+        # O forçamento de efeito estufa é do Atmosphere; o resfriamento por
+        # evento extraordinário (poeira de meteoro, era glacial) chega pela
+        # `EventSlice`. Somar aqui, e não escrever na fatia do Atmosphere, é o
+        # que mantém um-dono-por-fatia de pé (ADR 0018): o Event descreve a
+        # causa, o Climate decide o efeito sobre a temperatura.
+        forcing = ctx.snapshot.atmosphere.greenhouse_forcing - ctx.snapshot.event.cooling_forcing
         # Irradiância do MESMO tick, escrita pelo Astronomy Engine. Antes do M2
         # ela vinha da `LegacySlice`; com o adaptador aposentado e sem este
         # Engine, o clima recairia no `params.insolation` e o planeta perderia

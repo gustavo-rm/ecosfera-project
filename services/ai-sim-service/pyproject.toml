@@ -142,6 +142,7 @@ modules = [
     "ecosfera_ai.engines.resource",
     "ecosfera_ai.engines.evolution",
     "ecosfera_ai.engines.ecology",
+    "ecosfera_ai.engines.event",
     "ecosfera_ai.engines.noop",
 ]
 
@@ -159,6 +160,7 @@ forbidden_modules = [
     "ecosfera_ai.engines.resource",
     "ecosfera_ai.engines.evolution",
     "ecosfera_ai.engines.ecology",
+    "ecosfera_ai.engines.event",
     "ecosfera_ai.engines.noop",
     "ecosfera_ai.engines.composition",
 ]

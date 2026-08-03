@@ -18,7 +18,9 @@ ENGINE_ID = "evolution"
 # água<->clima do M2 (ADR 0016).
 WRITES = SliceRef.BIOTA
 READS: frozenset[SliceRef] = frozenset({SliceRef.RESOURCE, SliceRef.CLIMATE})
-LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.ECOLOGY})
+# A `EventSlice` diz se uma catástrofe estava ativa — é o que permite a este
+# Engine ATRIBUIR a causa certa à extinção (ADR 0019). Defasada, como a ecologia.
+LAGGED_READS: frozenset[SliceRef] = frozenset({SliceRef.ECOLOGY, SliceRef.EVENT})
 
 PARAMS_PATH = Path(__file__).parent / "params.yaml"
 

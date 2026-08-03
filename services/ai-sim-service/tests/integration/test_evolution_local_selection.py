@@ -12,6 +12,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from tests.support import build_quiet_planet
 
 from ecosfera_ai.engines.bridge import snapshot_of
 from ecosfera_ai.engines.composition import build_planet_engine
@@ -75,7 +76,9 @@ def test_the_mean_genome_moves_again_when_the_world_moves() -> None:
     Com uma função de aptidão global mirando um ótimo fixo, a média convergiria e
     PARARIA — o planeta poderia ferver que ela não se mexeria.
     """
-    planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget)
+    # Diretor mudo: o choque sob teste é o DECLARADO aqui, não um
+    # evento sorteado que caísse na mesma janela.
+    planet = build_quiet_planet()
     snapshot = snapshot_of(initial_state(PlanetSeed("shift", 2027), PARAMS))
     for _ in range(260):
         snapshot = planet.tick(snapshot, publish=False).snapshot
@@ -87,7 +90,7 @@ def test_the_mean_genome_moves_again_when_the_world_moves() -> None:
     shocked = snapshot.with_slice(
         SliceRef.CLIMATE, replace(snapshot.climate, temperature=snapshot.climate.temperature + 25.0)
     )
-    for _ in range(80):
+    for _ in range(200):
         shocked = planet.tick(shocked, publish=False).snapshot
 
     assert shocked.biota.mean_temp_optimum > settled + 0.5, (

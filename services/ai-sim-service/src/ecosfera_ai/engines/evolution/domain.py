@@ -74,6 +74,11 @@ class LocalConditions:
     carrying_capacity: float
     occupied: float  # biomassa total já instalada
     predation_pressure: float  # vinda da Ecology, leitura defasada
+    # Fração removida por catástrofe neste tick, vinda da EventSlice. NÃO entra
+    # em `local_suitability`: uma catástrofe não é um fator de adequação, é um
+    # acidente. Ela existe aqui só para a ATRIBUIÇÃO DE CAUSA (ADR 0019) — quem
+    # aplica a mortalidade é a Ecology.
+    catastrophe: float = 0.0
 
     @property
     def occupancy(self) -> float:

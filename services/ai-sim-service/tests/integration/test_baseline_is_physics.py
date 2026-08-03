@@ -37,6 +37,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from tests.support import build_quiet_planet, quiet_event_engine
 
 from ecosfera_ai.engines.astronomy.service import AstronomyEngine
 from ecosfera_ai.engines.atmosphere.service import AtmosphereEngine
@@ -46,7 +47,7 @@ from ecosfera_ai.engines.chemistry.service import ChemistryEngine
 from ecosfera_ai.engines.climate.contracts import load_params as climate_params
 from ecosfera_ai.engines.climate.domain import absorbed_energy, equilibrium_temperature
 from ecosfera_ai.engines.climate.service import ClimateEngine
-from ecosfera_ai.engines.composition import build_planet_engine, planet_invariants
+from ecosfera_ai.engines.composition import planet_invariants
 from ecosfera_ai.engines.ecology.service import EcologyEngine
 from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
@@ -74,7 +75,7 @@ def _trail(
 ) -> list[WorldStateSnapshot]:
     """Trajetória longa, opcionalmente com a geologia reparametrizada."""
     if geology is None:
-        planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget)
+        planet = build_quiet_planet()
     else:
         planet = PlanetEngine(
             EngineRegistry.of(
@@ -88,6 +89,9 @@ def _trail(
                     ResourceEngine(),
                     EvolutionEngine(),
                     EcologyEngine(),
+                    # Diretor mudo também aqui: o cenário sob teste é a
+                    # geologia reparametrizada, não um evento sorteado.
+                    quiet_event_engine(),
                 ]
             ),
             invariants=planet_invariants(
