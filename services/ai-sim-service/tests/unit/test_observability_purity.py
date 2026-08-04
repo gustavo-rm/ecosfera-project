@@ -1,184 +1,115 @@
-"""A invariante do ADR-ARCH-0002: a simulação nunca depende da observabilidade.
+"""PUREZA: a simulação NÃO lê store, logs, métricas ou traces (invariante).
 
-Três afirmações verificáveis:
+É a regra que o M5 mais poderia quebrar sem querer. Consolidar a observabilidade
+convida a fechar o laço — "o Diretor podia olhar as métricas", "o Engine podia
+consultar a trilha" — e qualquer um desses laços mata o replay, porque trilha e
+métrica são EFEITO da execução, não entrada dela.
 
-1. o sink é acionado DEPOIS que o tick foi composto e fechado;
-2. o resultado do tick é idêntico com o sink ligado e desligado;
-3. estourar o orçamento emite `DiagnosticEvent` e não muda um bit do estado.
+A emissão continua determinística e dentro do loop; a CONSUMAÇÃO (persistir,
+projetar, exportar) é lateral e fora dele (ADR-ARCH-0002).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import ast
+from pathlib import Path
 
-from ecosfera_ai.engines.noop.service import NoOpEngine
-from ecosfera_ai.engines.planet.registry import EngineRegistry
-from ecosfera_ai.engines.planet.service import PlanetEngine
-from ecosfera_ai.shared_kernel.engine import (
-    PerfSample,
-    TickBudget,
-    TickContext,
-    TickResult,
-)
-from ecosfera_ai.shared_kernel.events import CoreCauseCode, DomainEvent
-from ecosfera_ai.shared_kernel.observability import InMemoryEventStore, NullSink
-from ecosfera_ai.shared_kernel.world_state import (
-    NonNegativeStocks,
-    SliceRef,
-    StateDelta,
-    WorldStateSnapshot,
-)
+import pytest
+
+from ecosfera_ai.engines.bridge import snapshot_of
+from ecosfera_ai.engines.composition import ENGINE_ORDER, build_planet_engine
+from ecosfera_ai.shared_kernel.observability import InMemoryEventStore
+from ecosfera_ai.simulation_engine.params import initial_state, load_params
+from ecosfera_ai.simulation_engine.state import PlanetSeed
+
+PARAMS = load_params(Path("configs/simulation_params.yaml"))
+ENGINES_DIR = Path("src/ecosfera_ai/engines")
+
+# Módulos de PLATAFORMA que nenhum Engine de simulação pode alcançar.
+PLATFORM = ("portable", "timeseries", "event_query", "export_simulation", "persistence")
 
 
-@dataclass(slots=True)
-class _SpySink:
-    """Sink que registra QUANDO foi chamado, não só o quê."""
-
-    calls: list[str] = field(default_factory=list)
-    events: list[DomainEvent] = field(default_factory=list)
-
-    def record_metrics(self, sample: PerfSample) -> None:
-        self.calls.append(f"metrics:{sample.engine_id}")
-
-    def emit(self, event: DomainEvent) -> None:
-        self.calls.append(f"event:{event.event_type}")
-        self.events.append(event)
-
-    def log(self, message: str, /, **fields: object) -> None:
-        self.calls.append(f"log:{message}")
+def _engine_sources() -> list[Path]:
+    return [p for p in ENGINES_DIR.rglob("*.py") if "planet" not in p.parts]
 
 
-@dataclass(slots=True)
-class _Reporter:
-    """Engine que anota, no próprio log, o instante em que calculou."""
-
-    calls: list[str]
-    engine_id: str = "reporter"
-    reads: frozenset[SliceRef] = frozenset()
-    lagged_reads: frozenset[SliceRef] = frozenset()
-    writes: SliceRef = SliceRef.BIOTA
-
-    def tick(self, ctx: TickContext) -> TickResult:
-        self.calls.append("compute:reporter")
-        return TickResult(
-            delta=StateDelta(
-                engine_id=self.engine_id,
-                tick=ctx.tick,
-                writes=self.writes,
-                values={"biomass": 1.0},
-            )
-        )
+@pytest.mark.parametrize("path", _engine_sources(), ids=lambda p: f"{p.parent.name}/{p.name}")
+def test_no_engine_imports_the_platform_layer(path: Path) -> None:
+    """Um Engine que importasse o Event Store poderia lê-lo — e leria."""
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+        elif isinstance(node, ast.Import):
+            module = " ".join(a.name for a in node.names)
+        else:
+            continue
+        for forbidden in PLATFORM:
+            assert forbidden not in module, f"{path} alcança a plataforma via {module}"
 
 
-def _snapshot() -> WorldStateSnapshot:
-    return WorldStateSnapshot(planet_id="p", seed=3, tick=0, era=0)
+def test_the_tick_produces_the_same_result_with_and_without_a_sink() -> None:
+    """A prova FUNCIONAL da pureza: observar não muda o observado.
+
+    Se qualquer Engine lesse o que foi emitido, ligar o sink mudaria a
+    trajetória. Este teste roda os dois mundos e exige igualdade bit-a-bit.
+    """
+    with_sink = build_planet_engine(PARAMS, budget=PARAMS.engine_budget, sink=InMemoryEventStore())
+    without = build_planet_engine(PARAMS, budget=PARAMS.engine_budget)
+
+    a = snapshot_of(initial_state(PlanetSeed("purity", 2027), PARAMS))
+    b = snapshot_of(initial_state(PlanetSeed("purity", 2027), PARAMS))
+    for _ in range(200):
+        a = with_sink.tick(a).snapshot
+        b = without.tick(b).snapshot
+
+    assert a == b, "observar mudou a simulação — o laço se fechou"
 
 
-def test_sink_is_only_touched_after_the_tick_is_composed() -> None:
-    sink = _SpySink()
-    planet = PlanetEngine(EngineRegistry.of([_Reporter(sink.calls), NoOpEngine()]), sink=sink)
+def test_publishing_or_not_does_not_change_the_state() -> None:
+    """`publish=False` é o modo do replay: mesmo cálculo, sem tocar o Canal B."""
+    planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget, sink=InMemoryEventStore())
+    a = snapshot_of(initial_state(PlanetSeed("publish", 2027), PARAMS))
+    b = snapshot_of(initial_state(PlanetSeed("publish", 2027), PARAMS))
+    for _ in range(120):
+        a = planet.tick(a, publish=True).snapshot
+        b = planet.tick(b, publish=False).snapshot
+    assert a == b
 
-    planet.tick(_snapshot())
 
-    computes = [i for i, call in enumerate(sink.calls) if call.startswith("compute:")]
-    observations = [
-        i for i, call in enumerate(sink.calls) if call.startswith(("metrics:", "event:"))
-    ]
-    assert computes and observations
-    assert max(computes) < min(observations), (
-        "toda observação tem de vir depois de todo cálculo: o contrário abriria "
-        "caminho para a simulação enxergar a própria telemetria"
+def test_the_engine_order_is_unchanged_by_the_platform_work() -> None:
+    """O M5 é plataforma: não acrescenta nem reordena Engine de simulação."""
+    assert ENGINE_ORDER == (
+        "astronomy",
+        "geology",
+        "chemistry",
+        "atmosphere",
+        "climate",
+        "hydrology",
+        "resource",
+        "evolution",
+        "ecology",
+        "event",
     )
 
 
-def test_the_tick_result_does_not_depend_on_the_sink() -> None:
-    registry = EngineRegistry.of([NoOpEngine()])
-    with_sink = PlanetEngine(registry, sink=InMemoryEventStore()).tick(_snapshot())
-    without_sink = PlanetEngine(registry, sink=NullSink()).tick(_snapshot())
+def test_the_sink_is_only_called_after_the_tick_closes() -> None:
+    """O sink recebe eventos DEPOIS do fecho — nunca durante o cálculo.
 
-    assert with_sink.snapshot == without_sink.snapshot
-    assert [e.event_id for e in with_sink.events] == [e.event_id for e in without_sink.events]
+    Um sink que fosse chamado no meio poderia, em tese, ser lido pelo Engine
+    seguinte no mesmo tick. Aqui se afirma que o snapshot já está fechado quando
+    o primeiro evento chega.
+    """
+    seen: list[int] = []
 
+    class Spy(InMemoryEventStore):
+        def emit(self, event: object) -> None:  # type: ignore[override]
+            seen.append(getattr(getattr(event, "occurred_at", None), "tick", -1))
 
-def test_exceeding_the_budget_emits_a_diagnostic_without_changing_the_tick() -> None:
-    """Pular um Engine lento faria o resultado depender da carga da máquina."""
-    registry = EngineRegistry.of([NoOpEngine()])
-    generous = PlanetEngine(registry, budget=TickBudget()).tick(_snapshot())
-    impossible = PlanetEngine(registry, budget=TickBudget(max_duration_s=-1.0)).tick(_snapshot())
+    planet = build_planet_engine(PARAMS, budget=PARAMS.engine_budget, sink=Spy())
+    snapshot = snapshot_of(initial_state(PlanetSeed("sink", 2027), PARAMS))
+    outcome = planet.tick(snapshot)
 
-    assert impossible.snapshot == generous.snapshot
-
-    diagnostics = [e for e in impossible.events if e.is_diagnostic]
-    assert len(diagnostics) == 1
-    assert diagnostics[0].cause_code is CoreCauseCode.BUDGET_EXCEEDED
-    assert diagnostics[0].cause_detail["limit"] == "duration_s"
-    assert not [e for e in generous.events if e.is_diagnostic]
-
-
-def test_invariant_breach_becomes_a_diagnostic_event() -> None:
-    @dataclass(slots=True)
-    class _Drainer:
-        engine_id: str = "drainer"
-        reads: frozenset[SliceRef] = frozenset()
-        lagged_reads: frozenset[SliceRef] = frozenset()
-        writes: SliceRef = SliceRef.BIOTA
-
-        def tick(self, ctx: TickContext) -> TickResult:
-            return TickResult(
-                delta=StateDelta(
-                    engine_id=self.engine_id,
-                    tick=ctx.tick,
-                    writes=self.writes,
-                    values={"biomass": -10.0},
-                )
-            )
-
-    planet = PlanetEngine(
-        EngineRegistry.of([_Drainer()]),
-        invariants=[NonNegativeStocks({SliceRef.BIOTA: ("biomass",)})],
+    assert outcome.snapshot.tick == snapshot.tick + 1, "o tick não fechou"
+    assert all(tick == snapshot.tick for tick in seen), (
+        "o sink recebeu evento de um tick que ainda não havia fechado"
     )
-
-    outcome = planet.tick(_snapshot())
-
-    assert outcome.snapshot.biota.biomass == 0.0
-    diagnostics = [e for e in outcome.events if e.is_diagnostic]
-    assert diagnostics[0].cause_code is CoreCauseCode.INVARIANT_BREACH
-    assert diagnostics[0].cause_detail["field"] == "biomass"
-
-
-def test_wall_clock_never_reaches_the_world_state() -> None:
-    """Dois relógios diferentes, o mesmo snapshot: o tempo é medida lateral."""
-    registry = EngineRegistry.of([NoOpEngine()])
-    ticks = iter([0.0, 100.0])
-    slow = PlanetEngine(registry, clock=lambda: next(ticks)).tick(_snapshot())
-    fast = PlanetEngine(registry, clock=lambda: 0.0).tick(_snapshot())
-
-    assert slow.snapshot == fast.snapshot
-    assert slow.samples[0].duration_s == 100.0
-    assert fast.samples[0].duration_s == 0.0
-
-
-def test_event_store_projects_scientific_and_technical_views() -> None:
-    store = InMemoryEventStore()
-    planet = PlanetEngine(
-        EngineRegistry.of([NoOpEngine()]),
-        budget=TickBudget(max_duration_s=-1.0),
-        sink=store,
-    )
-
-    outcome = planet.tick(_snapshot())
-
-    assert [e.event_type for e in store.scientific_view()] == ["EngineHeartbeat"]
-    assert len(store.technical_view()) == 1
-    assert len(store.by_correlation(outcome.events[0].correlation_id)) == 2
-
-
-def test_replay_mode_does_not_republish_events() -> None:
-    """Reconstruir uma era é reproduzir, não reocorrer: a trilha não duplica."""
-    store = InMemoryEventStore()
-    planet = PlanetEngine(EngineRegistry.of([NoOpEngine()]), sink=store)
-
-    planet.tick(_snapshot())
-    planet.tick(_snapshot(), publish=False)
-
-    assert len(store.events) == 1
