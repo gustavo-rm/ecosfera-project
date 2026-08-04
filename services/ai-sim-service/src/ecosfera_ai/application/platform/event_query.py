@@ -57,9 +57,7 @@ class EventQuery:
             return False
         if self.event_types and event.event_type not in self.event_types:
             return False
-        if self.engine_ids and event.engine_id not in self.engine_ids:
-            return False
-        return True
+        return not self.engine_ids or event.engine_id in self.engine_ids
 
 
 class EventStoreQuery(Protocol):

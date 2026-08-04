@@ -84,7 +84,7 @@ def test_the_json_export_is_complete(series: TimeSeries) -> None:
 
 def test_a_misaligned_series_is_refused() -> None:
     """Uma série desalinhada mentiria sobre QUANDO cada valor ocorreu."""
-    with pytest.raises(ValueError, match="desalinhada|pontos"):
+    with pytest.raises(ValueError, match=r"desalinhada|pontos"):
         TimeSeries(planet_id="p", seed=1, ticks=(0, 1, 2), channels={"x": (0.0,)})
 
 
