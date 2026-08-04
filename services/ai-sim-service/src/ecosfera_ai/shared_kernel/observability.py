@@ -180,11 +180,19 @@ class CompositeSink:
 
 
 # ── Pilar 4 — traces ────────────────────────────────────────────────────────
-# Gancho de OpenTelemetry atrás de flag, no-op por padrão. Trazer o SDK agora
-# custaria dependência pesada para um span que ninguém coleta ainda; o que
-# precisa existir desde já é o PONTO DE ENGATE, para que ligar tracing no M5 não
-# exija tocar no Planet Engine. A cadeia causal, enquanto isso, já é
-# reconstruível por `correlation_id`/`causation_id` no Event Store.
+# Gancho atrás de flag, no-op por padrão, com spans em `structlog` quando ligado.
+#
+# O M2 escreveu aqui que o SDK de OpenTelemetry entraria no M5. NÃO ENTROU, e a
+# promessa é corrigida em vez de mantida como texto morto: o M5 fechou com este
+# gancho ainda no-op. O motivo de então segue valendo — um SDK pesado para spans
+# que nenhum coletor recebe é dependência sem consumidor —, e o M5 não trouxe o
+# coletor. Instrumentar contra um backend inexistente produziria exatamente a
+# verificação-de-fé que este serviço recusa no Postgres (ADR 0021).
+#
+# O que o gancho garante é o PONTO DE ENGATE: ligar tracing de verdade não exige
+# tocar no Planet Engine. Enquanto isso a cadeia causal já é reconstruível por
+# `correlation_id`/`causation_id` no Event Store, que é o traço que o tutor
+# realmente consome (ADR 0022 §5).
 
 _TRACING_ENABLED = False
 

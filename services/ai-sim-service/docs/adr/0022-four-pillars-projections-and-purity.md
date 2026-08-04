@@ -69,6 +69,32 @@ não afirma NADA sobre estabilidade.** Afirmar seria esconder a dívida sob um
 teste verde. Ele afirma que a série que a REVELA está íntegra. A instabilidade
 segue como `xfail` anotado, e continua sendo marco próprio.
 
+### 5. O quarto pilar fica DECLARADO incompleto
+
+Dos quatro pilares, três estão operacionais: eventos (Canal B, agora persistido),
+logs (`structlog`) e métricas (Prometheus). O quarto — traces — **não está**.
+
+O M5 previa trazer o SDK de OpenTelemetry. Não trouxe, e isto fica escrito em vez
+de silenciado. `span()` continua o gancho no-op do M2, emitindo em `structlog`
+quando a flag é ligada; nenhum span sai daqui para um coletor.
+
+**Por que não foi feito, e por que não é um esquecimento convertido em virtude.**
+Não há coletor no destino. Adicionar o SDK renderia spans que ninguém recebe, e a
+suíte só poderia afirmar que a chamada não estourou — nunca que o traço chegou.
+Seria a verificação-de-fé que este mesmo marco recusou para o Postgres, onde a
+resposta foi o oposto: exigir Docker no CI e FALHAR sem ele (ADR 0021). Aplicar
+os dois critérios de forma diferente ao mesmo problema é que seria incoerente.
+
+O que já existe cobre o uso pedagógico: a cadeia causal do tutor se reconstrói
+por `correlation_id`/`causation_id` no Event Store, com o passeio pronto no
+contrato de query (§2). O que falta é o traço **de operação** — latência por
+Engine, gargalo por tick —, que só ganha sentido com serviço em execução real e
+alguém olhando um painel.
+
+**Marco:** quando houver coletor de destino, junto da instrumentação de deploy.
+Até lá, o pilar 4 é ponto de engate, não capacidade. Nenhum documento deste
+serviço deve contá-lo como pronto.
+
 ## Consequências
 
 **Ganhamos.** A dívida deixou de ser um parágrafo num ADR e virou um artefato que
