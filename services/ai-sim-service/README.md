@@ -285,6 +285,59 @@ estacionariedade dentro do horizonte, em quatro sementes — e
 `test_carbon_stable_long_horizon` fica como **`xfail` anotado**, para que a
 dívida apareça no relatório de teste a cada execução em vez de sumir.
 
+## Camada de Plataforma (M5)
+
+Persistência e observabilidade deixaram de ser versão mínima. O que muda para
+quem usa o serviço:
+
+### Exportar e importar uma simulação
+
+Uma simulação vira **arquivo** — atravessa máquinas. Carrega seed, versão dos
+params, versão do world-state, checkpoints por era e o Canal B com o envelope §4
+íntegro; serializa de forma determinística (dois exports da mesma corrida dão o
+mesmo arquivo byte a byte, então dá para comparar por hash).
+
+```python
+from ecosfera_ai.shared_kernel.portable import SimulationExport
+
+Path("planeta.json").write_text(artefato.to_json(indent=2))
+recarregado = SimulationExport.from_json(Path("planeta.json").read_text())
+```
+
+Importar de uma versão de esquema diferente **falha alto**, em vez de degradar:
+um import silenciosamente degradado daria um planeta parecido com o original, e a
+diferença só apareceria como divergência de replay muito depois (ADR 0021).
+
+### Exportar uma série temporal (e ver a dívida de carbono)
+
+```python
+from ecosfera_ai.shared_kernel.timeseries import collect
+
+serie = collect(trilha_de_snapshots)
+Path("carbono.csv").write_text(serie.to_csv())   # abre em qualquer planilha
+```
+
+Os termos do ciclo do carbono vêm **separados** — desgaseificação, estoque
+atmosférico, oceano, solo, troca ar↔oceano, sumidouro biótico — porque ver o CO₂
+subir diz QUE o carbono escapa, não ONDE.
+
+> **A instabilidade de carbono segue DÍVIDA ABERTA** (ADR 0020), agora
+> **instrumentada**: o M5 não a corrige, torna-a visível. O horizonte de jogo
+> cientificamente válido continua ~500 ticks.
+
+### As três projeções
+
+Científica (o fenômeno) e técnica (o diagnóstico) **particionam** a trilha; a
+educacional é do M6, e o M5 garante que o envelope já carrega tudo de que ela
+precisará. O contrato de query — por planeta, era, correlação, causação,
+`cause_code` — está pronto para o M6 assinar, sem consumidores (ADR 0022).
+
+### Pureza
+
+A simulação **não lê** store, logs, métricas nem traces. Afirmado
+estruturalmente (nenhum Engine importa a plataforma) e funcionalmente (rodar com
+e sem sink dá trajetórias bit-a-bit idênticas).
+
 ### Smoke test
 
 ```bash

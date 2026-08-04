@@ -178,3 +178,86 @@ def test_an_unknown_cause_code_is_refused_rather_than_guessed() -> None:
                 "correlation_id": "c",
             }
         )
+
+
+# --- Os casos de uso, contra um repositório de verdade ------------------------
+
+
+@pytest.mark.asyncio
+async def test_the_use_cases_round_trip_through_a_repository() -> None:
+    """O caminho REAL: repositório → artefato → repositório.
+
+    Os testes acima exercitam o formato; este exercita o fluxo. Sem ele, os casos
+    de uso ficariam sem cobertura e a integração com a porta de persistência —
+    que é onde a dívida de rehidratação se manifestaria — nunca seria exercida.
+    """
+    from ecosfera_ai.application.platform.export_simulation import (
+        ExportSimulationUseCase,
+        ImportSimulationUseCase,
+    )
+    from ecosfera_ai.infrastructure.persistence.inmemory_planet_repo import (
+        InMemoryPlanetRepository,
+    )
+    from ecosfera_ai.simulation_engine.timeline import EraCheckpoint
+
+    source = InMemoryPlanetRepository()
+    states, events = _run()
+    for era, state in enumerate(states[:4]):
+        await source.append_checkpoint(
+            EraCheckpoint(
+                planet_id="flow",
+                era=era,
+                seed=2027,
+                start_tick=state.tick,
+                end_tick=state.tick,
+                state=state,
+            )
+        )
+
+    artefact = await ExportSimulationUseCase(source, params_version=4).execute(
+        "flow", events=events
+    )
+    assert artefact.eras() == [0, 1, 2, 3]
+    assert artefact.seed == 2027
+    assert len(artefact.events) == len(events)
+
+    # Viaja como arquivo e volta noutro repositório — a máquina do colega.
+    travelled = SimulationExport.from_json(artefact.to_json())
+    destination = InMemoryPlanetRepository()
+    report = await ImportSimulationUseCase(destination).execute(travelled)
+
+    assert report.faithful, f"o import divergiu nas eras {report.divergent_eras}"
+    assert report.eras_imported == 4
+    assert report.events_imported == len(events)
+
+
+@pytest.mark.asyncio
+async def test_the_import_report_names_the_divergent_eras() -> None:
+    """O relatório é auditável, não um booleano solto.
+
+    Se uma era não sobreviver, quem investiga precisa saber QUAL — um `False`
+    obrigaria a reexecutar tudo para descobrir onde.
+    """
+    from ecosfera_ai.application.platform.export_simulation import ImportReport
+
+    clean = ImportReport("p", 3, 10, checkpoints_match=True)
+    broken = ImportReport("p", 3, 10, checkpoints_match=False, divergent_eras=(1, 2))
+
+    assert clean.faithful
+    assert not broken.faithful
+    assert broken.divergent_eras == (1, 2)
+
+
+@pytest.mark.asyncio
+async def test_exporting_an_unknown_planet_yields_an_empty_artefact() -> None:
+    """Sem corrida, artefato vazio — e não uma exceção obscura."""
+    from ecosfera_ai.application.platform.export_simulation import ExportSimulationUseCase
+    from ecosfera_ai.infrastructure.persistence.inmemory_planet_repo import (
+        InMemoryPlanetRepository,
+    )
+
+    artefact = await ExportSimulationUseCase(InMemoryPlanetRepository(), params_version=4).execute(
+        "nao-existe"
+    )
+    assert artefact.eras() == []
+    assert artefact.events == ()
