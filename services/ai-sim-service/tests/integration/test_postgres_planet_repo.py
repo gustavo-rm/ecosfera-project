@@ -1,20 +1,22 @@
 """Persistência real em Postgres: migrations Alembic + porta PlanetRepository.
 
-Usa Testcontainers para subir um Postgres efêmero. Quando não há daemon Docker
-disponível (sandboxes de CI sem docker-in-docker, máquinas de dev sem Docker) o
-módulo inteiro é PULADO em vez de falhar — a suíte determinística continua
-verificável sem infraestrutura, que é a razão de o adaptador in-memory existir.
+Usa Testcontainers para subir um Postgres efêmero. Numa máquina de dev sem Docker
+o módulo inteiro é PULADO — a suíte determinística continua verificável sem
+infraestrutura, que é a razão de o adaptador in-memory existir.
+
+No CI o pulo deixa de estar disponível: `ECOSFERA_REQUIRE_POSTGRES` transforma a
+ausência de Docker em FALHA (M5, `tests/docker_guard.py`), porque um runner sem
+daemon silenciaria a persistência inteira com a árvore verde.
 """
 
 from __future__ import annotations
 
-import os
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
-from tests.docker_guard import requires_postgres
+from tests.docker_guard import POSTGRES_IMAGE, requires_postgres, run_migrations
 
 from ecosfera_ai.simulation_engine.params import initial_state, load_params
 from ecosfera_ai.simulation_engine.state import PlanetSeed
@@ -25,36 +27,11 @@ from ecosfera_ai.simulation_engine.timeline import (
     EventLogEntry,
 )
 
-# Imagem com pgvector: a migration 0001 (baseline do schema `rag`) cria a
-# extensão `vector`, que não existe no postgres oficial.
-POSTGRES_IMAGE = "pgvector/pgvector:pg16"
-
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
-
-
-def _docker_available() -> bool:
-    try:
-        import docker  # type: ignore[import-untyped]
-
-        docker.from_env().ping()
-    except Exception:
-        return False
-    return True
 
 
 # Pula onde pular é honesto; FALHA onde pular seria esconder (ver docker_guard).
 pytestmark = requires_postgres()
-
-
-def _run_migrations(async_url: str) -> None:
-    """Aplica as migrations via API do Alembic (equivale a `alembic upgrade head`)."""
-    from alembic import command
-    from alembic.config import Config
-
-    os.environ["DATABASE_URL"] = async_url
-    config = Config("alembic.ini")
-    config.set_main_option("script_location", "migrations")
-    command.upgrade(config, "head")
 
 
 @pytest.fixture(scope="module")
@@ -65,7 +42,7 @@ def engine() -> Iterator[Any]:
 
     with PostgresContainer(POSTGRES_IMAGE, driver="asyncpg") as container:
         url = container.get_connection_url()
-        _run_migrations(url)
+        run_migrations(url)
         created = create_async_engine(
             url,
             poolclass=NullPool,  # não reusa conexões entre event loops

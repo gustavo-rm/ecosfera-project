@@ -14,32 +14,20 @@ Cobre também a migration 0004 aplicada limpa sobre o schema do M2.
 
 from __future__ import annotations
 
-import os
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
-from tests.docker_guard import requires_postgres
+from tests.docker_guard import POSTGRES_IMAGE, requires_postgres, run_migrations
 
 from ecosfera_ai.engines.evolution.events import SPECIES_EXTINCT, EvolutionCauseCode
 from ecosfera_ai.shared_kernel.events import EventEmitter, event_from_dict, event_to_dict
 from ecosfera_ai.simulation_engine.params import load_params
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
-POSTGRES_IMAGE = "postgres:16-alpine"
 
 pytestmark = requires_postgres()
-
-
-def _run_migrations(async_url: str) -> None:
-    from alembic import command
-    from alembic.config import Config
-
-    os.environ["DATABASE_URL"] = async_url
-    config = Config("alembic.ini")
-    config.set_main_option("script_location", "migrations")
-    command.upgrade(config, "head")
 
 
 @pytest.fixture(scope="module")
@@ -50,7 +38,7 @@ def engine() -> Iterator[Any]:
 
     with PostgresContainer(POSTGRES_IMAGE, driver="asyncpg") as container:
         url = container.get_connection_url()
-        _run_migrations(url)  # inclui a 0004 do M5
+        run_migrations(url)  # inclui a 0004 do M5
         yield create_async_engine(url, poolclass=NullPool, connect_args={"statement_cache_size": 0})
 
 

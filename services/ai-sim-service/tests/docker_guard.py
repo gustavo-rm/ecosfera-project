@@ -16,6 +16,27 @@ import os
 
 import pytest
 
+# Imagem COM pgvector: a migration 0001 (baseline do schema `rag`) faz
+# `CREATE EXTENSION vector`, que não existe no postgres oficial nem no alpine.
+#
+# Vive aqui, e não em cada teste, porque já divergiu uma vez: o arquivo do Event
+# Store nasceu com `postgres:16-alpine` e só o CI viu — localmente ele pulava por
+# falta de Docker, então a suíte ficava verde apontando para uma imagem em que a
+# primeira migration nem aplica. Constante compartilhada para que o próximo
+# arquivo de persistência herde a escolha em vez de repeti-la errado.
+POSTGRES_IMAGE = "pgvector/pgvector:pg16"
+
+
+def run_migrations(async_url: str) -> None:
+    """Aplica as migrations via API do Alembic (equivale a `alembic upgrade head`)."""
+    from alembic import command
+    from alembic.config import Config
+
+    os.environ["DATABASE_URL"] = async_url
+    config = Config("alembic.ini")
+    config.set_main_option("script_location", "migrations")
+    command.upgrade(config, "head")
+
 
 def docker_available() -> bool:
     try:
