@@ -21,7 +21,7 @@ em modo `inmemory` sem o extra `infra` instalado.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, fields
+from dataclasses import fields
 from typing import Any
 
 from sqlalchemy import text
@@ -40,14 +40,19 @@ _STATE_FIELDS: frozenset[str] = frozenset(f.name for f in fields(PlanetState))
 
 
 def state_to_json(state: PlanetState) -> str:
-    """Serializa o estado para JSONB."""
-    return json.dumps(asdict(state))
+    """Serializa o estado para JSONB — delegando a forma canônica ao domínio.
+
+    A serialização deixou de morar aqui no M5: export portável, Event Store e
+    persistência precisam da MESMA forma, e mantê-la num adaptador faria a
+    aplicação depender da infraestrutura para exportar (ADR 0021).
+    """
+    return json.dumps(state.to_dict())
 
 
 def state_from_json(raw: Any) -> PlanetState:
     """Reconstrói o estado tolerando chaves desconhecidas (evolução de schema)."""
     data = json.loads(raw) if isinstance(raw, str) else dict(raw)
-    return PlanetState(**{k: v for k, v in data.items() if k in _STATE_FIELDS})
+    return PlanetState.from_dict(data)
 
 
 def create_engine(database_url: str) -> AsyncEngine:

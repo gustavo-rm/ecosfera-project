@@ -18,10 +18,11 @@ Duas regras estruturais valem para todos:
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from types import MappingProxyType
+from typing import Any
 
 # Namespace fixo do ECOSFERA para derivação determinística de identificadores.
 # Constante: mudá-lo invalidaria os ids de todos os eventos já gravados.
@@ -200,4 +201,96 @@ def diagnostic_event(
         cause_code,
         cause_detail=detail,
         causation_id=causation_id,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Serialização do envelope §4 — a base do Event Store persistente e do export.
+#
+# O envelope é o contrato ENTRE a simulação e todos os consumidores (Tutor,
+# pesquisa, monitoramento). Se ele não sobrevive à ida e volta, o Event Store
+# guarda uma versão empobrecida do que aconteceu, e a trilha deixa de ser fonte
+# de verdade — vira resumo.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _cause_code_registry() -> dict[str, CauseCodeEnum]:
+    """Mapa `valor -> membro` de TODOS os vocabulários de causa declarados.
+
+    `CauseCodeEnum` é vazio de propósito (cada Engine declara o seu), então a
+    desserialização não pode simplesmente chamar `CauseCodeEnum(valor)`. Varrer
+    as subclasses é o que mantém o envelope agnóstico: um Engine novo passa a ser
+    desserializável sem que este módulo o conheça.
+    """
+
+    def walk(cls: type[CauseCodeEnum]) -> Iterator[type[CauseCodeEnum]]:
+        for sub in cls.__subclasses__():
+            yield sub
+            yield from walk(sub)
+
+    registry: dict[str, CauseCodeEnum] = {}
+    for subclass in walk(CauseCodeEnum):
+        for member in subclass:
+            registry[str(member.value)] = member
+    return registry
+
+
+def event_to_dict(event: DomainEvent) -> dict[str, Any]:
+    """Envelope §4 completo como dado portável (JSON-compatível)."""
+    return {
+        "event_id": event.event_id,
+        "event_type": event.event_type,
+        "engine_id": event.engine_id,
+        "tick": event.occurred_at.tick,
+        "era": event.occurred_at.era,
+        "seed": event.seed,
+        "cause_code": str(event.cause_code.value),
+        "correlation_id": event.correlation_id,
+        "causation_id": event.causation_id,
+        "location": dict(event.location),
+        "participants": list(event.participants),
+        "environmental_factors": list(event.environmental_factors),
+        "genes": list(event.genes),
+        "resources": list(event.resources),
+        "cause_detail": dict(event.cause_detail),
+        "consequences": list(event.consequences),
+        "granularity": event.granularity.value,
+    }
+
+
+class UnknownCauseCodeError(ValueError):
+    """Um `cause_code` gravado não corresponde a vocabulário algum carregado.
+
+    Acontece ao ler uma trilha produzida por uma versão que tinha um Engine que
+    esta não tem. Falhar é melhor que degradar em silêncio: uma causa que o
+    consumidor não sabe interpretar viraria explicação errada ao aluno.
+    """
+
+
+def event_from_dict(data: Mapping[str, Any]) -> DomainEvent:
+    """Reconstrói o evento a partir do dado portável."""
+    value = str(data["cause_code"])
+    cause_code = _cause_code_registry().get(value)
+    if cause_code is None:
+        raise UnknownCauseCodeError(
+            f"cause_code {value!r} não pertence a nenhum vocabulário carregado; "
+            "a trilha veio de uma versão com Engines que esta não tem"
+        )
+    return DomainEvent(
+        event_id=str(data["event_id"]),
+        event_type=str(data["event_type"]),
+        engine_id=str(data["engine_id"]),
+        occurred_at=SimulationTime(tick=int(data["tick"]), era=int(data["era"])),
+        seed=int(data["seed"]),
+        cause_code=cause_code,
+        correlation_id=str(data["correlation_id"]),
+        causation_id=data.get("causation_id"),
+        location=dict(data.get("location", {})),
+        participants=tuple(data.get("participants", ())),
+        environmental_factors=tuple(data.get("environmental_factors", ())),
+        genes=tuple(data.get("genes", ())),
+        resources=tuple(data.get("resources", ())),
+        cause_detail=dict(data.get("cause_detail", {})),
+        consequences=tuple(data.get("consequences", ())),
+        granularity=Granularity(data.get("granularity", Granularity.AGGREGATE.value)),
     )

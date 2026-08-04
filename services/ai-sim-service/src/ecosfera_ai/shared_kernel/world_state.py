@@ -56,7 +56,18 @@ from typing import Any, Protocol, cast
 # lê e a incorpora à própria dinâmica (ADR 0018). Checkpoints da versão 3 não
 # trazem a fatia; ler um deles como 4 devolve a `EventSlice` zerada, que é o
 # mundo sem perturbação ativa — degradação correta, não silenciosa.
-WORLD_STATE_VERSION = 4
+# 4 -> 5 (M5): sai `atmosphere.oxygen`. O campo existia desde o M1 e NUNCA teve
+# escritor: nenhum Engine o produzia, a ponte não o mapeava, e ele valia 0,0 em
+# toda corrida. O round-trip "passava" nele por vacuidade (0,0 == 0,0), que é
+# justamente o tipo de verde que não afirma nada.
+#
+# Manter um campo sem dono contradiz a regra que o M2 fixou — toda grandeza do
+# world-state tem um Engine dono (ADR 0014) — e ofereceria ao próximo leitor uma
+# grandeza que parece existir e não existe. A oxigenação atmosférica é ciência
+# AUSENTE, não ciência zerada: está registrada como pendência em
+# `docs/decisions/deferred.md` (Grande Oxigenação) para um marco futuro.
+#
+WORLD_STATE_VERSION = 5
 
 
 class SliceRef(StrEnum):
@@ -119,7 +130,6 @@ class AtmosphereSlice:
 
     co2: float = 0.0
     pressure: float = 0.0
-    oxygen: float = 0.0
     greenhouse_forcing: float = 0.0
 
 

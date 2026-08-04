@@ -9,7 +9,9 @@ existente (RF-013/023).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, fields, replace
+from typing import Any
 
 from ecosfera_ai.domain.feedback.models import Observation
 
@@ -216,6 +218,31 @@ class PlanetState:
     event_active_elapsed: float = 0.0
     event_active_severity: float = 0.0
     event_quiet_remaining: float = 0.0
+
+    # --- Serialização (Plataforma, M5) ----------------------------------------
+    #
+    # Mora AQUI, e não no adaptador Postgres onde nasceu, porque é contrato de
+    # DOMÍNIO: o export portável, o Event Store e a persistência precisam todos
+    # da mesma forma canônica. Deixá-la na infraestrutura obrigaria a camada de
+    # aplicação a importar um adaptador — a inversão que a hexagonal proíbe.
+
+    def to_dict(self) -> dict[str, Any]:
+        """Forma canônica do estado — a mesma para JSONB, export e checkpoint."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> PlanetState:
+        """Reconstrói TOLERANDO chaves desconhecidas.
+
+        A tolerância é o que permitiu ao M3 acrescentar fatias sem migration: um
+        checkpoint antigo, sem os campos novos, ainda carrega. Mas ela tem um
+        preço — um campo REMOVIDO (como o `oxygen` no M5) é descartado em
+        silêncio, e um campo renomeado vira default. Por isso o artefato portável
+        carrega `world_state_version` e recusa versões diferentes: a tolerância
+        cobre acréscimo, não troca de esquema.
+        """
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in known})
 
     def value(self, variable: str) -> float:
         """Lê uma variável de estado pelo nome da linguagem ubíqua do domínio."""
