@@ -102,7 +102,10 @@ async def test_the_query_indexes_exist(engine: Any) -> None:
         "event_log_correlation_idx",
         "event_log_causation_idx",
         "event_log_cause_code_idx",
-        "event_log_event_id_key",
+        # Composto desde a migration 0005: `event_id` é único POR PLANETA, não
+        # globalmente. A chave global do M5 impedia gravar dois planetas de mesma
+        # semente, porque a derivação do id não inclui planeta (ADR 0023).
+        "event_log_planet_event_id_key",
     ):
         assert expected in indexes, f"índice `{expected}` ausente"
 
@@ -182,6 +185,41 @@ async def test_the_same_event_cannot_be_stored_twice(engine: Any) -> None:
     with pytest.raises(IntegrityError):
         async with engine.begin() as conn:
             await conn.execute(statement, values)
+
+
+@pytest.mark.asyncio
+async def test_the_same_event_id_is_allowed_in_a_different_planet(engine: Any) -> None:
+    """O outro lado da migration 0005 — e a razão de ela existir.
+
+    A derivação do `event_id` não inclui planeta, então dois planetas de mesma
+    semente produzem ids idênticos. Com a chave única GLOBAL do M5, gravar o
+    segundo era impossível: o banco recusava a corrida de um aluno como se fosse
+    reprocessamento da de outro. Com `(planet_id, event_id)` isso passa a ser
+    permitido — que é o que torna o isolamento entre planetas testável (ADR
+    0023).
+    """
+    from sqlalchemy import text
+
+    shared = _event(77)
+    payload = event_to_dict(shared)
+    statement = text(
+        "INSERT INTO simulation.event_log "
+        "(planet_id, tick, event_type, payload, event_id) "
+        "VALUES (:planet, :tick, :type, '{}'::jsonb, :id)"
+    )
+    values = {"tick": payload["tick"], "type": payload["event_type"], "id": payload["event_id"]}
+
+    async with engine.begin() as conn:
+        await conn.execute(statement, {**values, "planet": "planeta-da-ana"})
+        # MESMO event_id, planeta diferente: com a chave global isto levantaria
+        # IntegrityError e a turma inteira ficaria presa ao primeiro aluno.
+        await conn.execute(statement, {**values, "planet": "planeta-do-bruno"})
+
+        stored = await conn.execute(
+            text("SELECT planet_id FROM simulation.event_log WHERE event_id = :id"),
+            {"id": payload["event_id"]},
+        )
+        assert {row[0] for row in stored} == {"planeta-da-ana", "planeta-do-bruno"}
 
 
 @pytest.mark.asyncio
