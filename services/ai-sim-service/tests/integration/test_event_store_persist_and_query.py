@@ -223,6 +223,44 @@ async def test_the_same_event_id_is_allowed_in_a_different_planet(engine: Any) -
 
 
 @pytest.mark.asyncio
+async def test_rows_written_before_the_envelope_are_invisible_to_the_new_reader(
+    engine: Any,
+) -> None:
+    """Linha do M2 (sem envelope §4) não vira `DomainEvent` empobrecido.
+
+    As colunas do envelope são nullable (ADR 0021), então linhas gravadas pelo
+    caminho do M2 têm `event_id NULL`. Elas seguem válidas e legíveis por
+    `load_events`, que é quem as escreveu — mas NÃO entram na porta de leitura
+    nova: sem `cause_code` nem `causation_id`, reconstruí-las exigiria inventar
+    campos, e o Tutor receberia um fato que o Event Store não contém.
+
+    Fronteira registrada no ADR 0023.
+    """
+    from sqlalchemy import text
+
+    from ecosfera_ai.application.platform.event_query import EventQuery
+    from ecosfera_ai.infrastructure.persistence.postgres_event_store import PostgresEventQuery
+
+    legacy = "planeta-legado"
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO simulation.event_log (planet_id, tick, event_type, payload) "
+                "VALUES (:p, 1, 'LifeEmerged', '{\"biomass\": 1.0}'::jsonb)"
+            ),
+            {"p": legacy},
+        )
+        stored = await conn.execute(
+            text("SELECT count(*) FROM simulation.event_log WHERE planet_id = :p"), {"p": legacy}
+        )
+        assert stored.scalar_one() == 1, "a linha do M2 nem chegou a ser gravada"
+
+    assert await PostgresEventQuery(engine).query(legacy, EventQuery()) == (), (
+        "uma linha sem envelope §4 apareceu na porta de leitura nova"
+    )
+
+
+@pytest.mark.asyncio
 async def test_querying_by_cause_code_and_correlation(engine: Any) -> None:
     """As consultas que o M6 vai fazer, contra o banco de verdade."""
     from sqlalchemy import text

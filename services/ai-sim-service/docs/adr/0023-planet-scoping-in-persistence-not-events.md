@@ -124,6 +124,42 @@ CERTO, e não apenas a quantidade certa.
 O teste cobre sete recortes, a cadeia causal, o planeta inexistente (que devolve
 vazio, nunca "tudo") e a idempotência do reprocessamento.
 
+## O que acontece com as linhas gravadas antes destas migrations
+
+Fronteira explícita, para não morder no primeiro ambiente com dados de teste.
+
+**`planet_id` não é coluna nova.** Existe em `simulation.event_log` desde a
+migration 0002 (M2), como `text NOT NULL`. Nenhuma linha jamais foi gravada sem
+planeta, e não há órfão possível nessa coluna — nem backfill a fazer.
+
+**As colunas novas são as do envelope §4** (0004): `event_id`, `engine_id`,
+`era`, `seed`, `cause_code`, `correlation_id`, `causation_id`, `granularity`.
+São *nullable* de propósito (ADR 0021), então as linhas gravadas pelo caminho do
+M2 têm `event_id NULL`. Elas continuam válidas e continuam legíveis pelo
+`load_events` do M2, que é quem as escreveu.
+
+**O leitor novo as ignora, e isso é decisão, não descuido.** `PostgresEventQuery`
+consulta `WHERE planet_id = :planet_id AND event_id IS NOT NULL`. Uma linha sem
+envelope não tem `cause_code`, `correlation_id` nem `causation_id` — não é um
+`DomainEvent` empobrecido, é outra coisa. Reconstruí-la com campos inventados
+entregaria ao Tutor um fato que o Event Store não contém, que é exatamente a
+alucinação que este ADR existe para impedir. Ficam invisíveis à porta de leitura,
+por onde nunca deveriam ter entrado.
+
+**A 0005 não pode falhar sobre dado existente.** O índice é parcial
+(`WHERE event_id IS NOT NULL`), então linhas do M2 nunca conflitam. E a
+restrição que ela substitui — `UNIQUE (event_id)` global — é *estritamente mais
+forte* que `UNIQUE (planet_id, event_id)`: qualquer base que satisfazia a antiga
+satisfaz a nova por construção. A migração é segura em qualquer banco que já
+tivesse a 0004 aplicada.
+
+**Em desenvolvimento não há dado a preservar.** Não existe produção; os bancos
+são efêmeros (Testcontainers) ou locais. Se algum ambiente de teste ficar em
+estado estranho, a resposta correta é **recriar do zero**, não escrever
+backfill. Só o `downgrade` da 0005 pode falhar legitimamente — se dois planetas
+de mesma semente já convivem, a restrição global não é satisfazível, e restaurá-
+la significaria descartar a trilha de um deles.
+
 ## Dívida declarada, não fechada
 
 O M5 nunca ligou um escritor do envelope §4: `append_event` grava as quatro
