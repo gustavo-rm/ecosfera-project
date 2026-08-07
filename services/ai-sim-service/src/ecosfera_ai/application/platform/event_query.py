@@ -10,13 +10,28 @@ precisará.
 
 Implementar consumidores agora fixaria decisões de produto que ainda não foram
 tomadas (o que `/species` significa, por exemplo — `docs/decisions/pending.md`).
-O que o M5 deve entregar é a SUPERFÍCIE: por planeta, era, correlação, causa. O
-M6 assina isso sem renegociar o formato.
+O que o M5 deve entregar é a SUPERFÍCIE: era, janela de ticks, correlação,
+causação, causa, Engine e tipo. O M6 assina isso sem renegociar o formato.
+
+## O planeta é dimensão de ARMAZENAMENTO, não campo do evento
+
+O recorte por planeta NÃO é um predicado sobre o evento — é escopo da porta. Um
+"erupção no tick 1200" é o mesmo fato em qualquer planeta; em QUAL planeta ele
+está é onde está guardado, não o que ele é. A Spec §4 deixa planeta fora do
+envelope de propósito, e esta é a consequência coerente disso (ADR 0023).
+
+Por isso `planet_id` é parâmetro de `query`/`causal_chain`, aplicado ANTES do
+predicado, e não um campo de `EventQuery`. O M5 declarava-o como campo e nunca o
+aplicava — um filtro que aparenta filtrar e não filtra entregaria ao Tutor a
+trilha de dois planetas parecendo recortada, e ele narraria a catástrofe do
+planeta de outro aluno citando eventos reais. Ancorado no Event Store e
+inteiramente errado, que é a alucinação mais difícil de detectar que este
+desenho admite.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -25,9 +40,16 @@ from ecosfera_ai.shared_kernel.events import DomainEvent
 
 @dataclass(frozen=True, slots=True)
 class EventQuery:
-    """Filtro de consulta. Campos ausentes não restringem."""
+    """Predicado sobre o EVENTO. Campos ausentes não restringem.
 
-    planet_id: str | None = None
+    Todo campo daqui é aplicado em `matches()` e exercitado por teste — a
+    varredura que originou o ADR 0023 encontrou um campo decorativo e três
+    aplicados sem cobertura, e `test_no_phantom_filters` existe para que a
+    combinação não volte.
+
+    O planeta NÃO está aqui: é escopo de armazenamento, parâmetro da porta.
+    """
+
     era: int | None = None
     from_tick: int | None = None
     to_tick: int | None = None
@@ -61,45 +83,87 @@ class EventQuery:
 
 
 class EventStoreQuery(Protocol):
-    """Porta de leitura. O M6 depende DESTA assinatura, não de um adaptador."""
+    """Porta de leitura. O M6 depende DESTA assinatura, não de um adaptador.
 
-    def query(self, spec: EventQuery) -> Sequence[DomainEvent]: ...
+    `planet_id` vem PRIMEIRO em ambos os métodos, e não tem default: escopar o
+    planeta é obrigatório, e um default silencioso reintroduziria exatamente o
+    vazamento que o ADR 0023 corrige.
 
-    def causal_chain(self, event_id: str) -> Sequence[DomainEvent]: ...
+    ## Por que assíncrona, mesmo doendo na implementação em memória
+
+    O M5 declarou a porta síncrona porque só existia a implementação em memória.
+    O Event Store de verdade é o Postgres, e ele é async como todas as outras
+    portas de persistência deste serviço.
+
+    Uma porta síncrona forçaria uma destas saídas: o adaptador Postgres carregar
+    tudo por fora e não implementar a porta (e aí não há paridade — a
+    implementação de referência seria a única a implementar o contrato), ou
+    bloquear o event loop numa chamada de I/O. As duas trocam um desconforto de
+    teste por um defeito de produção.
+
+    Assim as DUAS implementações satisfazem o mesmo contrato e passam os MESMOS
+    testes — que é o único jeito de a implementação em memória valer como
+    referência do que o adaptador faz.
+    """
+
+    async def query(self, planet_id: str, spec: EventQuery) -> Sequence[DomainEvent]: ...
+
+    async def causal_chain(self, planet_id: str, event_id: str) -> Sequence[DomainEvent]: ...
+
+
+def walk_causal_chain(events: Sequence[DomainEvent], event_id: str) -> tuple[DomainEvent, ...]:
+    """Sobe a cadeia pelo `causation_id`, do efeito até a raiz.
+
+    É a operação que o Tutor usa para responder "por que isso aconteceu?", e a
+    que reconstrói `MeteorImpact → … → SpeciesExtinct`. O corte por ciclo não é
+    defensivo por precaução: uma trilha corrompida por import não pode travar o
+    consumidor.
+
+    Vive como função e não como método porque as DUAS implementações da porta a
+    usam sobre a trilha já escopada num planeta. Duplicá-la seria repetir o erro
+    que este módulo acabou de pagar — a mesma regra escrita em dois lugares, e
+    uma delas envelhecendo sozinha.
+    """
+    index = {event.event_id: event for event in events}
+    current = index.get(event_id)
+    if current is None:
+        return ()
+
+    chain: list[DomainEvent] = [current]
+    seen = {current.event_id}
+    while current.causation_id and current.causation_id in index:
+        parent = index[current.causation_id]
+        if parent.event_id in seen:
+            break
+        chain.append(parent)
+        seen.add(parent.event_id)
+        current = parent
+    return tuple(chain)
 
 
 @dataclass(frozen=True, slots=True)
 class InMemoryEventQuery:
-    """Implementação sobre uma trilha em memória — a de referência do contrato."""
+    """Trilhas em memória, POR PLANETA — a implementação de referência.
 
-    events: Sequence[DomainEvent]
+    O mapa por planeta não é ergonomia: é o que dá PARIDADE com o adaptador
+    persistente. Uma implementação em memória que guardasse uma lista só não
+    conseguiria sequer expressar o vazamento entre planetas, e o teste de
+    isolamento passaria por não haver o que vazar.
+    """
 
-    def query(self, spec: EventQuery) -> Sequence[DomainEvent]:
-        return tuple(event for event in self.events if spec.matches(event))
+    trails: Mapping[str, Sequence[DomainEvent]]
 
-    def causal_chain(self, event_id: str) -> Sequence[DomainEvent]:
-        """Sobe a cadeia pelo `causation_id`, do efeito até a raiz.
+    @classmethod
+    def of(cls, planet_id: str, events: Sequence[DomainEvent]) -> InMemoryEventQuery:
+        """Atalho para o caso de um planeta só."""
+        return cls({planet_id: tuple(events)})
 
-        É a operação que o Tutor usa para responder "por que isso aconteceu?", e
-        a que reconstrói `MeteorImpact → … → SpeciesExtinct`. O corte por ciclo
-        não é defensivo por precaução: uma trilha corrompida por import não pode
-        travar o consumidor.
-        """
-        index = {event.event_id: event for event in self.events}
-        current = index.get(event_id)
-        if current is None:
-            return ()
+    async def query(self, planet_id: str, spec: EventQuery) -> Sequence[DomainEvent]:
+        scoped = self.trails.get(planet_id, ())
+        return tuple(event for event in scoped if spec.matches(event))
 
-        chain: list[DomainEvent] = [current]
-        seen = {current.event_id}
-        while current.causation_id and current.causation_id in index:
-            parent = index[current.causation_id]
-            if parent.event_id in seen:
-                break
-            chain.append(parent)
-            seen.add(parent.event_id)
-            current = parent
-        return tuple(chain)
+    async def causal_chain(self, planet_id: str, event_id: str) -> Sequence[DomainEvent]:
+        return walk_causal_chain(self.trails.get(planet_id, ()), event_id)
 
 
 # --- As projeções (ADR-ARCH-0002, "três públicos") ----------------------------
@@ -115,8 +179,8 @@ class ScientificProjection:
 
     events: Sequence[DomainEvent]
 
-    def of(self, planet_id: str | None = None, era: int | None = None) -> list[DomainEvent]:
-        spec = EventQuery(planet_id=planet_id, era=era, include_diagnostics=False)
+    def of(self, era: int | None = None) -> list[DomainEvent]:
+        spec = EventQuery(era=era, include_diagnostics=False)
         return sorted(
             (e for e in self.events if spec.matches(e)),
             key=lambda e: (e.occurred_at.era, e.occurred_at.tick, e.event_id),
