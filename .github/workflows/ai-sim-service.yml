@@ -6,14 +6,23 @@ name: ai-sim-service
 # outro") em barreira efetiva, e não em convenção (ADR-ARCH-0001, Spec §8).
 #
 # Os testes de integração com Postgres/Redis usam Testcontainers. No runner
-# `ubuntu-latest` há daemon Docker, então eles RODAM aqui — e a prova é a
-# contagem: 581 no CI contra 574 localmente, exatamente os 7 que pulam sem
-# Docker.
+# `ubuntu-latest` há daemon Docker, então eles RODAM aqui — afirmação observada,
+# não deduzida: o run #6 (M4) fechou em `581 passed, 1 xfailed`, sem contagem de
+# `skipped`, e todo run desde então repetiu o padrão. Dois deles falharam com
+# erros que só um Postgres vivo produz (extensão `vector` ausente; índice real
+# ausente), o que é prova POSITIVA de execução, não apenas ausência de pulo.
 #
-# Mas rodar por acaso não é garantia. Se um runner futuro não tiver Docker, o
-# guard de skip os silenciaria e ninguém notaria — o skip viraria esconderijo.
-# `ECOSFERA_REQUIRE_POSTGRES` fecha isso: com ela ligada, a ausência de Docker
-# FALHA em vez de pular (M5).
+# Mas rodar não é o mesmo que ser exigido. Três camadas, cada uma com um modo de
+# falhar (docs/ci-verification-matrix.md):
+#
+#   1. o passo abaixo reprova ANTES dos testes se a flag estiver desligada ou o
+#      daemon ausente — um `ECOSFERA_REQUIRE_POSTGRES` removido por engano deixa
+#      de passar despercebido;
+#   2. `ECOSFERA_REQUIRE_POSTGRES` transforma "sem Docker" em FALHA por teste,
+#      em vez de pulo (M5);
+#   3. um hook de sessão REPROVA a suíte se qualquer teste de infraestrutura
+#      pular — inclusive por `skipif` artesanal que não use a marca. Até aqui
+#      "zero skips" era conferido por um humano somando à mão.
 
 on:
   push:
@@ -61,6 +70,23 @@ jobs:
         run: |
           uv run python -VV
           uv run python -c "import numpy, mesa; print('numpy', numpy.__version__, '| mesa', mesa.__version__)"
+
+      # Falha ANTES dos testes se o ambiente não puder cumprir a promessa. Sem
+      # este passo, um runner sem Docker só se revelaria no meio da suíte, e um
+      # `ECOSFERA_REQUIRE_POSTGRES` removido por engano não se revelaria nunca:
+      # a árvore ficaria verde atestando uma verificação que não aconteceu.
+      - name: Verificar que a persistência é verificável aqui
+        run: |
+          test "${ECOSFERA_REQUIRE_POSTGRES:-}" = "1" || {
+            echo "::error::ECOSFERA_REQUIRE_POSTGRES não está ligada — os testes de"
+            echo "::error::persistência pulariam em silêncio e o gate seria decorativo."
+            exit 1
+          }
+          docker info >/dev/null 2>&1 || {
+            echo "::error::Sem daemon Docker: Testcontainers não sobe o Postgres."
+            exit 1
+          }
+          echo "Docker disponível e flag ligada — os testes de persistência DEVEM rodar."
 
       - name: Lint (ruff)
         run: uv run ruff check src tests
