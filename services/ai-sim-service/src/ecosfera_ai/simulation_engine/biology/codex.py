@@ -7,6 +7,22 @@ artefato pedagógico central deste incremento (RF-031).
 
 Puro: sem DEAP, sem Mesa, sem I/O. A persistência é responsabilidade da porta
 `PlanetRepository` (ADR 0001).
+
+## AVISO — `ancestor_id` aqui expressa o modelo SUPERADO (BIO-001)
+
+Este códex pertence ao **caminho B**, o de biologia por era, DORMENTE desde o M3
+(`biology_enabled=False`, ADR 0017 tempo 1) e destinado à remoção no tempo 3.
+Quem o preenche é `simulation_engine/biology/evolution.py`, que escolhe o
+`ancestor_id` entre as espécies **vivas** — ou seja, afirma que uma espécie atual
+gerou outra espécie atual. Essa é exatamente a ancestralidade que o BIO-001
+corrige: o correto é um ancestral comum que se dividiu em duas linhagens irmãs.
+
+A Fase 0 **não reescreve este caminho** — reescrevê-lo seria implementar a camada
+de espécies, que a decisão de coortes (BIO-003, ADR 0024) deixou para depois do
+M6. O que a Fase 0 garante é que o modelo CORRETO é o do Canal B do Evolution
+Engine (`SpeciationOccurred` com um ancestral e duas linhagens), e que este
+caminho continua dormente — `test_path_b_is_dormant` e
+`test_speciation_is_common_ancestor` guardam as duas pontas.
 """
 
 from __future__ import annotations

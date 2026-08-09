@@ -53,6 +53,7 @@ from ecosfera_ai.engines.evolution.events import (
     SPECIES_EXTINCT,
     TRAIT_SHIFT,
     EvolutionCauseCode,
+    lineages_for,
 )
 from ecosfera_ai.shared_kernel.engine import TickContext, TickResult
 from ecosfera_ai.shared_kernel.events import DomainEvent, EventEmitter
@@ -306,19 +307,37 @@ class EvolutionEngine:
                     )
                 )
 
+        # ESPECIAÇÃO — um ancestral comum se divide em DUAS linhagens (BIO-001).
+        #
+        # `genome` é a comunidade como ela era ANTES da divisão: é o ancestral, e
+        # não uma das duas linhagens que seguem adiante. `drifted` é a variante
+        # divergente. Nomear o evento assim é o que impede o consumidor de dizer
+        # que uma espécie atual gerou outra espécie atual.
         if has_speciated(drifted, genome, self.params):
+            lineages = lineages_for(ctx.seed, ctx.era, ctx.tick)
             events.append(
                 emitter.emit(
                     SPECIATION_OCCURRED,
                     EvolutionCauseCode.GENETIC_DIVERGENCE,
                     location={"region_id": "global"},
-                    participants=["species:community"],
+                    participants=lineages.participants,
                     genes=list(_TRAITS),
                     resources=["biomass"],
                     cause_detail={
                         "distance": drifted.distance(genome),
                         "biomass": biomass,
-                        **{f"gene_{k}": v for k, v in drifted.to_dict().items()},
+                        "ancestor_lineage_id": lineages.ancestor,
+                        "lineage_a_id": lineages.first,
+                        "lineage_b_id": lineages.second,
+                        # O genoma das TRÊS entra explícito. A linhagem A segue
+                        # com os traços ancestrais e a B com os divergentes, mas
+                        # deixar isso implícito obrigaria o consumidor a conhecer
+                        # a regra — e um consumidor que erra a regra narra
+                        # ancestralidade errada, que é o defeito que o BIO-001
+                        # existe para fechar.
+                        **{f"ancestor_gene_{k}": v for k, v in genome.to_dict().items()},
+                        **{f"lineage_a_gene_{k}": v for k, v in genome.to_dict().items()},
+                        **{f"lineage_b_gene_{k}": v for k, v in drifted.to_dict().items()},
                     },
                     causation_id=ctx.caused_by_slice(SliceRef.RESOURCE),
                 )

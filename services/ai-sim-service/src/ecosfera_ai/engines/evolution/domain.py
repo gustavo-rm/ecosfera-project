@@ -49,12 +49,20 @@ prosperar ao mesmo tempo, ou perecer ao mesmo tempo; não há competição por u
 posto no ranking. A aptidão CONTEXTUAL é o RESULTADO de sobreviver naquele
 ambiente, não um alvo que se persiga.
 
-## Mutação e especiação
+## Mutação, adaptação e especiação
 
 A reprodução copia o genoma com desvio gaussiano por traço (RNG semeado pelo
-Planet). Quando a linhagem se distancia da ancestral além do limiar de
-divergência, é **especiação** — uma espécie nova no códex, não um ponto melhor
-no espaço de busca.
+Planet). A mutação é **aleatória e não-direcionada**: surge sem saber se ajuda ou
+atrapalha, e é o ambiente que depois decide quem se sustenta.
+
+Duas coisas distintas saem daí, e o modelo não as confunde (PED-003):
+
+* **ADAPTAÇÃO** — a frequência dos traços na população se desloca ao longo do
+  tempo. A comunidade continua sendo UMA; o que mudou foi a média dela.
+* **ESPECIAÇÃO** — a divergência acumulada passa do limiar e a população
+  ancestral se divide em DUAS linhagens que a compartilham como ancestral comum
+  (`has_speciated`). Não é "uma espécie gerou outra", e não é um ponto melhor no
+  espaço de busca: é uma bifurcação, não um avanço.
 
 Puro: sem DEAP, sem Mesa, sem I/O. Testável sem framework algum.
 """
@@ -210,7 +218,17 @@ def _trait_spans() -> dict[str, float]:
 
 
 def has_speciated(descendant: Genome, ancestor: Genome, params: EvolutionEngineParams) -> bool:
-    """Divergiu o bastante da ancestral para ser outra espécie."""
+    """A divergência passou do limiar: o ancestral comum se divide em duas linhagens.
+
+    O que a função responde é se HOUVE especiação, não quem gerou quem. O
+    `ancestor` é a população como ela era antes da divisão — as duas linhagens
+    que seguem adiante o compartilham, e nenhuma delas é ele (BIO-001).
+
+    **Dívida pós-M6 (BIO-002).** O critério é um limiar num único passo, e a
+    especiação real é gradual. Manter a mecânica e anexar a causa é o escopo
+    declarado da Fase 0; tornar a divergência gradual e mantida ao longo de
+    gerações é a Fase 2 do Plano de Evolução.
+    """
     return descendant.distance(ancestor) >= params.speciation_threshold
 
 

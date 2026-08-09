@@ -329,6 +329,13 @@ class EvolutionEngine:
                 fitness = self._fitness_of(genome, state, 0.0)
                 if fitness < self._p.extinction_fitness:
                     continue  # inviável ao nascer: não vira espécie
+                # ANCESTRALIDADE SUPERADA (BIO-001): o "ancestral" é escolhido
+                # entre as espécies VIVAS, o que afirma que uma espécie atual
+                # gerou outra espécie atual. O modelo correto — um ancestral
+                # comum que se divide em duas linhagens irmãs — vive no Canal B
+                # do Evolution Engine. Este caminho está dormente (ADR 0017) e
+                # sai no tempo 3; não é reescrito aqui porque reescrevê-lo seria
+                # implementar a camada de espécies, que é pós-M6 (ADR 0024).
                 ancestor = min(alive, key=lambda r: r.genome.distance(genome))
                 record = SpeciesRecord(
                     species_id=species_id_for(planet_id, era, len(updated)),
