@@ -62,6 +62,11 @@ from ecosfera_ai.simulation_engine.biology.genome import Genome
 
 _TRAITS = ("temp_optimum", "temp_tolerance", "water_need", "size", "metabolism", "trophic_level")
 
+# Abaixo desta adequação térmica o ambiente está fora da janela da comunidade.
+# Serve a dois diagnósticos — o da extinção e o da especiação — e é a mesma
+# grandeza nos dois: mantê-la num só lugar impede que um deles derive do outro.
+_THERMAL_STRESS = 0.5
+
 
 def _genome_of(biota: BiotaSlice) -> Genome:
     """Reconstrói o genoma médio a partir da fatia."""
@@ -318,7 +323,7 @@ class EvolutionEngine:
             events.append(
                 emitter.emit(
                     SPECIATION_OCCURRED,
-                    EvolutionCauseCode.GENETIC_DIVERGENCE,
+                    _speciation_cause(genome, drifted, conditions, self.params),
                     location={"region_id": "global"},
                     participants=lineages.participants,
                     genes=list(_TRAITS),
@@ -401,6 +406,43 @@ def _richness_change(
     return 0.0
 
 
+def _speciation_cause(
+    ancestor: Genome,
+    divergent: Genome,
+    conditions: LocalConditions,
+    params: EvolutionEngineParams,
+) -> EvolutionCauseCode:
+    """O que DISPAROU a divisão do ancestral comum (BIO-002, parte pré-M6).
+
+    A mecânica não muda nesta fase: a especiação continua sendo divergência
+    acima do limiar, num único passo. O que se acrescenta é a causa, porque o
+    limiar é a RÉGUA e não o motivo — e uma especiação sem motivo, narrada, vira
+    "a espécie precisava de uma nova", que é a teleologia que o BIO-005 proíbe.
+
+    O diagnóstico usa só o que este modelo de fato observa:
+
+    * o nicho mudou (a linhagem divergente cruzou de classe trófica) — a divisão
+      é por exploração de recurso diferente;
+    * o ambiente saiu da janela do ancestral, ou o orçamento ambiental está
+      estourado — a divisão acontece sob pressão ambiental direcional;
+    * nenhum dos dois — as duas linhagens simplesmente acumularam diferença
+      bastante para não mais se cruzarem, que é o nome próprio do isolamento
+      reprodutivo.
+
+    `GEOGRAPHIC_BARRIER` não aparece aqui de propósito: não há geografia neste
+    modelo (toda `location` é global), então não há barreira a detectar. Está
+    declarada e registrada em `CAUSES_WITHOUT_EMITTER` — dívida pós-M6, visível.
+    """
+    del params
+    if divergent.trophic_class != ancestor.trophic_class:
+        return EvolutionCauseCode.DIVERGENT_NICHE
+    if thermal_match(ancestor, conditions.temperature) < _THERMAL_STRESS:
+        return EvolutionCauseCode.ENVIRONMENTAL_PRESSURE
+    if conditions.occupancy >= 1.0:
+        return EvolutionCauseCode.ENVIRONMENTAL_PRESSURE
+    return EvolutionCauseCode.REPRODUCTIVE_ISOLATION
+
+
 def _limiting_cause(
     genome: Genome, conditions: LocalConditions, params: EvolutionEngineParams
 ) -> EvolutionCauseCode:
@@ -423,7 +465,7 @@ def _limiting_cause(
 
     if predation > maintenance_cost(genome, params) and predation > (1.0 - thermal):
         return EvolutionCauseCode.PREDATION_PRESSURE
-    if thermal < 0.5:
+    if thermal < _THERMAL_STRESS:
         return EvolutionCauseCode.THERMAL_INTOLERANCE
     if resource_gap > 0.0 or conditions.carrying_capacity <= 0.0:
         return EvolutionCauseCode.RESOURCE_SCARCITY

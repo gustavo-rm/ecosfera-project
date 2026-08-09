@@ -84,8 +84,32 @@ class EvolutionCauseCode(CauseCodeEnum):
     THERMAL_INTOLERANCE = "THERMAL_INTOLERANCE"
     RESOURCE_SCARCITY = "RESOURCE_SCARCITY"
     PREDATION_PRESSURE = "PREDATION_PRESSURE"
-    GENETIC_DIVERGENCE = "GENETIC_DIVERGENCE"
     DIRECTIONAL_SELECTION = "DIRECTIONAL_SELECTION"
+
+    # CAUSAS DA ESPECIAÇÃO (BIO-002, parte pré-M6) ---------------------------
+    #
+    # A mecânica continua sendo divergência por limiar; o que a Fase 0 acrescenta
+    # é a CAUSA que a disparou, para que a explicação não precise inventá-la.
+    # Sem isso, o consumidor recebe "houve especiação" e nada mais — e uma
+    # especiação sem causa vira, na boca de quem narra, especiação por acaso puro
+    # ou, pior, especiação porque a espécie "precisava" de uma nova.
+    #
+    # Os nomes do Plano de Evolução aparecem aqui em inglês por consistência com
+    # todo o vocabulário de `cause_code` do serviço. A correspondência é direta:
+    # BARREIRA_GEOGRAFICA → GEOGRAPHIC_BARRIER; ISOLAMENTO_REPRODUTIVO →
+    # REPRODUCTIVE_ISOLATION; NICHO_DIVERGENTE → DIVERGENT_NICHE;
+    # PRESSAO_AMBIENTAL → ENVIRONMENTAL_PRESSURE.
+    GEOGRAPHIC_BARRIER = "GEOGRAPHIC_BARRIER"
+    REPRODUCTIVE_ISOLATION = "REPRODUCTIVE_ISOLATION"
+    DIVERGENT_NICHE = "DIVERGENT_NICHE"
+    ENVIRONMENTAL_PRESSURE = "ENVIRONMENTAL_PRESSURE"
+
+    # SUPERADA pelas quatro acima (BIO-002). Nomeava o CRITÉRIO ("os genomas
+    # ficaram distantes"), não a causa — e o critério é a régua, não o motivo.
+    # Continua declarada porque `event_from_dict` recusa um `cause_code` que não
+    # pertença a vocabulário algum: removê-la tornaria ilegível toda trilha já
+    # gravada antes da Fase 0.
+    GENETIC_DIVERGENCE = "GENETIC_DIVERGENCE"
 
     # CATASTRÓFICA — abrupta e INDEPENDENTE de aptidão (Q11/Q8, ADR 0019).
     #
@@ -99,6 +123,34 @@ class EvolutionCauseCode(CauseCodeEnum):
     # numa só faria o Tutor narrar toda extinção como falha de adaptação, que é a
     # concepção equivocada que a plataforma existe para desfazer.
     CATASTROPHIC_EVENT = "CATASTROPHIC_EVENT"
+
+
+# As causas que podem acompanhar uma `SpeciationOccurred`.
+SPECIATION_CAUSES: frozenset[EvolutionCauseCode] = frozenset(
+    {
+        EvolutionCauseCode.GEOGRAPHIC_BARRIER,
+        EvolutionCauseCode.REPRODUCTIVE_ISOLATION,
+        EvolutionCauseCode.DIVERGENT_NICHE,
+        EvolutionCauseCode.ENVIRONMENTAL_PRESSURE,
+    }
+)
+
+# Códigos DECLARADOS que hoje ninguém emite, e a razão de cada um. O registro
+# existe para que o buraco seja RUIDOSO: um código sem emissor é exatamente a
+# família de furo silencioso que o M2 encontrou no `solar_flux` — o vocabulário
+# anuncia uma explicação que a simulação nunca produz.
+#
+# * GEOGRAPHIC_BARRIER — o modelo não tem geografia. Toda `location` é
+#   `region_id: global`, então não há barreira a detectar. Declarado porque é a
+#   causa canônica de especiação alopátrica e o vocabulário do Tutor a exige;
+#   ganha emissor quando existirem regiões (pós-M6).
+# * GENETIC_DIVERGENCE — superada, mantida só para ler trilhas antigas.
+CAUSES_WITHOUT_EMITTER: frozenset[EvolutionCauseCode] = frozenset(
+    {
+        EvolutionCauseCode.GEOGRAPHIC_BARRIER,
+        EvolutionCauseCode.GENETIC_DIVERGENCE,
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
