@@ -6,11 +6,34 @@ Registro do que está explicitamente **em aberto**, para que não vire silêncio
 
 ## P-01 — O que `/species` significa para o aluno
 
-**Estado:** aberto. **Bloqueia:** M5/M6 (códex e Tutor).
-**Precisa de:** pergunta reformulada à especialista, no eixo **BIODIVERSIDADE** —
-não no eixo evolução.
+**Estado: FECHADA** pela Fase 0 — decisão **BIO-003** do
+`PLANO_EVOLUCAO_ECOSFERA.md`, registrada no **ADR 0024**.
 
-### O impasse
+**A resposta: comunidade + espécies, e não uma escolha entre as duas.** A
+comunidade continua sendo o MECANISMO evolutivo (ADR 0016 preservado); espécies
+com identidade entram como camada de INVESTIGAÇÃO **opcional** — poucas espécies,
+filogenia simplificada por ancestral comum. A **implementação da camada é
+pós-M6**; o que a Fase 0 precisava era da decisão, porque é ela que define se o
+Tutor fala de "comunidade" ou de "espécie X".
+
+**Consequências imediatas:** o Tutor do M6 fala da COMUNIDADE; `TUT-002`
+(contraste entre espécies) fica adiado com razão declarada; `/species` segue
+servido pelo caminho B dormente até o tempo 3 do ADR 0017.
+
+O registro abaixo é mantido como o **contexto** que levou à decisão — não é mais
+uma pergunta em aberto.
+
+**Segue em aberto, e é outra pergunta:** a FORMA da camada (censo de coortes por
+espécie × linhagem da comunidade no tempo) e o marco que a implementa. É a Fase 2
+do Plano de Evolução.
+
+### O impasse (registro HISTÓRICO — resolvido pelo ADR 0024)
+
+> Uma frase abaixo envelheceu e a correção importa: `SpeciationOccurred` **não**
+> nomeia mais `species:community`. Desde a Fase 0 (BIO-001, ADR 0023) ele nomeia
+> um `ancestor:` e duas `lineage:`, com a causa da divisão no `cause_code`. O
+> achado de fundo continua verdadeiro — o Engine não tem IDENTIDADES de espécie,
+> e é por isso que os papéis do evento são papéis, e não nomes.
 
 O `/species` hoje é servido pelo caminho de biologia por era
 (`simulation_engine/biology/`), que está **DORMENTE** desde o M3
