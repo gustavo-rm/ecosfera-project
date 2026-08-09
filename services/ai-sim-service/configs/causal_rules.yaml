@@ -11,7 +11,28 @@
 #   oceânico, nutrientes e capacidade de suporte. São as setas que o aluno passa
 #   a poder observar agora que os ciclos deixaram de estar pela metade
 #   (ADR 0012/0013).
-version: 4
+# version 4 -> 5 (Fase 0): entram as regras que narram a ESPECIAÇÃO por ancestral
+#   comum (BIO-001) e a distinção ADAPTAÇÃO × ESPECIAÇÃO (PED-003). Antes desta
+#   versão um evento de especiação virava uma observação que não disparava regra
+#   alguma: o aluno via a riqueza mudar e não ouvia nada sobre ancestralidade —
+#   e o silêncio, num tema onde a concepção equivocada ("A virou B") é a
+#   intuição espontânea, é a própria concepção equivocada sendo confirmada.
+#
+# TRÊS REGRAS DE LINGUAGEM valem para todo `template` deste arquivo, e o Tutor do
+# M6 as herda (BIO-005, PED-003, BIO-001):
+#
+#   1. NADA de intenção. Mutação é "surgiu uma mutação aleatória"; seleção é "a
+#      característica aumentou a sobrevivência porque o ambiente era X". Nunca "a
+#      espécie desenvolveu/criou/buscou" coisa alguma.
+#   2. ADAPTAÇÃO (a frequência dos traços numa população mudou) não é ESPECIAÇÃO
+#      (uma linhagem nova surgiu de um ancestral comum). Descrever uma como a
+#      outra reduz evolução a adaptação.
+#   3. Nenhuma frase afirma que uma espécie gerou outra. Duas linhagens
+#      COMPARTILHAM um ancestral comum que sofreu especiação.
+#
+# `test_no_teleological_language` e `test_adaptation_vs_speciation_wording`
+# guardam as três.
+version: 5
 rules:
   - id: R-CO2-TEMP
     cause: co2
@@ -150,6 +171,31 @@ rules:
     effect: mean_temp_optimum
     same_direction: true
     template: "As coortes que toleram a nova {cause} deixaram mais descendentes, e o {effect} da comunidade seguiu junto."
+  # --- Ancestral comum e a distinção adaptação × especiação (Fase 0) ---------
+  # A especiação era observável (a riqueza mudava) e INARRÁVEL: nenhuma regra
+  # partia de `species_richness`, então a cadeia morria ali. É a lacuna que o
+  # BIO-001 fecha, porque o que o aluno não ouve ele preenche com a intuição
+  # espontânea — e a intuição espontânea é justamente "a espécie A virou a B".
+  - id: R-SPECIATION-COMMON-ANCESTOR
+    cause: species_richness
+    effect: common_ancestry
+    same_direction: true
+    template: "Uma população ancestral se dividiu em duas linhagens, e por isso a {cause} mudou: as duas compartilham um ancestral comum ({effect}) e seguem caminhos separados a partir dele — são irmãs, e nenhuma das duas é a versão antiga da outra."
+  # A distinção que impede reduzir evolução a adaptação (PED-003): mudar a
+  # frequência dos traços numa população é ADAPTAÇÃO, e continua havendo UMA
+  # linhagem. Só há ESPECIAÇÃO quando a população se divide.
+  - id: R-TRAIT-ADAPTATION
+    cause: mean_temp_optimum
+    effect: adaptation
+    same_direction: true
+    template: "O {cause} da população se deslocou ao longo do tempo: isso é adaptação ({effect}), a frequência dos traços mudando dentro de uma linhagem que continua sendo uma só — não é o surgimento de uma linhagem nova."
+  # A ordem correta, e a que o aluno inverte sozinho: a variação vem ANTES e sem
+  # propósito; o ambiente decide DEPOIS (BIO-005).
+  - id: R-ADAPTATION-RANDOM-VARIATION
+    cause: adaptation
+    effect: variation
+    same_direction: true
+    template: "A mudança começou por acaso: surgiu uma mutação aleatória ({effect}) que ninguém escolheu, e ela ficou mais comum porque aumentou a sobrevivência no ambiente daquele momento — a {cause} é o resultado disso, não o objetivo."
   # --- Extinção CATASTRÓFICA (Q8, ADR 0019) ---
   # A regra que impede o Tutor de culpar a espécie pela própria morte.
   #

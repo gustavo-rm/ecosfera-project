@@ -115,6 +115,16 @@ mappings:
     variable: catastrophic_loss
     delta_from: { minuend: biomass, subtrahend: biomass_before }
 
+  # ESPECIAÇÃO — ancestral comum, nunca "A originou B" (BIO-001, Fase 0).
+  #
+  # A magnitude continua sendo a `distance` entre o ancestral e a linhagem
+  # divergente. O que mudou é o SIGNIFICADO do evento: ele registra um ancestral
+  # e DUAS linhagens (`participants`: um `ancestor:` e dois `lineage:`), e a
+  # causa que disparou a divisão vem no `cause_code`.
+  #
+  # A observação daqui alimenta `R-SPECIATION-COMMON-ANCESTOR`, que é a regra que
+  # narra a ancestralidade. Antes da Fase 0 nenhuma regra partia de
+  # `species_richness` e a cadeia morria neste ponto.
   - event_type: SpeciationOccurred
     variable: species_richness
     delta_from: { field: distance }
