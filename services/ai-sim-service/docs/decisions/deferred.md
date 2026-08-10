@@ -103,3 +103,42 @@ não conta.
 **Marco:** Fase 2 do Plano de Evolução, junto com a mecânica gradual — a barreira
 geográfica é um dos gatilhos que a especiação gradual passa a ter para modelar.
 
+---
+
+## A suíte sem o extra `sim`: 26 falhas HERDADAS do caminho dormente
+
+**Registrado na Fase 0**, para que "não piora" deixe de ser afirmação e passe a
+ser número reproduzível.
+
+O extra `sim` (`deap`, `mesa`, `scipy`, `networkx`) é opcional por decisão
+(ADR 0017, parte 1): os nove Engines importam e rodam sem ele. O que NÃO roda sem
+ele é o **caminho de biologia por era** — o AG do DEAP e o ABM do Mesa —, que
+está DORMENTE desde o M3 (`biology_enabled=False`) e sai no tempo 3 do ADR 0017.
+
+**Medição, com os dois hashes:**
+
+| | commit | failed | passed | skipped | xfailed |
+| --- | --- | --- | --- | --- | --- |
+| basal (antes da Fase 0) | `7d80534` | **26** | 643 | 12 | 1 |
+| topo da Fase 0 | `fa43623`+ | **26** | 943 | 19 | 1 |
+
+Não só o número: o **conjunto** de testes que falham é idêntico entre os dois
+(comparado por node id). Os 26 vivem em sete arquivos, todos do caminho dormente:
+`test_advance_era_with_biology`, `test_replay_with_biology`, `test_ecology_cost`,
+`test_deterministic_layer_unaffected`, `test_ecology_conserves_biomass`,
+`test_ecology_predator_prey`, `test_evolution_determinism`.
+
+Reproduzir:
+
+```
+uv sync --extra infra --group dev   # sem --extra sim
+uv run pytest
+```
+
+**Como ler o DoD.** "Verde com e sem `sim`" significa: **com** `sim`, verde
+absoluto; **sem** `sim`, o mesmo conjunto de falhas do basal — herdadas, não
+introduzidas. O CI roda com `sim`, então a árvore de merge é verde absoluto.
+
+**Quando isto some.** Quando o caminho B for removido (ADR 0017, tempo 3), que
+depende do tempo 2 e da camada de espécies decidida no ADR 0024 — Fase 2 do
+Plano. Até lá o número certo é 26, e qualquer outro é achado.
