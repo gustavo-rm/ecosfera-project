@@ -102,7 +102,10 @@ async def test_the_query_indexes_exist(engine: Any) -> None:
         "event_log_correlation_idx",
         "event_log_causation_idx",
         "event_log_cause_code_idx",
-        "event_log_event_id_key",
+        # Composto desde a migration 0005: `event_id` é único POR PLANETA, não
+        # globalmente. A chave global do M5 impedia gravar dois planetas de mesma
+        # semente, porque a derivação do id não inclui planeta (ADR 0023).
+        "event_log_planet_event_id_key",
     ):
         assert expected in indexes, f"índice `{expected}` ausente"
 
@@ -182,6 +185,79 @@ async def test_the_same_event_cannot_be_stored_twice(engine: Any) -> None:
     with pytest.raises(IntegrityError):
         async with engine.begin() as conn:
             await conn.execute(statement, values)
+
+
+@pytest.mark.asyncio
+async def test_the_same_event_id_is_allowed_in_a_different_planet(engine: Any) -> None:
+    """O outro lado da migration 0005 — e a razão de ela existir.
+
+    A derivação do `event_id` não inclui planeta, então dois planetas de mesma
+    semente produzem ids idênticos. Com a chave única GLOBAL do M5, gravar o
+    segundo era impossível: o banco recusava a corrida de um aluno como se fosse
+    reprocessamento da de outro. Com `(planet_id, event_id)` isso passa a ser
+    permitido — que é o que torna o isolamento entre planetas testável (ADR
+    0023).
+    """
+    from sqlalchemy import text
+
+    shared = _event(77)
+    payload = event_to_dict(shared)
+    statement = text(
+        "INSERT INTO simulation.event_log "
+        "(planet_id, tick, event_type, payload, event_id) "
+        "VALUES (:planet, :tick, :type, '{}'::jsonb, :id)"
+    )
+    values = {"tick": payload["tick"], "type": payload["event_type"], "id": payload["event_id"]}
+
+    async with engine.begin() as conn:
+        await conn.execute(statement, {**values, "planet": "planeta-da-ana"})
+        # MESMO event_id, planeta diferente: com a chave global isto levantaria
+        # IntegrityError e a turma inteira ficaria presa ao primeiro aluno.
+        await conn.execute(statement, {**values, "planet": "planeta-do-bruno"})
+
+        stored = await conn.execute(
+            text("SELECT planet_id FROM simulation.event_log WHERE event_id = :id"),
+            {"id": payload["event_id"]},
+        )
+        assert {row[0] for row in stored} == {"planeta-da-ana", "planeta-do-bruno"}
+
+
+@pytest.mark.asyncio
+async def test_rows_written_before_the_envelope_are_invisible_to_the_new_reader(
+    engine: Any,
+) -> None:
+    """Linha do M2 (sem envelope §4) não vira `DomainEvent` empobrecido.
+
+    As colunas do envelope são nullable (ADR 0021), então linhas gravadas pelo
+    caminho do M2 têm `event_id NULL`. Elas seguem válidas e legíveis por
+    `load_events`, que é quem as escreveu — mas NÃO entram na porta de leitura
+    nova: sem `cause_code` nem `causation_id`, reconstruí-las exigiria inventar
+    campos, e o Tutor receberia um fato que o Event Store não contém.
+
+    Fronteira registrada no ADR 0023.
+    """
+    from sqlalchemy import text
+
+    from ecosfera_ai.application.platform.event_query import EventQuery
+    from ecosfera_ai.infrastructure.persistence.postgres_event_store import PostgresEventQuery
+
+    legacy = "planeta-legado"
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO simulation.event_log (planet_id, tick, event_type, payload) "
+                "VALUES (:p, 1, 'LifeEmerged', '{\"biomass\": 1.0}'::jsonb)"
+            ),
+            {"p": legacy},
+        )
+        stored = await conn.execute(
+            text("SELECT count(*) FROM simulation.event_log WHERE planet_id = :p"), {"p": legacy}
+        )
+        assert stored.scalar_one() == 1, "a linha do M2 nem chegou a ser gravada"
+
+    assert await PostgresEventQuery(engine).query(legacy, EventQuery()) == (), (
+        "uma linha sem envelope §4 apareceu na porta de leitura nova"
+    )
 
 
 @pytest.mark.asyncio
