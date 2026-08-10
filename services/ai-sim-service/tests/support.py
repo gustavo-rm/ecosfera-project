@@ -28,6 +28,8 @@ from ecosfera_ai.engines.ecology.service import EcologyEngine
 from ecosfera_ai.engines.event.contracts import load_params as event_params
 from ecosfera_ai.engines.event.domain import EventKind
 from ecosfera_ai.engines.event.service import EventEngine
+from ecosfera_ai.engines.evolution.contracts import load_params as evolution_params
+from ecosfera_ai.engines.evolution.events import SPECIATION_OCCURRED
 from ecosfera_ai.engines.evolution.service import EvolutionEngine
 from ecosfera_ai.engines.geology.contracts import load_params as geology_params
 from ecosfera_ai.engines.geology.service import GeologyEngine
@@ -36,10 +38,24 @@ from ecosfera_ai.engines.hydrology.service import HydrologyEngine
 from ecosfera_ai.engines.planet.registry import EngineRegistry
 from ecosfera_ai.engines.planet.service import PlanetEngine
 from ecosfera_ai.engines.resource.service import ResourceEngine
+from ecosfera_ai.shared_kernel.engine import TickContext
+from ecosfera_ai.shared_kernel.events import DomainEvent
 from ecosfera_ai.shared_kernel.observability import ObservabilitySink
+from ecosfera_ai.shared_kernel.rng import rng_for
+from ecosfera_ai.shared_kernel.world_state import (
+    BiotaSlice,
+    ClimateSlice,
+    EcologySlice,
+    EventSlice,
+    ResourceSlice,
+    WorldStateSnapshot,
+)
+from ecosfera_ai.simulation_engine.biology.genome import Genome
 from ecosfera_ai.simulation_engine.params import SimulationParams, load_params
 
 PARAMS_PATH = Path("configs/simulation_params.yaml")
+
+TRAITS = ("temp_optimum", "temp_tolerance", "water_need", "size", "metabolism", "trophic_level")
 
 
 def test_params() -> SimulationParams:
@@ -195,4 +211,110 @@ def build_scripted_planet(
         ),
         budget=params.engine_budget,
         sink=sink,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Especiação sob demanda (Fase 0, BIO-001/BIO-002)
+#
+# Com o limiar de produção (0,12) a especiação é praticamente INALCANÇÁVEL num
+# tick: a distância de um único passo de mutação vale ~0,02, e chegar a 0,12
+# exigiria um desvio de ~6 sigma. Esperá-la de uma corrida seria esperar um
+# sorteio, e um teste que depende de sorteio não afirma nada.
+#
+# O limiar entra como PARÂMETRO — é dado versionado, e baixá-lo num teste é a
+# mesma técnica de `build_volcanic_planet`: declarar o cenário em vez de torcer
+# por ele. A mecânica sob teste continua sendo a de produção.
+#
+# Que o evento seja raro com o limiar real é dívida DECLARADA do BIO-002
+# (mecânica gradual, pós-M6), registrada no ADR 0023 — não algo que esta fase
+# conserta, e não algo que este helper esconde.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def community_genome(**over: float) -> Genome:
+    """Genoma médio de uma comunidade acomodada, com os desvios que se pedir."""
+    base = {
+        "temp_optimum": 20.0,
+        "temp_tolerance": 15.0,
+        "water_need": 0.2,
+        "size": 1.0,
+        "metabolism": 1.0,
+        "trophic_level": 1.0,
+    }
+    return Genome(**{**base, **over}).clamped()
+
+
+def speciation_snapshot(
+    genome: Genome | None = None,
+    *,
+    seed: int = 2027,
+    tick: int = 7,
+    temperature: float = 20.0,
+    capacity: float = 500.0,
+    biomass: float = 40.0,
+) -> WorldStateSnapshot:
+    """Um mundo onde a comunidade vive folgada — nada a matando, só divergindo.
+
+    O ótimo térmico do residente fica DESLOCADO do ambiente de propósito. Com a
+    comunidade exatamente no próprio ótimo, nenhuma variante mutada se sustenta
+    melhor que ela (a adequação local depende só da distância ao ótimo), a
+    seleção rejeita toda divergência e não há especiação alguma a observar —
+    caso, aliás, cientificamente correto: sem gradiente não há para onde divergir.
+    """
+    resident = genome if genome is not None else community_genome(temp_optimum=26.0)
+    return WorldStateSnapshot(
+        planet_id="speciation",
+        seed=seed,
+        tick=tick,
+        era=0,
+        climate=ClimateSlice(temperature=temperature),
+        resource=ResourceSlice(
+            water_available=0.9,
+            nutrients_available=1.0,
+            energy_available=0.2,
+            carrying_capacity=capacity,
+        ),
+        biota=BiotaSlice(
+            biomass=biomass,
+            species_richness=1.0,
+            **{f"mean_{n}": float(getattr(resident, n)) for n in TRAITS},
+        ),
+        ecology=EcologySlice(),
+        event=EventSlice(),
+    )
+
+
+def speciation_event(
+    snapshot: WorldStateSnapshot | None = None,
+    *,
+    threshold: float = 0.005,
+    tries: int = 64,
+) -> DomainEvent:
+    """Roda o Evolution Engine até uma `SpeciationOccurred` de fato sair.
+
+    Cada tentativa é um tick diferente, logo um fluxo de RNG diferente: a
+    divergência só vira evento quando a variante mutada se sustenta melhor que a
+    ancestral, o que não acontece em todo passo.
+    """
+    world = snapshot if snapshot is not None else speciation_snapshot()
+    engine = EvolutionEngine(replace(evolution_params(), speciation_threshold=threshold))
+    params = test_params()
+    for step in range(tries):
+        tick = world.tick + step
+        result = engine.tick(
+            TickContext(
+                snapshot=world,
+                rng=rng_for(world.seed, engine.engine_id, tick),
+                tick=tick,
+                era=world.era,
+                budget=params.engine_budget,
+            )
+        )
+        for event in result.events:
+            if event.event_type == SPECIATION_OCCURRED:
+                return event
+    raise AssertionError(
+        f"nenhuma especiação em {tries} tentativas com limiar {threshold} — "
+        "o cenário deixou de produzir divergência"
     )

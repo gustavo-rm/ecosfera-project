@@ -53,6 +53,7 @@ from ecosfera_ai.engines.evolution.events import (
     SPECIES_EXTINCT,
     TRAIT_SHIFT,
     EvolutionCauseCode,
+    lineages_for,
 )
 from ecosfera_ai.shared_kernel.engine import TickContext, TickResult
 from ecosfera_ai.shared_kernel.events import DomainEvent, EventEmitter
@@ -60,6 +61,11 @@ from ecosfera_ai.shared_kernel.world_state import BiotaSlice, SliceRef, StateDel
 from ecosfera_ai.simulation_engine.biology.genome import Genome
 
 _TRAITS = ("temp_optimum", "temp_tolerance", "water_need", "size", "metabolism", "trophic_level")
+
+# Abaixo desta adequação térmica o ambiente está fora da janela da comunidade.
+# Serve a dois diagnósticos — o da extinção e o da especiação — e é a mesma
+# grandeza nos dois: mantê-la num só lugar impede que um deles derive do outro.
+_THERMAL_STRESS = 0.5
 
 
 def _genome_of(biota: BiotaSlice) -> Genome:
@@ -306,19 +312,37 @@ class EvolutionEngine:
                     )
                 )
 
+        # ESPECIAÇÃO — um ancestral comum se divide em DUAS linhagens (BIO-001).
+        #
+        # `genome` é a comunidade como ela era ANTES da divisão: é o ancestral, e
+        # não uma das duas linhagens que seguem adiante. `drifted` é a variante
+        # divergente. Nomear o evento assim é o que impede o consumidor de dizer
+        # que uma espécie atual gerou outra espécie atual.
         if has_speciated(drifted, genome, self.params):
+            lineages = lineages_for(ctx.seed, ctx.era, ctx.tick)
             events.append(
                 emitter.emit(
                     SPECIATION_OCCURRED,
-                    EvolutionCauseCode.GENETIC_DIVERGENCE,
+                    _speciation_cause(genome, drifted, conditions, self.params),
                     location={"region_id": "global"},
-                    participants=["species:community"],
+                    participants=lineages.participants,
                     genes=list(_TRAITS),
                     resources=["biomass"],
                     cause_detail={
                         "distance": drifted.distance(genome),
                         "biomass": biomass,
-                        **{f"gene_{k}": v for k, v in drifted.to_dict().items()},
+                        "ancestor_lineage_id": lineages.ancestor,
+                        "lineage_a_id": lineages.first,
+                        "lineage_b_id": lineages.second,
+                        # O genoma das TRÊS entra explícito. A linhagem A segue
+                        # com os traços ancestrais e a B com os divergentes, mas
+                        # deixar isso implícito obrigaria o consumidor a conhecer
+                        # a regra — e um consumidor que erra a regra narra
+                        # ancestralidade errada, que é o defeito que o BIO-001
+                        # existe para fechar.
+                        **{f"ancestor_gene_{k}": v for k, v in genome.to_dict().items()},
+                        **{f"lineage_a_gene_{k}": v for k, v in genome.to_dict().items()},
+                        **{f"lineage_b_gene_{k}": v for k, v in drifted.to_dict().items()},
                     },
                     causation_id=ctx.caused_by_slice(SliceRef.RESOURCE),
                 )
@@ -382,6 +406,43 @@ def _richness_change(
     return 0.0
 
 
+def _speciation_cause(
+    ancestor: Genome,
+    divergent: Genome,
+    conditions: LocalConditions,
+    params: EvolutionEngineParams,
+) -> EvolutionCauseCode:
+    """O que DISPAROU a divisão do ancestral comum (BIO-002, parte pré-M6).
+
+    A mecânica não muda nesta fase: a especiação continua sendo divergência
+    acima do limiar, num único passo. O que se acrescenta é a causa, porque o
+    limiar é a RÉGUA e não o motivo — e uma especiação sem motivo, narrada, vira
+    "a espécie precisava de uma nova", que é a teleologia que o BIO-005 proíbe.
+
+    O diagnóstico usa só o que este modelo de fato observa:
+
+    * o nicho mudou (a linhagem divergente cruzou de classe trófica) — a divisão
+      é por exploração de recurso diferente;
+    * o ambiente saiu da janela do ancestral, ou o orçamento ambiental está
+      estourado — a divisão acontece sob pressão ambiental direcional;
+    * nenhum dos dois — as duas linhagens simplesmente acumularam diferença
+      bastante para não mais se cruzarem, que é o nome próprio do isolamento
+      reprodutivo.
+
+    `GEOGRAPHIC_BARRIER` não aparece aqui de propósito: não há geografia neste
+    modelo (toda `location` é global), então não há barreira a detectar. Está
+    declarada e registrada em `CAUSES_WITHOUT_EMITTER` — dívida pós-M6, visível.
+    """
+    del params
+    if divergent.trophic_class != ancestor.trophic_class:
+        return EvolutionCauseCode.DIVERGENT_NICHE
+    if thermal_match(ancestor, conditions.temperature) < _THERMAL_STRESS:
+        return EvolutionCauseCode.ENVIRONMENTAL_PRESSURE
+    if conditions.occupancy >= 1.0:
+        return EvolutionCauseCode.ENVIRONMENTAL_PRESSURE
+    return EvolutionCauseCode.REPRODUCTIVE_ISOLATION
+
+
 def _limiting_cause(
     genome: Genome, conditions: LocalConditions, params: EvolutionEngineParams
 ) -> EvolutionCauseCode:
@@ -404,7 +465,7 @@ def _limiting_cause(
 
     if predation > maintenance_cost(genome, params) and predation > (1.0 - thermal):
         return EvolutionCauseCode.PREDATION_PRESSURE
-    if thermal < 0.5:
+    if thermal < _THERMAL_STRESS:
         return EvolutionCauseCode.THERMAL_INTOLERANCE
     if resource_gap > 0.0 or conditions.carrying_capacity <= 0.0:
         return EvolutionCauseCode.RESOURCE_SCARCITY
