@@ -1,0 +1,333 @@
+# Templates de EXPLICAÇÃO do M6.1 — a prosa que chega ao aluno, como DADO.
+#
+# O ADR-ARCH-0002 (Correção 1) manda: o Engine entrega o esqueleto causal como
+# dado, e a Visão Educacional é RENDERIZADA pelo consumidor. Este arquivo é o
+# lugar onde essa renderização acontece — texto versionado, revisável por quem
+# entende de pedagogia, sem tocar em uma linha de lógica.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# AS TRÊS REGRAS DE LINGUAGEM (herdadas da Fase 0, NÃO redefinidas aqui)
+# ─────────────────────────────────────────────────────────────────────────────
+# São as mesmas de `configs/causal_rules.yaml`, e os MESMOS testes as guardam
+# nos dois arquivos (`test_no_teleological_language`,
+# `test_adaptation_vs_speciation_wording`). Repetir a lista aqui seria criar um
+# segundo vocabulário que envelheceria sozinho; o que existe é um só.
+#
+#   1. NADA de intenção (BIO-005). Mutação é "surgiu uma mutação aleatória";
+#      seleção é "aumentou a sobrevivência porque o ambiente era X". Nunca "a
+#      espécie desenvolveu/criou/buscou" coisa alguma.
+#   2. ADAPTAÇÃO não é ESPECIAÇÃO (PED-003). A primeira muda a FREQUÊNCIA dos
+#      traços numa linhagem que continua sendo UMA; a segunda divide uma
+#      linhagem em duas.
+#   3. Nenhuma frase afirma que uma espécie gerou outra (BIO-001). Duas
+#      linhagens COMPARTILHAM um ancestral comum que sofreu especiação.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# REGISTRO (`register`) — a costura de faixa etária, decidida no M6.1
+# ─────────────────────────────────────────────────────────────────────────────
+# `standard` é o registro completo. `simple` é a versão de leitura mais curta,
+# fornecida hoje apenas para os três fatos de maior risco pedagógico — extinção
+# catastrófica, extinção ecológica e especiação —, que são exatamente aqueles em
+# que uma frase longa demais faz o aluno perder a lição.
+#
+# Quando um template não tem variante `simple`, o renderizador CAI PARA
+# `standard`. Isso é decisão, não omissão: uma frase padrão correta é melhor que
+# uma frase simplificada inventada na hora, e é o que permite ao M6.3 acrescentar
+# registros linha a linha, sem tocar em assinatura alguma.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SLOTS — só o que o dossiê factual do M6.0 contém
+# ─────────────────────────────────────────────────────────────────────────────
+# Todo `{slot}` é preenchido a partir de um campo do `FactualContext` ou do
+# `DomainEvent` que o originou, e o `Grounding` do fato registra qual. Um
+# template que precisasse de algo que o dossiê não carrega seria um defeito de
+# escopo do M6.0 — não algo a completar aqui com texto plausível. Inventar o
+# valor é exatamente a alucinação que este marco existe para tornar impossível,
+# e um template a comete tão facilmente quanto um LLM.
+version: 1
+
+# Substantivos por tipo de evento — o nome que o aluno lê no lugar do
+# `event_type`. Vocabulário, não explicação.
+nouns:
+  MeteorImpact: "a queda de um meteoro"
+  SupervolcanicEruption: "uma erupção supervulcânica"
+  IceAgeOnset: "o começo de uma era glacial"
+  WildfireIgnited: "um grande incêndio"
+  StormOccurred: "uma tempestade severa"
+  DroughtBegan: "uma seca prolongada"
+  VolcanicEruption: "a atividade vulcânica"
+  GreenhouseForcingChanged: "a mudança na quantidade de gás carbônico do ar"
+  TemperatureShift: "a mudança de temperatura"
+  ClimateThresholdCrossed: "a passagem para outra faixa de clima"
+  OceanAcidification: "a acidificação do oceano"
+  CarryingCapacityShift: "a mudança na quantidade de vida que o ambiente sustenta"
+  TrophicCollapse: "o colapso da cadeia alimentar"
+  PopulationDeclined: "a queda de população"
+  MassMortality: "a mortandade em massa"
+  SpeciesExtinct: "a extinção"
+  LifeEmerged: "o surgimento da vida"
+  SpeciationOccurred: "a divisão de uma linhagem"
+
+# Mecanismo por `cause_code` — o "por quê" estruturado virando frase.
+# ATENÇÃO: nenhuma destas frases atribui intenção nem culpa. A extinção
+# ecológica descreve o ambiente que a comunidade encontrou, não um defeito dela.
+#
+# TODO `cause_code` declarado por algum Engine tem de aparecer aqui OU em
+# `not_narrated` — `test_every_cause_code_has_a_mechanism_phrase` reprova quando
+# um código novo não tem nem uma coisa nem outra. É a lição do `solar_flux` do
+# M2 aplicada à prosa: um código sem frase produziria uma explicação que o
+# Tutor silenciosamente não dá, e ausência não se denuncia sozinha.
+mechanisms:
+  # --- Biologia (Evolution) ---
+  THERMAL_INTOLERANCE: "a temperatura ficou fora da faixa que aquela comunidade tolerava"
+  RESOURCE_SCARCITY: "os recursos de que aquela comunidade dependia ficaram escassos"
+  PREDATION_PRESSURE: "a pressão de quem se alimentava dela aumentou"
+  PREY_COLLAPSE: "o alimento de que ela dependia desapareceu"
+  HABITABILITY_THRESHOLD: "as condições do planeta entraram na faixa que permite vida"
+  DIRECTIONAL_SELECTION: "o ambiente daquele momento favoreceu quem já tinha o traço"
+  CATASTROPHIC_EVENT: "um evento extremo atingiu o planeta, sem escolher quem sobrevive"
+  # --- Causas de especiação (BIO-002) ---
+  GEOGRAPHIC_BARRIER: "uma barreira separou as populações"
+  REPRODUCTIVE_ISOLATION: "as populações deixaram de se cruzar"
+  DIVERGENT_NICHE: "as populações passaram a viver de maneiras diferentes"
+  ENVIRONMENTAL_PRESSURE: "as populações enfrentaram pressões ambientais diferentes"
+  # Superada pelas quatro acima, mantida para ler trilhas anteriores à Fase 0.
+  GENETIC_DIVERGENCE: "as populações acumularam diferenças ao longo do tempo"
+  # --- Clima, atmosfera, química, geologia, órbita ---
+  RADIATIVE_FORCING: "a quantidade de calor retida pela atmosfera mudou"
+  ALBEDO_FEEDBACK: "a superfície passou a refletir a luz do Sol de outro jeito"
+  TECTONIC_PULSE: "o interior do planeta empurrou material para a superfície"
+  CO2_ACCUMULATION: "o gás carbônico foi se acumulando no ar"
+  CO2_DRAWDOWN: "o gás carbônico foi sendo retirado do ar"
+  CARBON_DISSOLUTION: "o carbono do ar foi se dissolvendo na água"
+  CARBON_OUTGASSING: "o carbono dissolvido voltou da água para o ar"
+  NUTRIENT_EXHAUSTION: "os nutrientes disponíveis se esgotaram"
+  ORBITAL_ECCENTRICITY: "a órbita do planeta mudou de formato e alterou a luz recebida"
+  # --- Água ---
+  TEMPERATURE_RISE: "a temperatura subiu"
+  TEMPERATURE_FALL: "a temperatura caiu"
+  PRECIPITATION_CHANGE: "o regime de chuvas mudou"
+  # --- Recurso ---
+  HABITABILITY_GAIN: "as condições melhoraram para a vida"
+  HABITABILITY_LOSS: "as condições pioraram para a vida"
+  WATER_SHORTAGE: "faltou água aproveitável"
+  NUTRIENT_SHORTAGE: "faltaram nutrientes"
+  ENERGY_SHORTAGE: "faltou energia disponível"
+  # --- Ocorrências extraordinárias ---
+  EVENT_ONSET: "um evento extraordinário começou"
+  EVENT_SUBSIDED: "o evento extraordinário passou"
+  SCHEDULED_BY_DIRECTOR: "o roteiro do planeta trouxe um acontecimento extraordinário"
+  FORECAST_ANNOUNCED: "os sinais de um acontecimento próximo apareceram"
+
+# Códigos que NUNCA chegam ao aluno, e o porquê de cada um. Declarar é o que
+# impede que a lista acima pareça incompleta quando na verdade está correta.
+#
+# Os cinco são da moldura, não do planeta: fecham tick e era, ou relatam que um
+# Engine estourou o próprio orçamento. Narrar "o motor excedeu o tempo previsto"
+# a uma criança seria confundir o funcionamento do simulador com o que aconteceu
+# no mundo que ela está estudando (ADR-ARCH-0002: a visão técnica é de quem
+# desenvolve, e o diagnóstico já é filtrado antes de chegar aqui).
+not_narrated:
+  - TICK_CLOSED
+  - ERA_CLOSED
+  - BUDGET_EXCEEDED
+  - INVARIANT_BREACH
+  - ENGINE_HEARTBEAT
+
+templates:
+  # ───────────────────────────────────────────────────────────────────────────
+  # EXTINÇÃO CATASTRÓFICA — a lição pedagógica central do ADR 0019
+  #
+  # A frase NÃO pode ser lida como falha de adaptação. Um evento extremo não
+  # seleciona, ele elimina: a fração removida não passa pela adequação ao
+  # ambiente e não poupa quem estava no próprio ótimo. Uma comunidade de aptidão
+  # contextual ALTA morre igual.
+  #
+  # Note que "adaptada" APARECE na frase — e é justamente o contrário de culpar:
+  # a oração existe para dizer que a adaptação não teria mudado o desfecho.
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: T-EXTINCTION-CATASTROPHIC
+    register: standard
+    text: >-
+      No ciclo {tick}, {trigger} eliminou a comunidade de uma só vez, por mais
+      bem adaptada que ela estivesse ao ambiente em que vivia: um evento extremo
+      como esse não escolhe quem sobrevive.
+  - id: T-EXTINCTION-CATASTROPHIC
+    register: simple
+    text: >-
+      No ciclo {tick}, {trigger} acabou com a comunidade de uma vez. Não foi
+      culpa dela: um evento assim atinge todo mundo, esteja bem adaptado ou não.
+
+  # Mesma família, quando o dossiê não registra qual evento a disparou. A frase
+  # continua dizendo que a causa veio de fora — o que NÃO se pode fazer é
+  # inventar o meteoro que o log não tem.
+  - id: T-EXTINCTION-CATASTROPHIC-UNTRACED
+    register: standard
+    text: >-
+      No ciclo {tick}, um evento extremo eliminou a comunidade de uma só vez,
+      por mais bem adaptada que ela estivesse: a causa veio de fora, e não de
+      alguma falha dela.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # EXTINÇÃO ECOLÓGICA — aptidão CONTEXTUAL (Q5), nunca absoluta
+  #
+  # Aqui a adaptação É parte da explicação, e é o que separa esta família da
+  # anterior. A formulação correta fala do AMBIENTE que a comunidade encontrou:
+  # a mesma comunidade seria apta em outro ambiente, sem ter mudado em nada.
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: T-EXTINCTION-ECOLOGICAL
+    register: standard
+    text: >-
+      No ciclo {tick}, a comunidade desapareceu porque {mechanism}. Em outro
+      ambiente essa mesma comunidade poderia ter seguido adiante, sem mudar nada
+      nela: o que faltou foi correspondência entre ela e as condições daquele
+      momento.
+  - id: T-EXTINCTION-ECOLOGICAL
+    register: simple
+    text: >-
+      No ciclo {tick}, a comunidade desapareceu porque {mechanism}. Em outro
+      lugar, com outras condições, ela poderia ter continuado.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # ESPECIAÇÃO — ancestral comum (BIO-001)
+  #
+  # A frase nomeia UM ancestral e DUAS linhagens irmãs, e diz explicitamente que
+  # nenhuma das duas é a versão antiga da outra. É a negação que impede o aluno
+  # de reconstruir sozinho a escada de progresso.
+  #
+  # As duas linhagens NÃO são nomeadas por identificador: o dossiê guarda os
+  # três ids no `Grounding`, e um UUID no meio da frase não ensina nada. O
+  # modelo é de COMUNIDADE — identidade de espécie é camada pós-M6 (ADR 0024).
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: T-SPECIATION-COMMON-ANCESTOR
+    register: standard
+    text: >-
+      No ciclo {tick}, uma população ancestral se dividiu em duas linhagens
+      porque {mechanism}. As duas compartilham um ancestral comum e seguem
+      caminhos separados a partir dele: são irmãs, e nenhuma das duas é a versão
+      antiga da outra.
+  - id: T-SPECIATION-COMMON-ANCESTOR
+    register: simple
+    text: >-
+      No ciclo {tick}, uma população se dividiu em duas linhagens porque
+      {mechanism}. As duas vieram do mesmo ancestral comum e são irmãs — nenhuma
+      virou a outra.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # ADAPTAÇÃO — e a distinção explícita contra especiação (PED-003)
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: T-TRAIT-ADAPTATION
+    register: standard
+    text: >-
+      No ciclo {tick}, a frequência dos traços da população mudou porque
+      {mechanism}: isso é adaptação, e a linhagem continua sendo uma só — não é
+      o surgimento de uma linhagem nova.
+  - id: T-TRAIT-ADAPTATION-REPEATED
+    register: standard
+    text: >-
+      No ciclo {tick}, a frequência dos traços da população mudou porque
+      {mechanism}: isso é adaptação, e a linhagem continua sendo uma só — não é
+      o surgimento de uma linhagem nova. O deslocamento se repetiu
+      {occurrences} vezes ao longo deste período, de pouco em pouco.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # MORTANDADE EM MASSA e COLAPSO TRÓFICO
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: T-MASS-MORTALITY
+    register: standard
+    text: >-
+      No ciclo {tick}, boa parte da comunidade morreu porque {mechanism} — mas
+      ela não desapareceu: sobrou população suficiente para seguir adiante.
+  - id: T-MASS-MORTALITY-REPEATED
+    register: standard
+    text: >-
+      No ciclo {tick}, boa parte da comunidade morreu porque {mechanism} — mas
+      ela não desapareceu: sobrou população suficiente para seguir adiante. A
+      perda se repetiu {occurrences} vezes neste período, sem chegar ao fim da
+      comunidade.
+  - id: T-MASS-MORTALITY-CATASTROPHIC
+    register: standard
+    text: >-
+      No ciclo {tick}, {trigger} matou boa parte da comunidade de uma só vez,
+      independentemente de quão bem adaptada ela estivesse — mas ela não
+      desapareceu por completo.
+  - id: T-MASS-MORTALITY-CATASTROPHIC-REPEATED
+    register: standard
+    text: >-
+      No ciclo {tick}, {trigger} matou boa parte da comunidade de uma só vez,
+      independentemente de quão bem adaptada ela estivesse — mas ela não
+      desapareceu por completo. Isso aconteceu {occurrences} vezes neste período.
+  - id: T-TROPHIC-COLLAPSE
+    register: standard
+    text: >-
+      No ciclo {tick}, a cadeia alimentar entrou em colapso porque {mechanism}:
+      quando um elo se desfaz, os que dependiam dele sentem logo em seguida.
+  - id: T-TROPHIC-COLLAPSE-REPEATED
+    register: standard
+    text: >-
+      No ciclo {tick}, a cadeia alimentar entrou em colapso porque {mechanism}:
+      quando um elo se desfaz, os que dependiam dele sentem logo em seguida. O
+      colapso se repetiu {occurrences} vezes neste período.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # MARCOS
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: T-LIFE-EMERGED
+    register: standard
+    text: >-
+      No ciclo {tick}, a vida surgiu no planeta porque {mechanism}.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # CADEIAS AMBIENTAIS — causais, não descritivas
+  #
+  # A diferença que importa: "a temperatura mudou" é descrição; "a temperatura
+  # mudou, e o que veio antes dela na cadeia foi o acúmulo de gás carbônico" é
+  # explicação. O elo vem do `causation_id` REAL do dossiê, e por isso a frase
+  # só nomeia a causa quando o log a contém.
+  # ───────────────────────────────────────────────────────────────────────────
+  # A ordem das orações não é estilo: {cause_subject} abre a frase porque os
+  # substantivos deste vocabulário já vêm com artigo ("a mudança de
+  # temperatura"), e encaixá-los depois de uma preposição produziria "depois de
+  # a mudança". Abrindo a oração, a concordância sai certa para todos eles sem
+  # que o renderizador precise saber o gênero de cada substantivo.
+  - id: T-CHAIN-CAUSED
+    register: standard
+    text: >-
+      No ciclo {tick}, {cause_subject} veio antes e é o que explica: {subject}
+      aconteceu porque {mechanism}.
+  - id: T-CHAIN-ROOT
+    register: standard
+    text: >-
+      No ciclo {tick}, {subject} aconteceu porque {mechanism}.
+
+  # Recorrência: quando o mesmo tipo de acontecimento se repete na fatia, o
+  # dossiê sabe QUANTAS vezes, e dizer o número é melhor que repetir a frase
+  # dezenas de vezes ou fingir que ocorreu uma só.
+  - id: T-CHAIN-CAUSED-REPEATED
+    register: standard
+    text: >-
+      No ciclo {tick}, {cause_subject} veio antes e é o que explica: {subject}
+      aconteceu porque {mechanism}. Isso se repetiu {occurrences} vezes ao longo
+      deste período.
+  - id: T-CHAIN-ROOT-REPEATED
+    register: standard
+    text: >-
+      No ciclo {tick}, {subject} aconteceu porque {mechanism}. Isso se repetiu
+      {occurrences} vezes ao longo deste período.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # FATIA SEM NADA A NARRAR
+  #
+  # Sem drama fabricado e sem pedido de desculpas. Uma era tranquila é um
+  # resultado legítimo do planeta, não uma falha do Tutor — e a especiação, em
+  # particular, é RARA por construção do modelo (~6 σ; ver `deferred.md`), de
+  # modo que a ausência dela é o caso comum, não uma lacuna a lamentar.
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: T-QUIET-PERIOD
+    register: standard
+    text: >-
+      Neste período o planeta seguiu sem acontecimentos notáveis.
+  - id: T-QUIET-PERIOD
+    register: simple
+    text: >-
+      Neste período nada de diferente aconteceu no planeta.

@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # Tradução de Domain Events em observações para o motor de regras (ADR 0011)
     event_observations_path: Path = Field(default=Path("configs/event_observations.yaml"))
 
+    # Templates de explicação do M6.1 — a prosa que chega ao aluno, versionada
+    # como dado para que a revisão pedagógica não exija tocar em código.
+    explanation_templates_path: Path = Field(default=Path("configs/explanation_templates.yaml"))
+
     # Backend de persistência do planeta: 'inmemory' (default — testes e dev sem
     # banco) ou 'postgres' (staging/prod). Trocar a flag troca só o adaptador da
     # porta PlanetRepository; nenhuma camada acima muda (ADR 0001/0005).
