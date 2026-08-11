@@ -187,6 +187,47 @@ type = "forbidden"
 source_modules = ["ecosfera_ai.shared_kernel"]
 forbidden_modules = ["ecosfera_ai.engines"]
 
+# A regra de ouro da Spec §2 tem DUAS metades, e o M5 so tinha barrado uma. A
+# primeira e "um Engine nao importa outro"; a segunda e "consumidores SO leem o
+# Event Store". Sem esta barreira, o caminho mais curto para o Tutor responder
+# uma pergunta dificil e espiar o world-state — e um consumidor que le memoria de
+# Engine deixa de ser derivavel do event log, que e a unica definicao de correcao
+# que o M6 tem.
+[[tool.importlinter.contracts]]
+name = "Consumidores read-side so alcancam o Event Store"
+type = "forbidden"
+source_modules = [
+    "ecosfera_ai.domain.consumers",
+    "ecosfera_ai.application.consumers",
+]
+forbidden_modules = [
+    "ecosfera_ai.engines",
+    "ecosfera_ai.simulation_engine",
+    "ecosfera_ai.shared_kernel.world_state",
+    "ecosfera_ai.infrastructure",
+    "ecosfera_ai.interfaces",
+]
+
+# O M6.0 e a fundacao FACTUAL, e ela e deliberadamente anterior ao LLM: primeiro
+# o fato verificavel, so depois quem o reescreve (M6.3). Enquanto a subetapa for
+# esta, uma dependencia de LLM/RAG e regressao de escopo, e o contrato a nomeia
+# em vez de confiar na memoria de quem revisa.
+[[tool.importlinter.contracts]]
+name = "A fundacao factual do M6.0 nao depende de LLM nem de RAG"
+type = "forbidden"
+source_modules = [
+    "ecosfera_ai.domain.consumers",
+    "ecosfera_ai.application.consumers",
+]
+forbidden_modules = [
+    "ollama",
+    "sentence_transformers",
+    "langgraph",
+    "ecosfera_ai.rag",
+    "ecosfera_ai.embeddings",
+    "ecosfera_ai.application.ports.llm",
+]
+
 [[tool.importlinter.contracts]]
 name = "Camadas hexagonais do servico"
 type = "layers"
