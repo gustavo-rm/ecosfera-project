@@ -332,6 +332,10 @@ educacional é do M6, e o M5 garante que o envelope já carrega tudo de que ela
 precisará. O contrato de query — por planeta, era, correlação, causação,
 `cause_code` — está pronto para o M6 assinar, sem consumidores (ADR 0022).
 
+> O M6.0 **assinou** esse contrato: `ContextAssembler` o consome sem renegociar o
+> formato e sem uma segunda leitura paralela (ADR 0025, seção abaixo). A visão
+> educacional continua sendo renderizada acima do dossiê — não por ele.
+
 ### Pureza
 
 A simulação **não lê** store, logs, métricas nem traces. Afirmado
@@ -343,6 +347,91 @@ e sem sink dá trajetórias bit-a-bit idênticas).
 ```bash
 uv run python scripts/smoke_m4.py                    # com o extra `sim`
 uv run --no-extra sim python scripts/smoke_m4.py     # só física
+```
+
+## Camada de Consumidores (M6.0) — a fundação factual, sem LLM
+
+A camada de consumidores da Spec §1 **começa aqui**. O M6 introduz um LLM, e com
+ele um defeito que nenhum marco anterior tinha: não determinístico, sem invariante
+de correção, e que falha sem quebrar `assert` algum. Um planeta que perde massa
+reprova um teste de conservação; um Tutor que narra uma extinção que não aconteceu
+soa bem e é aceito.
+
+Por isso o M6 roda em subetapas e o LLM entra o mais tarde possível. O princípio
+que vale para todas elas:
+
+> A verdade sobre o planeta do aluno é o **Event Store**. Um consumidor está
+> **correto** quando o que ele afirma é derivável da trilha de eventos, e
+> **alucina** quando não é.
+
+### O que o M6.0 entrega
+
+O **`FactualContext`**: dado um planeta e um recorte, o dossiê estruturado do que
+de fato aconteceu — linha do tempo ordenada com os campos §4 íntegros, cadeias
+causais nas duas direções, especiações, extinções e marcadores de era.
+
+```python
+from ecosfera_ai.application.consumers.assemble_context import ContextAssembler
+from ecosfera_ai.domain.consumers.factual_context import ContextSlice
+
+dossie = await ContextAssembler(event_query).execute(planet_id, ContextSlice.of_era(2))
+
+dossie.consequences_of(meteoro.event_id)   # descendo: causa -> consequências
+dossie.ancestry                            # subindo: efeito -> raiz
+dossie.extinctions[0].nature               # catastrophic | ecological (ADR 0019)
+dossie.speciations[0].lineages             # duas linhagens IRMÃS de um ancestral
+dossie.to_dict()                           # JSON inspecionável, sem uma linha de prosa
+```
+
+Três recortes: **por era**, **por janela de ticks** e **o contexto de um evento**
+(ele, o que o causou e o que dele decorreu). Fatia vazia devolve dossiê vazio
+**explícito** — nunca erro.
+
+### O que ele deliberadamente NÃO faz
+
+Nem uma frase, nem `cause_code` traduzido, nem faixa etária, nem BNCC. A prosa é
+do consumidor de cima (ADR-ARCH-0002, Correção 1). A partir do momento em que o
+dossiê narra, some a fronteira entre *o que aconteceu* e *como se conta* — e com
+ela some o único critério que separa o Tutor certo do que inventa.
+
+| Subetapa | Acrescenta | Não pode |
+| --- | --- | --- |
+| **M6.0** (feito) | o fato verificável | narrar |
+| M6.1 | frase por template — o **piso** que o LLM terá de bater | inventar fato |
+| M6.2 | RAG pedagógico sobre material BNCC | inventar fato |
+| M6.3 | LLM (Ollama) reescreve | decidir o que aconteceu |
+| M6.4 | avaliação adversarial + guardrails | — |
+
+### Três garantias travadas no tipo, e não na disciplina
+
+* **Especiação é ancestral comum.** `SpeciationFact` tem um ancestral e **duas**
+  linhagens irmãs, e recusa qualquer outra forma — inclusive a disfarçada, em que o
+  ancestral reaparece como uma das linhagens. "A espécie A deu origem à B" é
+  **inexprimível** (BIO-001, ADR 0023).
+* **Catastrófica ≠ ecológica.** A família da causa atravessa como dado, junto com o
+  elo causal, que numa catástrofe aponta para o EVENTO e não para o clima do mesmo
+  tick (ADR 0019).
+* **Um planeta só.** O recorte passa pelo `EventStoreQuery` com `planet_id` sem
+  default (ADR 0023). Um vazamento aqui faria o Tutor narrar, citando eventos reais,
+  a catástrofe do planeta de outro aluno — ancorado, e inteiramente errado.
+
+### Onde vive
+
+`domain/consumers/` (modelo puro) e `application/consumers/` (caso de uso), na
+estratificação hexagonal que este serviço usa — e não num pacote `consumers/`
+paralelo. O que a Spec §1 pede é a **fronteira**, e ela é barrada por
+`import-linter`: o consumidor não alcança Engine, world-state nem infraestrutura, e
+**não depende de LLM nem de RAG** enquanto a subetapa for esta.
+
+> **Especiação é rara e isso é normal.** Até a Fase 2 o limiar exige ~6 σ de um
+> passo de mutação: zero especiações em 200 ticks nas sementes 2027 e 99
+> (`docs/decisions/deferred.md`). Uma era sem especiação alguma é o comportamento
+> ESPERADO — quem for avaliar o Tutor precisa saber disso antes de caçar um bug que
+> não existe.
+
+```bash
+uv run python scripts/smoke_m6_0.py                  # dossiê de uma corrida real
+uv run --no-extra sim python scripts/smoke_m6_0.py
 ```
 
 ## Rodar
@@ -418,8 +507,10 @@ migrations/        Alembic — uma árvore para os schemas `rag` e `simulation`
 Desde o M2 **toda a física vive em `engines/`**. O que restou em
 `simulation_engine/` é o que não é ciência de domínio: o `PlanetState` que a borda
 persiste, a linha do tempo, o replay e a camada emergente do Inc 3 — que é
-subsistema de simulação, não Engine (ADR 0014). `platform/` e `consumers/` da
-Spec §1 nascem no M5/M6.
+subsistema de simulação, não Engine (ADR 0014). O `platform/` da Spec §1 nasceu no
+M5 como `infrastructure/persistence`; os `consumers/` nasceram no M6.0 como
+`domain/consumers` + `application/consumers` — mesma fronteira, dentro da
+estratificação hexagonal deste serviço (ADR 0025).
 
 Pastas `rag/ embeddings/ agents/ evaluation/ models/ pipelines/` estão vazias por
 design — cada uma é ativada em seu incremento (ver ROADMAP e ADR 0002).

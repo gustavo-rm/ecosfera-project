@@ -28,7 +28,11 @@ lacunas conhecidas, no fim.
 | 9 | In-memory e Postgres concordam | `test_query_contract_parity` (15 testes) | integração | conjuntos de `event_id` divergentes, ou envelope diferente no round-trip |
 | 10 | O adaptador satisfaz a porta | `_port_conformance` | `postgres_event_store.py` | `mypy --strict` reprova a atribuição |
 | 11 | Nenhum campo de query é decorativo | `test_no_phantom_filters` | unidade | campo que não exclui, ou que rejeita tudo |
-| 12 | Fronteiras de import | 6 contratos `import-linter` | `pyproject.toml` | contrato BROKEN |
+| 12 | Fronteiras de import | 8 contratos `import-linter` | `pyproject.toml` | contrato BROKEN |
+| 13 | O consumidor read-side **não** alcança Engine nem world-state | contrato `Consumidores read-side so alcancam o Event Store` + `test_consumer_reads_only_event_store` | `pyproject.toml` / contrato | contrato BROKEN; e a varredura por AST nomeia o arquivo e o import |
+| 14 | O M6.0 **não** depende de LLM nem de RAG | contrato `A fundacao factual do M6.0 nao depende de LLM nem de RAG` | idem | contrato BROKEN ao primeiro import de `ollama`/embeddings/`rag` |
+| 15 | O vocabulário duplicado do consumidor **não** divergiu dos Engines | `test_consumer_vocabulary_matches_engines` | contrato | igualdade termo a termo falha nomeando o termo que divergiu |
+| 16 | O dossiê factual sobre o Event Store **real** é o mesmo que em memória | `test_factual_context_over_postgres` (6 testes) | integração | dossiês diferentes — pega perda parcial no `payload` JSONB, que um teste de "tem conteúdo" não veria |
 
 ## Como cada mecanismo foi provado a morder
 
@@ -88,6 +92,12 @@ Honestidade sobre o que esta matriz **não** cobre:
 3. **Traces (pilar 4)** seguem gancho no-op; nada verifica span algum
    (ADR 0022 §5).
 4. **A instabilidade de carbono** continua `xfail` anotado (ADR 0020).
+5. **O dossiê factual do M6.0 não tem rota HTTP**, então nada o exercita pela
+   borda. É consequência da lacuna 1, e não descuido: o Event Store do processo é
+   uma lista única, não escopada por planeta, e servir uma rota a partir dele
+   reintroduziria o vazamento do ADR 0023 na própria fundação anti-alucinação
+   (ADR 0025). O que existe hoje é `scripts/smoke_m6_0.py`, que roda uma
+   simulação real e inspeciona o JSON — verificação de fumaça, **não** de CI.
 
 ## Manutenção
 
