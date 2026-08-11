@@ -33,6 +33,13 @@ lacunas conhecidas, no fim.
 | 14 | O M6.0 **não** depende de LLM nem de RAG | contrato `A fundacao factual do M6.0 nao depende de LLM nem de RAG` | idem | contrato BROKEN ao primeiro import de `ollama`/embeddings/`rag` |
 | 15 | O vocabulário duplicado do consumidor **não** divergiu dos Engines | `test_consumer_vocabulary_matches_engines` | contrato | igualdade termo a termo falha nomeando o termo que divergiu |
 | 16 | O dossiê factual sobre o Event Store **real** é o mesmo que em memória | `test_factual_context_over_postgres` (6 testes) | integração | dossiês diferentes — pega perda parcial no `payload` JSONB, que um teste de "tem conteúdo" não veria |
+| 17 | Toda afirmação da prosa vem de um campo do dossiê | `test_every_claim_is_grounded_in_context` | unidade | fato sem evento, campo que não resolve, número sem slot, ou resumo que diverge dos fatos — cada um com contraprova do próprio filtro |
+| 18 | A extinção catastrófica nunca é narrada como falha de adaptação | `test_catastrophic_extinction_reads_as_chance` | unidade | lista de formulações que culpam a comunidade, mais a exigência de nomear o gatilho vindo do `causation_id` real |
+| 19 | Especiação é inexprimível como "A deu origem a B" **em prosa** | `test_speciation_renders_as_common_ancestor` | unidade | o template ganha slot de linhagem (falha estrutural), ou a frase perde "ancestral comum"/"irmãs" |
+| 20 | A guarda anti-teleológica da Fase 0 ALCANÇA a prosa nova | `test_non_teleological_wording_preserved` | contrato | o arquivo de templates sai da coleta de `_templates()` — cobertura afirmada, não suposta |
+| 21 | Todo `cause_code` tem frase OU silêncio declarado | `test_every_cause_code_has_a_mechanism_phrase_or_is_declared_unnarrated` | contrato | código novo sem oração de mecanismo e fora de `not_narrated`, nomeando o código |
+| 22 | Há UM narrador de eventos depois do M6.1 | `test_single_explainer_after_integration` | contrato | módulo novo importando o renderizador fora da lista, ou prosa de aluno hardcoded no código |
+| 23 | A explicação não depende de LLM nem de RAG | `test_no_llm_dependency` + contrato `import-linter` | contrato | import direto (varredura AST) ou indireto (grafo do import-linter) em qualquer módulo do caminho evento → prosa |
 
 ## Como cada mecanismo foi provado a morder
 
