@@ -74,3 +74,76 @@ def test_every_notable_transition_is_a_type_some_engine_really_emits() -> None:
     assert emitted >= consumer.NOTABLE_TRANSITIONS, (
         f"marcadores sem emissor: {consumer.NOTABLE_TRANSITIONS - emitted}"
     )
+
+
+# --- A prosa do M6.1 cobre todo cause_code declarado -------------------------
+
+
+def test_every_cause_code_has_a_mechanism_phrase_or_is_declared_unnarrated() -> None:
+    """Nenhum `cause_code` fica sem frase POR ESQUECIMENTO.
+
+    É a lição do `solar_flux` do M2 aplicada à prosa. Um código sem oração de
+    mecanismo não estoura nada: o narrador simplesmente pula o evento, e o aluno
+    lê uma era em que aquele acontecimento não existiu. O sintoma é ausência, e
+    ausência não se denuncia sozinha.
+
+    Por isso a alternativa tem de ser EXPLÍCITA: ou o código tem frase, ou está
+    em `not_narrated` com a razão registrada no YAML. Um código novo que não
+    esteja em nenhum dos dois reprova aqui, ao lado do nome dele.
+    """
+    import importlib
+    import pkgutil
+    from pathlib import Path
+
+    import ecosfera_ai.engines as engines_package
+    from ecosfera_ai.domain.consumers.templates import load_templates
+    from ecosfera_ai.shared_kernel.events import CauseCodeEnum
+
+    for module in pkgutil.walk_packages(engines_package.__path__, "ecosfera_ai.engines."):
+        if module.name.endswith(".events"):
+            importlib.import_module(module.name)
+
+    def walk(cls: type[CauseCodeEnum]):  # type: ignore[no-untyped-def]
+        for sub in cls.__subclasses__():
+            yield sub
+            yield from walk(sub)
+
+    declared = {str(member.value) for subclass in walk(CauseCodeEnum) for member in subclass}
+    table = load_templates(Path("configs/explanation_templates.yaml"))
+    covered = set(table.mechanisms) | set(table.not_narrated)
+
+    assert declared <= covered, (
+        "cause_code sem frase e sem declaração de silêncio — o Tutor pularia o "
+        f"evento sem avisar ninguém: {sorted(declared - covered)}"
+    )
+
+
+def test_no_mechanism_phrase_is_declared_for_a_code_that_does_not_exist() -> None:
+    """O inverso: uma frase para código que ninguém declara é prosa morta.
+
+    Ela passaria a revisão pedagógica, ocuparia espaço no arquivo e nunca
+    chegaria a aluno algum — e daria a impressão de cobertura que não existe.
+    """
+    import importlib
+    import pkgutil
+    from pathlib import Path
+
+    import ecosfera_ai.engines as engines_package
+    from ecosfera_ai.domain.consumers.templates import load_templates
+    from ecosfera_ai.shared_kernel.events import CauseCodeEnum
+
+    for module in pkgutil.walk_packages(engines_package.__path__, "ecosfera_ai.engines."):
+        if module.name.endswith(".events"):
+            importlib.import_module(module.name)
+
+    def walk(cls: type[CauseCodeEnum]):  # type: ignore[no-untyped-def]
+        for sub in cls.__subclasses__():
+            yield sub
+            yield from walk(sub)
+
+    declared = {str(member.value) for subclass in walk(CauseCodeEnum) for member in subclass}
+    table = load_templates(Path("configs/explanation_templates.yaml"))
+
+    assert set(table.mechanisms) <= declared, (
+        f"frases para códigos inexistentes: {sorted(set(table.mechanisms) - declared)}"
+    )

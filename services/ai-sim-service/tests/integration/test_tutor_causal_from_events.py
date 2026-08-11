@@ -11,11 +11,13 @@ from pathlib import Path
 
 from tests.support import build_volcanic_planet
 
+from ecosfera_ai.application.consumers.render_explanation import ExplanationRenderer
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.feedback.explain_from_events import (
     ExplainFromEventsUseCase,
     load_translation,
 )
+from ecosfera_ai.domain.consumers.templates import load_templates
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
 from ecosfera_ai.engines.bridge import snapshot_of
 from ecosfera_ai.engines.composition import build_planet_engine
@@ -26,12 +28,13 @@ from ecosfera_ai.simulation_engine.state import PlanetSeed
 
 PARAMS = load_params(Path("configs/simulation_params.yaml"))
 TRANSLATION = load_translation(Path("configs/event_observations.yaml"))
+RENDERER = ExplanationRenderer(load_templates(Path("configs/explanation_templates.yaml")))
 TICKS = 80
 
 
 def _use_case() -> ExplainFromEventsUseCase:
     rules = ExplainCausalUseCase(build_engine(Path("configs/causal_rules.yaml")))
-    return ExplainFromEventsUseCase(rules, TRANSLATION)
+    return ExplainFromEventsUseCase(rules, TRANSLATION, RENDERER)
 
 
 def _store(seed: int = 2027) -> InMemoryEventStore:
@@ -60,12 +63,46 @@ def test_the_explanation_comes_from_rules_and_is_grounded() -> None:
 
 
 def test_the_narrated_chain_covers_the_vertical_slice() -> None:
-    """As regras de sempre narram a cadeia que os Engines novos produziram."""
-    outcome = _use_case().execute("tutor", _store().scientific_view())
-    fired = {step.rule_id for step in outcome.explanation.chain}
+    """A fatia vertical vulcanismo → carbono → temperatura é narrada como cadeia.
 
-    assert "R-VOLC-CO2" in fired, "a erupção deveria explicar o carbono"
-    assert "R-CO2-TEMP" in fired, "o carbono deveria explicar a temperatura"
+    A PROPRIEDADE é a de sempre; o que mudou no M6.1 é de onde ela vem, e a
+    mudança a fortalece (ADR 0026).
+
+    Até aqui a afirmação era `R-VOLC-CO2` e `R-CO2-TEMP` no rastro — ids do motor
+    de REGRAS, que projeta `co2↑ ⇒ temperatura↑` como ciência geral, sem
+    conferir se a trilha daquele planeta contém a mudança de temperatura. A
+    asserção passava mesmo que nenhum `TemperatureShift` tivesse ocorrido.
+
+    Agora os elos vêm do `causation_id` REAL: existe um evento de atmosfera
+    causado pela erupção, e um de clima causado pelo de atmosfera. Afirmar os
+    pares (causa, efeito) é a mesma promessa pedagógica com evidência mais forte
+    por trás — se o planeta não tiver encadeado, o teste falha, que é o que se
+    quer de um teste de cadeia.
+    """
+    outcome = _use_case().execute("tutor", _store().scientific_view())
+    pairs = {(step.cause, step.effect) for step in outcome.explanation.chain}
+
+    assert ("volcanism", "co2") in pairs, "a erupção deveria explicar o carbono"
+    assert ("co2", "temperature") in pairs, "o carbono deveria explicar a temperatura"
+
+
+def test_the_rules_engine_still_projects_the_vertical_slice_for_observations() -> None:
+    """E a projeção por regras continua viva onde ela é o serviço prestado.
+
+    `/ai/explain` recebe OBSERVAÇÕES do cliente: não há trilha, e projetar para a
+    frente é exatamente o que se pede. Esta é a cobertura que o teste acima
+    deixou de dar ao trocar de mecanismo — ela não se perdeu, mudou de lugar
+    junto com o motor.
+    """
+    from ecosfera_ai.domain.feedback.models import Observation
+
+    explanation = ExplainCausalUseCase(build_engine(Path("configs/causal_rules.yaml"))).execute(
+        "tutor", [Observation(variable="volcanism", delta=0.4)]
+    )
+    fired = {step.rule_id for step in explanation.chain}
+
+    assert "R-VOLC-CO2" in fired
+    assert "R-CO2-TEMP" in fired
 
 
 def test_the_trace_accompanies_the_explanation() -> None:

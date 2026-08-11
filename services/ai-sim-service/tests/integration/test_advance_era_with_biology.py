@@ -114,16 +114,34 @@ def test_ecology_snapshot_respects_the_carrying_capacity(client: TestClient) -> 
 
 
 def test_causal_explanation_mentions_emergent_biology(client: TestClient) -> None:
-    """O feedback continua vindo do motor de REGRAS (sem LLM), agora com biologia."""
+    """O feedback continua sem LLM, e a era continua narrando efeito biológico.
+
+    Desde o M6.1 a narração de eventos sai de templates ancorados no dossiê, e
+    não da propagação de variáveis do motor de regras (ADR 0026) — então os ids
+    do rastro passaram a ser `T-*` em vez de `R-*`. A promessa verificada é a
+    mesma de antes: uma era não pode ser narrada só como física, ignorando o que
+    aconteceu com a vida.
+    """
     planet_id = client.post(f"{BASE}/planets", json={"seed": 31337}).json()["planet_id"]
     body = client.post(f"{BASE}/planets/{planet_id}/advance-era").json()
 
     explanation = body["explanation"]
     assert explanation["source"] == "rules"
     assert explanation["grounded"] is True
-    biological_rules = {"R-TEMP-EXTINCTION", "R-EXTINCTION-BIODIVERSITY", "R-WATER-BIODIVERSITY"}
+    biological_templates = {
+        "T-LIFE-EMERGED",
+        "T-TRAIT-ADAPTATION",
+        "T-TRAIT-ADAPTATION-REPEATED",
+        "T-EXTINCTION-ECOLOGICAL",
+        "T-EXTINCTION-CATASTROPHIC",
+        "T-EXTINCTION-CATASTROPHIC-UNTRACED",
+        "T-MASS-MORTALITY",
+        "T-MASS-MORTALITY-CATASTROPHIC",
+        "T-TROPHIC-COLLAPSE",
+        "T-SPECIATION-COMMON-ANCESTOR",
+    }
     fired = {step["rule_id"] for step in explanation["chain"]}
-    assert fired & biological_rules, "a era deveria narrar ao menos um efeito biológico"
+    assert fired & biological_templates, "a era deveria narrar ao menos um efeito biológico"
 
 
 def test_unknown_species_returns_problem_404(client: TestClient) -> None:

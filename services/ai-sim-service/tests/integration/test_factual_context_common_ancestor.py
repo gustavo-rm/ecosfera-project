@@ -25,12 +25,14 @@ from pathlib import Path
 
 from tests.support import speciation_event
 
+from ecosfera_ai.application.consumers.render_explanation import ExplanationRenderer
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.feedback.explain_from_events import (
     ExplainFromEventsUseCase,
     causal_trace,
     load_translation,
 )
+from ecosfera_ai.domain.consumers.templates import load_templates
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
 from ecosfera_ai.engines.evolution.events import ANCESTOR_ROLE, LINEAGE_ROLE
 from ecosfera_ai.shared_kernel.events import DomainEvent
@@ -39,6 +41,12 @@ TRANSLATION = load_translation(Path("configs/event_observations.yaml"))
 USE_CASE = ExplainFromEventsUseCase(
     ExplainCausalUseCase(build_engine(Path("configs/causal_rules.yaml"))),
     TRANSLATION,
+    # Desde o M6.1 a narração de eventos sai do renderizador por template, e não
+    # da propagação de variáveis do motor de regras (ADR 0026). O que este
+    # arquivo guarda não mudou: a leitura de ancestral comum tem de sobreviver à
+    # troca do narrador — se ela dependesse de qual motor escreve a frase, não
+    # seria garantia nenhuma.
+    ExplanationRenderer(load_templates(Path("configs/explanation_templates.yaml"))),
 )
 
 # As formulações proibidas ao consumidor (BIO-001). A regra dura: é proibido
