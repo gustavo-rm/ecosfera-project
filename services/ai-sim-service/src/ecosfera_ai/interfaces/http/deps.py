@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any
 
+from ecosfera_ai.application.consumers.render_explanation import ExplanationRenderer
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
 from ecosfera_ai.application.feedback.explain_from_events import (
     EventTranslation,
@@ -21,6 +22,7 @@ from ecosfera_ai.application.simulation.run_tick import RunTickUseCase
 from ecosfera_ai.application.telemetry.ingest_event import IngestTelemetryUseCase
 from ecosfera_ai.config.settings import get_settings
 from ecosfera_ai.core.observability import biology_jobs
+from ecosfera_ai.domain.consumers.templates import TemplateSet, load_templates
 from ecosfera_ai.domain.feedback.rule_loader import build_engine
 from ecosfera_ai.engines.astronomy.observability import AstronomyMetricsSink
 from ecosfera_ai.engines.atmosphere.observability import AtmosphereMetricsSink
@@ -146,9 +148,25 @@ def get_event_translation() -> EventTranslation:
     return load_translation(get_settings().event_observations_path)
 
 
+@lru_cache
+def get_explanation_templates() -> TemplateSet:
+    """Templates de explicação do M6.1 — texto versionado, fora do código."""
+    return load_templates(get_settings().explanation_templates_path)
+
+
+@lru_cache
+def get_explanation_renderer() -> ExplanationRenderer:
+    """Renderizador do M6.1: dossiê factual -> prosa auditável, sem LLM."""
+    return ExplanationRenderer(get_explanation_templates())
+
+
 def get_explain_from_events_use_case() -> ExplainFromEventsUseCase:
-    """Tutor embrionário: narra a cadeia a partir do Event Store, sem LLM."""
-    return ExplainFromEventsUseCase(get_explain_use_case(), get_event_translation())
+    """Tutor embrionário: narra a trilha do Event Store por template, sem LLM."""
+    return ExplainFromEventsUseCase(
+        get_explain_use_case(),
+        get_event_translation(),
+        get_explanation_renderer(),
+    )
 
 
 @lru_cache

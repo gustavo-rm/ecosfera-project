@@ -208,16 +208,22 @@ forbidden_modules = [
     "ecosfera_ai.interfaces",
 ]
 
-# O M6.0 e a fundacao FACTUAL, e ela e deliberadamente anterior ao LLM: primeiro
-# o fato verificavel, so depois quem o reescreve (M6.3). Enquanto a subetapa for
-# esta, uma dependencia de LLM/RAG e regressao de escopo, e o contrato a nomeia
-# em vez de confiar na memoria de quem revisa.
+# A ordem do M6 e deliberada: primeiro o fato verificavel (M6.0), depois o PISO
+# de qualidade por template (M6.1), depois o RAG (M6.2), e so entao o gerador
+# (M6.3). O piso e o que da sentido ao LLM — sem ele, "o modelo esta ajudando?"
+# nao tem resposta, porque nao haveria com o que comparar.
+#
+# O contrato cobre o CAMINHO INTEIRO de evento ate prosa, e nao so o pacote novo:
+# o explicador em `application.feedback` e quem narra a trilha, e seria o caminho
+# mais curto para um LLM entrar sem ninguem notar.
 [[tool.importlinter.contracts]]
-name = "A fundacao factual do M6.0 nao depende de LLM nem de RAG"
+name = "A explicacao ate o M6.1 nao depende de LLM nem de RAG"
 type = "forbidden"
 source_modules = [
     "ecosfera_ai.domain.consumers",
     "ecosfera_ai.application.consumers",
+    "ecosfera_ai.domain.feedback",
+    "ecosfera_ai.application.feedback",
 ]
 forbidden_modules = [
     "ollama",

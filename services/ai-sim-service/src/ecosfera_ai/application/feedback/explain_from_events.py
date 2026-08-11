@@ -2,8 +2,7 @@
 
 Fecha o embrião do AI Tutor previsto no ADR-ARCH-0001: um consumidor read-side
 que explica o fenômeno **sem recalcular ciência** e **sem inspecionar memória de
-Engine**. Ele lê a trilha de eventos e a traduz em observações, que o motor de
-regras determinístico de sempre narra. Não há LLM aqui — isso é o M6.
+Engine**. Não há LLM aqui — isso é o M6.3.
 
 Duas fronteiras que este módulo respeita de propósito:
 
@@ -12,8 +11,31 @@ Duas fronteiras que este módulo respeita de propósito:
   Um Engine pode ser reescrito inteiro sem tocar aqui, desde que continue
   emitindo o mesmo envelope §4.
 * **Não escreve prosa científica.** O evento traz `cause_code` estruturado; a
-  frase sai do motor de regras, que é o consumidor. É a Correção 1 do
-  ADR-ARCH-0002 aplicada na prática.
+  frase é do consumidor. É a Correção 1 do ADR-ARCH-0002 aplicada na prática.
+
+## O que o M6.1 mudou aqui, e por quê
+
+Até o M6.0 este caso de uso narrava assim: evento → observação `(variável,
+delta)` → motor de regras → prosa. O motor de regras é um PROPAGADOR: a partir
+de `co2↑` ele deriva `temperatura↑`, e daí `gelo↓`, em busca em largura até a
+profundidade três.
+
+Isso é correto como ciência geral e é exatamente o que `/ai/explain` precisa —
+lá o cliente manda observações, não existe trilha, e projetar para a frente é o
+serviço prestado. Mas para NARRAR O QUE ACONTECEU num planeta é o defeito
+central: a observação descarta a identidade do evento (qual meteoro, qual tick,
+quais linhagens), e os saltos seguintes afirmam efeitos que o log pode não
+conter. Uma frase verdadeira como ciência e não derivável daquela trilha é
+precisamente a alucinação que o M6 existe para impedir — e ela não precisa de um
+LLM para acontecer.
+
+Desde o M6.1 a narração vem do `ExplanationRenderer`, que lê o `FactualContext`
+e preenche templates com campos do dossiê, com a atribuição causal saindo do
+`causation_id` REAL. Há UM narrador de eventos, e é ele.
+
+O motor de regras continua vivo e no lugar certo: `/ai/explain` (observações do
+cliente) e o recuo por delta agregado do `AdvanceEraUseCase`, que ocorre quando
+não há evento algum a narrar. Nenhum dos dois é narração de trilha.
 """
 
 from __future__ import annotations
@@ -25,8 +47,16 @@ from typing import Any
 
 import yaml
 
+from ecosfera_ai.application.consumers.render_explanation import ExplanationRenderer
 from ecosfera_ai.application.feedback.explain_causal import ExplainCausalUseCase
-from ecosfera_ai.domain.feedback.models import CausalExplanation, Observation
+from ecosfera_ai.domain.consumers.explanation import ExplainedFact, Explanation, Register
+from ecosfera_ai.domain.consumers.factual_context import ContextSlice, FactualContext
+from ecosfera_ai.domain.feedback.models import (
+    CausalExplanation,
+    CausalStep,
+    Direction,
+    Observation,
+)
 from ecosfera_ai.shared_kernel.events import DomainEvent
 
 
@@ -134,25 +164,117 @@ class CausalLink:
 
 @dataclass(frozen=True, slots=True)
 class EventExplanation:
-    """Explicação do tutor mais o rastro que a sustenta (auditabilidade)."""
+    """Explicação do tutor mais o rastro que a sustenta (auditabilidade).
+
+    `rendered` é a explicação do M6.1 com a ancoragem campo a campo; `explanation`
+    é a mesma coisa no contrato de saída de sempre, para que a API e o
+    `AdvanceEraUseCase` não precisassem mudar junto.
+    """
 
     explanation: CausalExplanation
     trace: tuple[CausalLink, ...] = ()
+    rendered: Explanation | None = None
 
 
 class ExplainFromEventsUseCase:
-    """Narra a cadeia causal a partir da trilha de eventos, sem LLM."""
+    """Narra a trilha de eventos, sem LLM — pelo renderizador do M6.1.
 
-    def __init__(self, explain: ExplainCausalUseCase, translation: EventTranslation) -> None:
+    `explain` (motor de regras) continua injetado porque o caso de uso segue
+    servindo o caminho de OBSERVAÇÕES; o que ele não faz mais é narrar eventos
+    por propagação de variáveis (ver a nota de módulo).
+    """
+
+    def __init__(
+        self,
+        explain: ExplainCausalUseCase,
+        translation: EventTranslation,
+        renderer: ExplanationRenderer,
+    ) -> None:
         self._explain = explain
         self._translation = translation
+        self._renderer = renderer
 
-    def execute(self, planet_id: str, events: Sequence[DomainEvent]) -> EventExplanation:
-        observations = self._translation.observations(events)
-        return EventExplanation(
-            explanation=self._explain.execute(planet_id, observations),
-            trace=causal_trace(events),
+    def execute(
+        self,
+        planet_id: str,
+        events: Sequence[DomainEvent],
+        register: Register = Register.STANDARD,
+    ) -> EventExplanation:
+        """Monta o dossiê da trilha recebida e o narra.
+
+        `FactualContext.of` é construtor PURO — nenhuma leitura de Event Store
+        acontece aqui. Quem já tem a trilha em mãos (o `AdvanceEraUseCase`, que
+        acabou de rodar a era) não precisa relê-la para ser narrado.
+        """
+        context = FactualContext.of(
+            planet_id,
+            ContextSlice.of_era(_era_of(events)),
+            tuple(events),
         )
+        rendered = self._renderer.render(context, register)
+        return EventExplanation(
+            explanation=self._as_causal_explanation(planet_id, rendered, context),
+            trace=causal_trace(events),
+            rendered=rendered,
+        )
+
+    def _as_causal_explanation(
+        self, planet_id: str, rendered: Explanation, context: FactualContext
+    ) -> CausalExplanation:
+        """Adapta a explicação do M6.1 ao contrato de saída existente.
+
+        O `CausalStep` nasceu para propagação de variáveis, e a narração por
+        evento não tem exatamente essa forma. A adaptação usa a tradução do M1
+        (`event_observations.yaml`) para recuperar a grandeza e o SINAL do
+        evento — dado real do `cause_detail`, não convenção — e declara
+        `Direction.NONE` quando o evento não mede grandeza alguma.
+        """
+        return CausalExplanation(
+            planet_id=planet_id,
+            summary=rendered.summary,
+            chain=[self._step_for(fact, context) for fact in rendered.facts],
+            grounded=True,
+            source="rules",
+        )
+
+    def _step_for(self, fact: ExplainedFact, context: FactualContext) -> CausalStep:
+        """Um passo do contrato antigo a partir de um fato narrado.
+
+        `cause` é a grandeza do evento que CAUSOU este, quando o dossiê o contém;
+        na ausência de causa registrada o passo é raiz e cause == effect. Nada
+        aqui infere um elo que o `causation_id` não traga.
+        """
+        event = None if fact.grounding.event_id is None else context.event(fact.grounding.event_id)
+        effect, direction = self._variable_of(event)
+        cause = effect
+        if event is not None:
+            parent = context.cause_of(event.event_id)
+            if parent is not None:
+                cause, _ = self._variable_of(parent)
+        return CausalStep(
+            cause=cause,
+            effect=effect,
+            direction=direction,
+            rule_id=fact.template_id,
+            explanation=fact.text,
+        )
+
+    def _variable_of(self, event: DomainEvent | None) -> tuple[str, Direction]:
+        """Grandeza e sentido do evento, quando a tradução do M1 os conhece."""
+        if event is None:
+            return "", Direction.NONE
+        mapping = self._translation.mapping_for(event)
+        if mapping is None:
+            return event.event_type, Direction.NONE
+        delta = mapping.delta_of(event.cause_detail)
+        if delta is None:
+            return mapping.variable, Direction.NONE
+        return mapping.variable, (Direction.UP if delta >= 0 else Direction.DOWN)
+
+
+def _era_of(events: Sequence[DomainEvent]) -> int:
+    """A era da trilha recebida — a do primeiro evento, ou zero se não há trilha."""
+    return events[0].occurred_at.era if events else 0
 
 
 def causal_trace(events: Sequence[DomainEvent]) -> tuple[CausalLink, ...]:
