@@ -397,17 +397,104 @@ ela some o único critério que separa o Tutor certo do que inventa.
 | Subetapa | Acrescenta | Não pode |
 | --- | --- | --- |
 | **M6.0** (feito) | o fato verificável | narrar |
-| M6.1 | frase por template — o **piso** que o LLM terá de bater | inventar fato |
+| **M6.1** (feito) | frase por template — o **piso** que o LLM terá de bater | inventar fato |
 | M6.2 | RAG pedagógico sobre material BNCC | inventar fato |
 | M6.3 | LLM (Ollama) reescreve | decidir o que aconteceu |
 | M6.4 | avaliação adversarial + guardrails | — |
 
-### Três garantias travadas no tipo, e não na disciplina
+### O que o M6.1 entrega — a explicação, sem LLM
+
+O dossiê vira português. É a Correção 1 do ADR-ARCH-0002 finalmente cumprida por
+inteiro: o Engine dá o esqueleto causal como dado, o M6.0 o organiza, e aqui ele
+vira frase.
+
+```python
+from ecosfera_ai.application.consumers.render_explanation import ExplainSliceUseCase
+from ecosfera_ai.domain.consumers.explanation import Register
+
+explicacao = await ExplainSliceUseCase(event_query, renderer).execute(
+    planet_id, ContextSlice.of_era(2), Register.STANDARD
+)
+
+explicacao.summary          # a prosa, em ordem cronológica
+explicacao.facts[0].text    # uma frase
+explicacao.facts[0].grounding  # de onde CADA afirmação dela saiu
+```
+
+Exemplo de saída real (corrida de 400 ticks com meteoro):
+
+> No ciclo 357, a queda de um meteoro eliminou a comunidade de uma só vez, por
+> mais bem adaptada que ela estivesse ao ambiente em que vivia: um evento extremo
+> como esse não escolhe quem sobrevive.
+>
+> No ciclo 315, uma população ancestral se dividiu em duas linhagens porque as
+> populações passaram a viver de maneiras diferentes. As duas compartilham um
+> ancestral comum e seguem caminhos separados a partir dele: são irmãs, e nenhuma
+> das duas é a versão antiga da outra.
+
+**A prosa é DADO versionado** (`configs/explanation_templates.yaml`): quem entende
+de pedagogia corrige uma palavra sem abrir um módulo Python.
+
+### Por que o piso vem antes do gerador
+
+Quando o M6.3 puser um LLM neste caminho, *"o modelo está ajudando?"* precisa ter
+resposta — e ela só existe se houver um ANTES contra o qual comparar. Sem piso,
+qualquer saída fluente pareceria progresso.
+
+E há um efeito colateral que vale mais que o piso: explicar por template é o teste
+mais duro que o dossiê do M6.0 podia receber. **Nenhum template precisou de um
+campo que o dossiê não tivesse** — o que é a evidência de que o M6.0 acertou o
+escopo. Um buraco ali teria aparecido agora, com um template, em vez de duas
+subetapas adiante, onde a mesma falta apareceria como "o LLM inventou".
+
+### Um template também alucina
+
+Não ter modelo generativo não é imunidade. Um template que dissesse "a espécie não
+conseguiu se adaptar" numa extinção catastrófica afirma algo que o dossiê **não
+contém** — e a criança fica com a concepção equivocada exatamente como ficaria se
+um modelo o tivesse escrito. A diferença é a facilidade de auditar, não a
+existência do risco.
+
+Por isso cada frase carrega um `Grounding`, e o teste de ancoragem verifica, sem
+depender do julgamento de ninguém: todo fato aponta para um evento do dossiê; todo
+campo declarado resolve; todo número da frase veio de um slot derivável do dossiê;
+e o `summary` é EXATAMENTE a junção dos fatos — um resumo que sintetizasse teria
+de afirmar algo que nenhum fato isolado afirma.
+
+### Um só narrador de eventos
+
+`ExplainFromEventsUseCase` (vivo desde o M1) **evoluiu** em vez de ganhar um irmão.
+Ele narrava propagando variáveis (`co2↑ ⇒ temperatura↑`), o que descartava a
+identidade do evento e afirmava efeitos que o log pode não conter. Agora narra pelo
+dossiê, com a atribuição causal saindo do `causation_id` real.
+
+O motor de regras continua onde projetar é o serviço prestado — `/ai/explain`
+(o cliente manda observações, não há trilha) e o recuo por delta agregado do
+`advance-era`. Nenhum dos dois é narração de trilha (ADR 0026).
+
+### Registro de leitura: a costura, não o sistema
+
+`Register.STANDARD` e `Register.SIMPLE`. O `SIMPLE` existe hoje só para os três
+fatos de maior risco pedagógico (as duas extinções e a especiação); nos demais o
+renderizador **cai para o padrão** e declara o registro realmente usado. O M6.3
+acrescenta registros linha a linha no YAML, sem tocar em assinatura — e sem
+improvisar simplificação em tempo de execução, que é onde a frase erra.
+
+Diferenciação etária de verdade é produto, depende do M6.2/M6.3 e **não** foi
+construída aqui.
+
+```bash
+uv run python scripts/smoke_m6_1.py    # a explicação de uma corrida real
+```
+
+### Três garantias travadas na forma, e não na disciplina
 
 * **Especiação é ancestral comum.** `SpeciationFact` tem um ancestral e **duas**
   linhagens irmãs, e recusa qualquer outra forma — inclusive a disfarçada, em que o
   ancestral reaparece como uma das linhagens. "A espécie A deu origem à B" é
-  **inexprimível** (BIO-001, ADR 0023).
+  **inexprimível** (BIO-001, ADR 0023) — e continua sendo na PROSA: o template de
+  especiação não tem slot de linhagem, então a frase A→B não tem onde encaixar os
+  dois sujeitos que precisaria (ADR 0026).
 * **Catastrófica ≠ ecológica.** A família da causa atravessa como dado, junto com o
   elo causal, que numa catástrofe aponta para o EVENTO e não para o clima do mesmo
   tick (ADR 0019).
@@ -417,11 +504,14 @@ ela some o único critério que separa o Tutor certo do que inventa.
 
 ### Onde vive
 
-`domain/consumers/` (modelo puro) e `application/consumers/` (caso de uso), na
-estratificação hexagonal que este serviço usa — e não num pacote `consumers/`
+`domain/consumers/` (modelo puro: dossiê, floresta causal, templates, narração) e
+`application/consumers/` (casos de uso: montar o dossiê, renderizar a explicação),
+na estratificação hexagonal que este serviço usa — e não num pacote `consumers/`
 paralelo. O que a Spec §1 pede é a **fronteira**, e ela é barrada por
 `import-linter`: o consumidor não alcança Engine, world-state nem infraestrutura, e
-**não depende de LLM nem de RAG** enquanto a subetapa for esta.
+**não depende de LLM nem de RAG** — proibição que, desde o M6.1, cobre o caminho
+inteiro de evento até prosa, inclusive `application/feedback`, que seria o atalho
+mais curto para um gerador entrar sem ninguém notar.
 
 > **Especiação é rara e isso é normal.** Até a Fase 2 o limiar exige ~6 σ de um
 > passo de mutação: zero especiações em 200 ticks nas sementes 2027 e 99

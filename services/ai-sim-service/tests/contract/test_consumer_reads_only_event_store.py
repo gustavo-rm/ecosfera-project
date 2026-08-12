@@ -143,4 +143,4 @@ def test_the_two_consumer_contracts_are_declared_in_the_pyproject() -> None:
     config = tomllib.loads((SERVICE_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     names = {c["name"] for c in config["tool"]["importlinter"]["contracts"]}
     assert "Consumidores read-side so alcancam o Event Store" in names
-    assert "A fundacao factual do M6.0 nao depende de LLM nem de RAG" in names
+    assert "A explicacao ate o M6.1 nao depende de LLM nem de RAG" in names

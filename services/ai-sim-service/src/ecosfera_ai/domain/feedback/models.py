@@ -7,8 +7,23 @@ from enum import StrEnum
 
 
 class Direction(StrEnum):
+    """Sentido da variação de uma grandeza.
+
+    `NONE` entra no M6.1 e não é um terceiro sentido: é a AUSÊNCIA de afirmação
+    direcional. Um passo narrado a partir de um evento nem sempre mede uma
+    grandeza que sobe ou desce — "uma população ancestral se dividiu em duas
+    linhagens" não tem direção, e uma especiação não é um aumento de nada.
+
+    Antes disso, o único jeito de preencher o campo seria escolher `UP` por
+    convenção — e uma direção escolhida por convenção é uma afirmação sem origem
+    no Event Store, chegando à resposta da API como se fosse dado. É exatamente
+    a alucinação que o M6 existe para tornar impossível, e ela não precisa de um
+    LLM para acontecer.
+    """
+
     UP = "up"
     DOWN = "down"
+    NONE = "none"
 
 
 @dataclass(frozen=True, slots=True)

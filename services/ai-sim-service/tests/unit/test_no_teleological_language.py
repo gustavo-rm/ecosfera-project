@@ -57,13 +57,28 @@ TELEOLOGICAL = (
 )
 
 RULES = Path("configs/causal_rules.yaml")
+# A prosa do M6.1 entra NESTA guarda, e não numa segunda parecida. O vocabulário
+# anti-teleológico é UM: fosse duplicado, uma das cópias envelheceria sozinha, e
+# a que envelhecesse seria justamente a que alguém consultaria ao escrever a
+# frase seguinte. Quem acrescentar um arquivo de prosa acrescenta-o aqui.
+EXPLANATIONS = Path("configs/explanation_templates.yaml")
 SOURCES = sorted(Path("src/ecosfera_ai").rglob("*.py"))
 ADRS = sorted(Path("docs/adr").glob("*.md"))
 
 
 def _templates() -> list[str]:
-    raw: dict[str, Any] = yaml.safe_load(RULES.read_text(encoding="utf-8")) or {}
-    return [str(rule["template"]) for rule in raw.get("rules", [])]
+    """Toda a prosa versionada que pode chegar ao aluno, dos dois arquivos."""
+    rules: dict[str, Any] = yaml.safe_load(RULES.read_text(encoding="utf-8")) or {}
+    prose = [str(rule["template"]) for rule in rules.get("rules", [])]
+
+    explanations: dict[str, Any] = yaml.safe_load(EXPLANATIONS.read_text(encoding="utf-8")) or {}
+    prose += [str(entry["text"]) for entry in explanations.get("templates", [])]
+    # As orações de mecanismo são prosa tanto quanto os templates: elas entram
+    # nas frases inteiras, e uma formulação teleológica ali chegaria ao aluno
+    # exatamente do mesmo jeito.
+    prose += [str(text) for text in (explanations.get("mechanisms") or {}).values()]
+    prose += [str(text) for text in (explanations.get("nouns") or {}).values()]
+    return prose
 
 
 def _without_quoted(line: str) -> str:
