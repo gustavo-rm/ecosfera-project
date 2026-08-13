@@ -40,6 +40,12 @@ lacunas conhecidas, no fim.
 | 21 | Todo `cause_code` tem frase OU silêncio declarado | `test_every_cause_code_has_a_mechanism_phrase_or_is_declared_unnarrated` | contrato | código novo sem oração de mecanismo e fora de `not_narrated`, nomeando o código |
 | 22 | Há UM narrador de eventos depois do M6.1 | `test_single_explainer_after_integration` | contrato | módulo novo importando o renderizador fora da lista, ou prosa de aluno hardcoded no código |
 | 23 | A explicação não depende de LLM nem de RAG | `test_no_llm_dependency` + contrato `import-linter` | contrato | import direto (varredura AST) ou indireto (grafo do import-linter) em qualquer módulo do caminho evento → prosa |
+| 24 | Toda entrada do corpus tem origem; externa tem licença | `test_corpus_manifest_has_required_provenance` + `CHECK` da migration 0006 | unidade + integração | entrada anônima ou referência sem licença — recusada pelo modelo E pelo banco |
+| 25 | Nenhum código BNCC foi inventado | `test_corpus_contains_no_fabricated_curriculum` | unidade | código que não aparece no texto do Dossiê, ou "(conferir)" promovido a verificado |
+| 26 | Passagem recuperada não pode ocupar o lugar de um fato | `test_retrieved_passage_is_not_a_fact_type` | unidade | campos disjuntos, sem parentesco, e o `mypy` EXECUTADO sobre a atribuição proibida |
+| 27 | O RAG recupera e não gera | `test_no_generation_this_layer` + 2 contratos `import-linter` | contrato | import de LLM, alcance ao Event Store, ou composição de texto a partir de passagens |
+| 28 | pgvector concorda com a implementação de referência | `test_pgvector_over_postgres` (13 testes) | integração | ordem ou score divergentes entre o `<=>` do banco e o cosseno em Python |
+| 29 | Uma consulta nunca vê vetores de outro modelo | `test_a_query_never_sees_another_models_vectors` | integração | linha de outro modelo, gravada com vetor máximo, aparecendo no resultado |
 
 ## Como cada mecanismo foi provado a morder
 
@@ -99,7 +105,12 @@ Honestidade sobre o que esta matriz **não** cobre:
 3. **Traces (pilar 4)** seguem gancho no-op; nada verifica span algum
    (ADR 0022 §5).
 4. **A instabilidade de carbono** continua `xfail` anotado (ADR 0020).
-5. **O dossiê factual do M6.0 não tem rota HTTP**, então nada o exercita pela
+5. **O corpus do M6.2 nunca foi indexado com o modelo SEMÂNTICO.** A política de
+   rede deste ambiente nega `huggingface.co` e o CI não instala o extra `ai`, então
+   `SentenceTransformerEmbedder` teve a lógica testada com carregador injetado, e
+   não uma execução com pesos reais. Declarado no ADR 0027; é a primeira coisa a
+   provar num ambiente com acesso.
+6. **O dossiê factual do M6.0 não tem rota HTTP**, então nada o exercita pela
    borda. É consequência da lacuna 1, e não descuido: o Event Store do processo é
    uma lista única, não escopada por planeta, e servir uma rota a partir dele
    reintroduziria o vazamento do ADR 0023 na própria fundação anti-alucinação
