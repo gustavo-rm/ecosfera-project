@@ -1,0 +1,342 @@
+# CORPUS PEDAGÓGICO do M6.2 — a trilha de auditoria do REGISTRO do Tutor.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# O QUE ESTE ARQUIVO É, E O QUE ELE NÃO É
+# ─────────────────────────────────────────────────────────────────────────────
+# Este corpus existe para o Tutor SOAR como um professor alinhado ao currículo —
+# não para ele SABER mais ciência. A distinção decide tudo o que vem depois:
+#
+#   * O FATO sobre o planeta do aluno vem do Event Store, via `FactualContext`
+#     (M6.0) e é narrado pelo piso de template (M6.1). É INVIOLÁVEL.
+#   * Este corpus informa REGISTRO e LINGUAGEM: como dizer, com que palavras,
+#     em que ordem didática, com que vocabulário proibido.
+#
+# Uma passagem recuperada daqui NUNCA pode virar um fato sobre o planeta. Se o
+# corpus disser "extinções catastróficas ocorrem" e o Event Store daquele planeta
+# não tiver nenhuma, o Tutor não pode narrar uma. A garantia é de TIPO —
+# `RetrievedPassage` não é um `DomainEvent` nem um `FactualContext`, e nenhuma
+# assinatura aceita um no lugar do outro (ADR 0027).
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# PROVENIÊNCIA É OBRIGATÓRIA
+# ─────────────────────────────────────────────────────────────────────────────
+# Toda entrada declara `source`: o documento do projeto de onde ela saiu. Não há
+# entrada anônima, e o banco recusa uma (NOT NULL + CHECK, migration 0006).
+# Entradas de categoria `external_reference` declaram `license` também.
+#
+# A razão é a mesma que motivou o M6 inteiro: quando alguém perguntar "por que o
+# Tutor falou assim com meu filho?", a resposta precisa ser um documento, não uma
+# lembrança. Este arquivo é revisável por um humano (incluindo a especialista)
+# SEM rodar código — é por isso que ele é YAML e não um script de ingestão.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# PRIORIDADE DO CORPUS (decisão fechada — ADR 0027)
+# ─────────────────────────────────────────────────────────────────────────────
+#   1. `vocabulary_rule`      — as regras de linguagem da Fase 0
+#   2. `validated_correction` — as decisões científicas do projeto (Tássia)
+#   3. `curriculum_objective` — objetivos BNCC realmente citados no Dossiê
+#   4. `external_reference`   — por último, pouco, e só com licença verificada
+#
+# Livros-texto gerais de biologia/química/física foram CONSIDERADOS E REJEITADOS
+# como corpus primário: empurram o registro do Tutor para a voz de um manual
+# universitário — errada para a faixa etária — e duplicam, mal, a ancoragem que o
+# Event Store já dá aos fatos.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# NENHUM CONTEÚDO CURRICULAR FOI INVENTADO
+# ─────────────────────────────────────────────────────────────────────────────
+# Os códigos BNCC abaixo saem da matriz de alinhamento do Dossiê PD&I v3 (§3.4),
+# que traz o próprio aviso: *"Códigos conforme BNCC 2018; itens com (conferir)
+# pedem validação do número exato (o objeto de conhecimento está correto)"*.
+#
+# Essa ressalva é PRESERVADA aqui em `code_verified`. Uma entrada com
+# `code_verified: false` teve o OBJETO DE CONHECIMENTO conferido, mas o número da
+# habilidade ainda não — e indexá-la como se estivesse conferida seria fabricar
+# precisão que o projeto não tem. É o mesmo defeito do `solar_flux` do M2, na
+# camada de conteúdo: algo que parece verificado e não é.
+version: 1
+
+# Modelo de embedding com que este corpus foi indexado. Fica AQUI, e não só no
+# banco, porque trocar de modelo muda o significado de toda similaridade já
+# gravada — e uma troca silenciosa faria o Tutor recuperar outra coisa sem que
+# nada acusasse (ADR 0027).
+embedding_model: ecosfera-deterministic-v1
+
+entries:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1. REGRAS DE VOCABULÁRIO — Fase 0 (BIO-005, BIO-001, PED-003, Q5)
+  #
+  # São o andar mais importante do corpus. O M6.1 já aplica estas regras nos
+  # próprios templates; o que entra aqui é a REGRA em si, para que o M6.3 saiba
+  # POR QUE a frase é assim e não a reescreva quebrando-a. O corpus complementa
+  # o M6.1 — não repete as frases dele.
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: VOC-001
+    category: vocabulary_rule
+    source: "docs/adr/0023-common-ancestor-speciation-model.md (BIO-005); configs/causal_rules.yaml v5"
+    topic: "teleologia"
+    cause_codes: [DIRECTIONAL_SELECTION]
+    text: >-
+      Nunca atribuir intenção à evolução. A variação vem ANTES e sem propósito
+      ("surgiu uma mutação aleatória"); o ambiente decide DEPOIS ("a característica
+      aumentou a sobrevivência porque o ambiente era assim"). Proibidas: "a espécie
+      desenvolveu", "evoluiu para", "para se adaptar", "a espécie precisava",
+      "mais evoluída".
+
+  - id: VOC-002
+    category: vocabulary_rule
+    source: "docs/adr/0023-common-ancestor-speciation-model.md (BIO-001)"
+    topic: "especiação"
+    cause_codes: [DIVERGENT_NICHE, ENVIRONMENTAL_PRESSURE, REPRODUCTIVE_ISOLATION, GEOGRAPHIC_BARRIER]
+    text: >-
+      É proibido afirmar que uma espécie deu origem a outra. Duas linhagens
+      COMPARTILHAM um ancestral comum que sofreu especiação: as duas que seguem
+      adiante são irmãs, e a população ancestral que se dividiu não é nenhuma
+      delas.
+
+  - id: VOC-003
+    category: vocabulary_rule
+    source: "src/ecosfera_ai/engines/evolution/events.py (PED-003); docs/adr/0024-cohorts-decision-community-plus-species.md"
+    topic: "adaptação e especiação"
+    cause_codes: [DIRECTIONAL_SELECTION]
+    text: >-
+      Adaptação não é especiação, e confundi-las reduz evolução a adaptação.
+      ADAPTAÇÃO é mudança na FREQUÊNCIA dos traços dentro de UMA população ao
+      longo do tempo — a linhagem continua sendo uma só. ESPECIAÇÃO é o
+      surgimento de uma linhagem nova a partir de um ancestral comum: onde havia
+      uma, passam a existir duas.
+
+  - id: VOC-004
+    category: vocabulary_rule
+    source: "src/ecosfera_ai/engines/evolution/events.py (PED-003)"
+    topic: "adaptação e especiação"
+    text: >-
+      Adaptação acumulada PODE levar à especiação, mas não É especiação. Enquanto
+      a população não se divide, houve adaptação e nada mais. Apresentar a
+      adaptação como etapa obrigatória rumo à especiação inventa uma necessidade
+      que a biologia não tem.
+
+  - id: VOC-005
+    category: vocabulary_rule
+    source: "docs/adr/0019-catastrophic-vs-ecological-extinction.md §5 (Q5)"
+    topic: "aptidão"
+    cause_codes: [THERMAL_INTOLERANCE, RESOURCE_SCARCITY, PREDATION_PRESSURE]
+    text: >-
+      A aptidão é CONTEXTUAL, não absoluta. O que se nega é a aptidão ABSOLUTA —
+      o número único que ordenaria espécies fora de qualquer contexto. A mesma
+      comunidade é apta a um ambiente e inapta a outro sem ter mudado em nada.
+
+  - id: VOC-006
+    category: vocabulary_rule
+    source: "docs/adr/0019-catastrophic-vs-ecological-extinction.md §1–§4"
+    topic: "extinção"
+    cause_codes: [CATASTROPHIC_EVENT]
+    text: >-
+      Extinção catastrófica e extinção ecológica não se misturam. A ecológica é
+      gradual e mediada por adaptação: a comunidade não se sustentou nas condições
+      que encontrou. A catastrófica é abrupta e INDEPENDENTE de aptidão: um evento
+      extremo não seleciona, elimina. Colapsar as duas faz toda extinção soar como
+      falha de adaptação.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2. CORREÇÕES VALIDADAS — especialista em Biologia (Tássia), rodada M4
+  #
+  # Q5/Q8/Q11 já estão aplicadas no motor. Q3/Q12/Q15 foram acatadas e ADIADAS
+  # explicitamente para o M6 como "currículo do Tutor" (`deferred.md`) — ou seja,
+  # elas são exatamente o tipo de material que este corpus existe para carregar.
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: VAL-Q5
+    category: validated_correction
+    source: "docs/decisions/tassia-validation.md Q5 (validadora: Tássia, rodada M4)"
+    topic: "aptidão"
+    text: >-
+      Validado: a aptidão existe; o que não existe é aptidão absoluta. A aptidão é
+      propriedade da RELAÇÃO entre o organismo e o ambiente, não uma nota do
+      organismo. Ao falar de sobrevivência e morte, descrever a correspondência
+      entre a comunidade e as condições daquele momento.
+
+  - id: VAL-Q8
+    category: validated_correction
+    source: "docs/decisions/tassia-validation.md Q8 (validadora: Tássia, rodada M4)"
+    topic: "extinção"
+    cause_codes: [CATASTROPHIC_EVENT]
+    text: >-
+      Validado: nem toda extinção tem causa adaptativa. A extinção catastrófica é
+      independente de aptidão — uma espécie bem adaptada pode morrer num evento
+      extremo. Tratar as duas como a mesma coisa ensina que "quem se extingue era
+      inferior", que é a concepção equivocada central a desfazer.
+
+  - id: VAL-Q11
+    category: validated_correction
+    source: "docs/decisions/tassia-validation.md Q11 (validadora: Tássia, rodada M4; forma a confirmar)"
+    topic: "cadeia alimentar"
+    cause_codes: [PREY_COLLAPSE, RESOURCE_SCARCITY]
+    text: >-
+      Validado em princípio: a capacidade de suporte limita TODOS os níveis
+      tróficos, e não apenas os produtores. Ao narrar escassez, lembrar que o teto
+      de cada nível depende do nível abaixo dele. A FORMA matemática adotada foi
+      decisão de engenharia e ainda aguarda exame da especialista.
+
+  - id: VAL-Q3
+    category: validated_correction
+    source: "docs/decisions/deferred.md Q3 (acatada; adiada para o M6 como currículo do Tutor)"
+    topic: "ordem didática"
+    text: >-
+      Ordem de apresentação: adaptação primeiro, cladogênese depois. Se a
+      especiação for apresentada antes de o aluno ter visto os traços mudarem de
+      frequência dentro de uma população, a divisão de linhagens parece mágica.
+
+  - id: VAL-Q12
+    category: validated_correction
+    source: "docs/decisions/deferred.md Q12 (acatada; adiada para o M6 como currículo do Tutor)"
+    topic: "cadeia alimentar"
+    cause_codes: [PREY_COLLAPSE]
+    text: >-
+      Progressão de apresentação: o aluno deve ver a teia alimentar se adensar ao
+      longo das eras, e não recebê-la pronta. Começar pelas cadeias simples e
+      mostrar os elos se somando conforme a biodiversidade cresce.
+
+  - id: VAL-Q15
+    category: validated_correction
+    source: "docs/decisions/deferred.md Q15 (acatada; adiada para o M6 como narração)"
+    topic: "ciclo da água"
+    text: >-
+      Distinguir o ciclo curto da água (evaporação e precipitação, rápido e
+      visível) do ciclo longo (oceano, gelo e água subterrânea, lento). O motor já
+      modela os quatro reservatórios; o que falta é a narração separar os dois
+      tempos em vez de falar de "ciclo da água" como uma coisa só.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 3. OBJETIVOS DE APRENDIZAGEM — BNCC, citados do Dossiê PD&I v3 §3.4/§3.5/§4.1
+  #
+  # `code_verified: false` reproduz o "(conferir)" do Dossiê: o OBJETO de
+  # conhecimento está certo, o NÚMERO da habilidade ainda não foi conferido.
+  # Nenhum código foi inventado, nenhum "(conferir)" foi promovido a verificado.
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: BNCC-EVOLUCAO
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 (matriz Mecânica ↔ BNCC) e §3.5"
+    topic: "evolução"
+    bncc_codes: [EF09CI11]
+    code_verified: true
+    grade_band: "Fundamental II — 9º ano"
+    cause_codes: [DIRECTIONAL_SELECTION, DIVERGENT_NICHE]
+    text: >-
+      Objetivo de aprendizagem: compreender seleção natural e adaptação. Sob
+      pressão ambiental o aluno vê variantes prevalecerem e observa a seleção
+      operar sobre o genoma, em vez de receber a definição pronta.
+
+  - id: BNCC-EVOLUCAO-ADAPTACAO
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 (item marcado '(conferir)')"
+    topic: "evolução"
+    bncc_codes: [EF09CI09]
+    code_verified: false
+    grade_band: "Fundamental II — 9º ano"
+    text: >-
+      Objetivo de aprendizagem: relacionar adaptação e seleção natural ao ambiente
+      em que a população vive. O objeto de conhecimento está confirmado; o número
+      exato da habilidade ainda aguarda conferência.
+
+  - id: BNCC-ECOSSISTEMAS
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 (matriz Mecânica ↔ BNCC)"
+    topic: "cadeia alimentar"
+    bncc_codes: [EF07CI07, EF07CI08]
+    code_verified: true
+    grade_band: "Fundamental II — 7º ano"
+    cause_codes: [PREY_COLLAPSE, PREDATION_PRESSURE]
+    text: >-
+      Objetivo de aprendizagem: analisar o fluxo de energia em ecossistemas e
+      cadeias tróficas, e os impactos de alterações sobre elas.
+
+  - id: BNCC-EFEITO-ESTUFA
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 e §3.5 (EF07CI13 citado no texto; EF07CI12 marcado '(conferir)')"
+    topic: "efeito estufa"
+    bncc_codes: [EF07CI13]
+    code_verified: true
+    grade_band: "Fundamental II — 7º ano"
+    cause_codes: [CO2_ACCUMULATION, RADIATIVE_FORCING]
+    text: >-
+      Objetivo de aprendizagem: explicar o efeito estufa e sua alteração. O aluno
+      eleva o gás carbônico e observa a temperatura subir; a explicação formaliza
+      depois o que ele já viu acontecer.
+
+  - id: BNCC-CLIMA
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 (matriz Mecânica ↔ BNCC)"
+    topic: "clima"
+    bncc_codes: [EF08CI14, EF08CI15]
+    code_verified: true
+    grade_band: "Fundamental II — 8º ano"
+    cause_codes: [RADIATIVE_FORCING, ALBEDO_FEEDBACK]
+    text: >-
+      Objetivo de aprendizagem: relacionar o clima à circulação oceano-atmosfera e
+      ao aquecimento desigual, e identificar as variáveis que permitem prever
+      tendências.
+
+  - id: BNCC-BIODIVERSIDADE
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 (EF09CI12 marcado '(conferir)'; EM13CNT206 sem ressalva)"
+    topic: "biodiversidade"
+    bncc_codes: [EM13CNT206]
+    code_verified: true
+    grade_band: "Ensino Médio"
+    cause_codes: [CATASTROPHIC_EVENT]
+    text: >-
+      Objetivo de aprendizagem: avaliar biodiversidade e conservação, discutindo os
+      efeitos de intervenções sobre ecossistemas.
+
+  - id: BNCC-HABITABILIDADE
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 e §4.1 (trilha do 6º ano)"
+    topic: "habitabilidade"
+    bncc_codes: [EF06CI11, EF06CI14]
+    code_verified: true
+    grade_band: "Fundamental II — 6º ano"
+    cause_codes: [HABITABILITY_THRESHOLD, HABITABILITY_GAIN, HABITABILITY_LOSS]
+    text: >-
+      Objetivo de aprendizagem: compreender as condições de habitabilidade
+      planetária — a estrutura interna, a atmosfera e a relação entre os
+      movimentos do planeta e a energia que ele recebe da estrela.
+
+  - id: BNCC-INVESTIGACAO
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 e §3.5 (EM13CNT301/302)"
+    topic: "método científico"
+    bncc_codes: [EM13CNT301, EM13CNT302]
+    code_verified: true
+    grade_band: "Ensino Médio"
+    text: >-
+      Objetivo de aprendizagem: praticar o método científico como ciclo de
+      hipótese, experimento, observação e revisão — prever antes de agir e depois
+      conferir o que de fato aconteceu.
+
+  - id: BNCC-CICLOS
+    category: curriculum_objective
+    source: "docs/dossie/ECOSFERA_Dossie_PDI_v3.md §3.4 (matriz Mecânica ↔ BNCC)"
+    topic: "ciclo da água"
+    bncc_codes: [EM13CNT101, EM13CNT203]
+    code_verified: true
+    grade_band: "Ensino Médio"
+    text: >-
+      Objetivo de aprendizagem: modelar ciclos biogeoquímicos — carbono, água e
+      nitrogênio — como estoques e fluxos, e prever os efeitos de intervenções
+      sobre eles.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 4. REFERÊNCIAS EXTERNAS — NENHUMA nesta rodada, e isso é decisão
+  #
+  # A regra de licença é dura: na dúvida, EXCLUIR. As referências científicas que
+  # o projeto cita (Elton 1927, Verhulst 1838, Bogost 2007, Sweller) aparecem nos
+  # ADRs como CITAÇÃO bibliográfica — o projeto não tem, neste repositório, o
+  # texto integral delas com licença verificada, e indexar paráfrase própria
+  # apresentando-a como "referência externa" seria inventar proveniência.
+  #
+  # Quando entrarem, cada uma trará `license` preenchida e verificada, e o banco
+  # recusa `external_reference` sem licença (migration 0006, CHECK).
+  # ═══════════════════════════════════════════════════════════════════════════
