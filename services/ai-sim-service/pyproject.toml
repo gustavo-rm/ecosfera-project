@@ -112,9 +112,23 @@ disallow_untyped_defs = true
 warn_return_any = true
 warn_unreachable = true
 
-# Bibliotecas de terceiros sem stubs completos: evita quebrar o mypy --strict.
+# Bibliotecas de terceiros sem stubs completos, OU que vivem num extra opcional.
+#
+# `sentence_transformers` entra pelo segundo motivo, e o motivo importa: o CI
+# sincroniza `--extra sim --extra infra --group dev`, sem o extra `ai`. Sem esta
+# linha o `mypy --strict` reprovaria no CI por não achar um pacote que aquele
+# ambiente não instala de propósito — e o adaptador que o importa já faz o import
+# preguiçosamente, justamente para o serviço subir sem ele.
 [[tool.mypy.overrides]]
-module = ["testcontainers.*", "deap.*", "mesa.*", "pgmpy.*", "ollama.*", "arq.*"]
+module = [
+    "testcontainers.*",
+    "deap.*",
+    "mesa.*",
+    "pgmpy.*",
+    "ollama.*",
+    "arq.*",
+    "sentence_transformers.*",
+]
 ignore_missing_imports = true
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -231,7 +245,48 @@ forbidden_modules = [
     "langgraph",
     "ecosfera_ai.rag",
     "ecosfera_ai.embeddings",
+    "ecosfera_ai.domain.rag",
+    "ecosfera_ai.application.rag",
     "ecosfera_ai.application.ports.llm",
+]
+
+# O M6.2 entrega RECUPERACAO, e nao geracao. A fronteira e a que decide se o
+# M6.3 vai poder deixar uma passagem recuperada virar um fato sobre o planeta:
+# enquanto o RAG nao conhece LLM algum, nao existe caminho por onde o texto
+# recuperado seja reescrito antes de alguem decidir, explicitamente, misturar as
+# duas coisas.
+[[tool.importlinter.contracts]]
+name = "O RAG do M6.2 recupera, e nao gera"
+type = "forbidden"
+source_modules = [
+    "ecosfera_ai.domain.rag",
+    "ecosfera_ai.application.rag",
+]
+forbidden_modules = [
+    "ollama",
+    "langgraph",
+    "ecosfera_ai.application.ports.llm",
+    "ecosfera_ai.infrastructure.llm",
+]
+
+# O corpus e material do PROJETO, nao do planeta de ninguem. Ele nao le o Event
+# Store, nao monta dossie factual e nao conhece os consumidores que narram —
+# senao a separacao entre "o que aconteceu" e "como se diz" viraria convencao.
+[[tool.importlinter.contracts]]
+name = "O corpus pedagogico nao alcanca o fato nem a simulacao"
+type = "forbidden"
+source_modules = [
+    "ecosfera_ai.domain.rag",
+    "ecosfera_ai.application.rag",
+]
+forbidden_modules = [
+    "ecosfera_ai.engines",
+    "ecosfera_ai.simulation_engine",
+    "ecosfera_ai.shared_kernel.world_state",
+    "ecosfera_ai.domain.consumers",
+    "ecosfera_ai.application.consumers",
+    "ecosfera_ai.infrastructure",
+    "ecosfera_ai.interfaces",
 ]
 
 [[tool.importlinter.contracts]]
