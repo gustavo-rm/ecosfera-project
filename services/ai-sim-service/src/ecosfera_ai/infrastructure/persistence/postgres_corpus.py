@@ -62,6 +62,28 @@ _SEARCH = """
 """
 
 
+# O HNSW é um índice APROXIMADO: ele percorre um grafo de vizinhança e devolve os
+# melhores que encontrou, não os melhores que existem. `ef_search` é o tamanho da
+# lista de candidatos dessa varredura, e o padrão do pgvector (40) é baixo demais
+# para a garantia que o Tutor precisa — com ele, uma busca por `limit=100` num
+# corpus de 21 entradas devolveu 14. Perder o recall no fim da lista é tolerável;
+# perder A PASSAGEM MAIS RELEVANTE não é, e é isso que a aproximação pode fazer
+# sem avisar. Num corpus desta ordem de grandeza não há desempenho a defender:
+# uma varredura exaustiva custaria microssegundos.
+_MIN_EF_SEARCH = 100
+_EF_SEARCH_FACTOR = 4
+
+
+def _ef_search_for(limit: int) -> int:
+    """Candidatos que o HNSW deve considerar para atender um `limit`.
+
+    O piso mantém a busca praticamente exaustiva no tamanho de corpus atual; o
+    fator preserva a folga se o corpus crescer e alguém pedir muitos resultados.
+    O valor volta ao padrão no fim da transação, porque é `SET LOCAL`.
+    """
+    return max(limit * _EF_SEARCH_FACTOR, _MIN_EF_SEARCH)
+
+
 def _vector_literal(vector: Sequence[float]) -> str:
     """Formato textual que o pgvector aceita para CAST."""
     return "[" + ",".join(repr(float(value)) for value in vector) + "]"
@@ -144,7 +166,8 @@ class PostgresCorpusIndex:
             cause_filter = "AND :cause_code = ANY(cause_codes)"
 
         statement = text(_SEARCH.format(category_filter=category_filter, cause_filter=cause_filter))
-        async with self._engine.connect() as conn:
+        async with self._engine.begin() as conn:
+            await conn.execute(text(f"SET LOCAL hnsw.ef_search = {_ef_search_for(limit)}"))
             result = await conn.execute(statement, params)
             return tuple(_row_to_scored(row) for row in result)
 

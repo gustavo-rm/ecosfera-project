@@ -170,6 +170,34 @@ consulta é significativo; o valor absoluto entre consultas distintas não é. Q
 for calibrar um corte de confiança no M6.4 precisa saber disso antes de escolher
 um limiar único.
 
+## Uma limitação medida da infraestrutura: o índice é aproximado
+
+Também medida, e também pelo caminho difícil — o CI a encontrou.
+
+O HNSW é um índice de **vizinhos aproximados**. Ele percorre um grafo de
+vizinhança e devolve os melhores que encontrou, não os melhores que existem, e o
+tamanho da lista de candidatos dessa varredura é o parâmetro `ef_search`. Com o
+padrão do pgvector (40), uma busca com `limit=100` sobre as 21 entradas do corpus
+devolveu **14**. Não foi falha de gravação: as 21 estavam na tabela.
+
+Duas consequências, de gravidades bem diferentes:
+
+* **No teste.** Perguntar "indexou tudo?" a uma busca por similaridade é a
+  pergunta errada, e ela escondia um risco de verdade: uma gravação incompleta
+  passaria despercebida sempre que a aproximação, por acaso, devolvesse tudo. O
+  teste de completude agora lê `rag.corpus_entry` direto; recuperação é o que os
+  testes de ranking verificam.
+* **No produto.** A mesma aproximação pode descartar **a passagem mais
+  relevante**, em silêncio e sem erro. Perder recall no fim da lista é tolerável;
+  entregar ao Tutor a segunda melhor passagem achando que é a primeira, não.
+
+Por isso toda busca fixa `SET LOCAL hnsw.ef_search` num piso de 100 candidatos
+(ou `4 × limit`, o que for maior). Num corpus desta ordem de grandeza a varredura
+fica praticamente exaustiva e não há desempenho a defender — o custo é de
+microssegundos, e o índice segue valendo quando o corpus crescer. Se um dia ele
+crescer a ponto de esse piso pesar, a decisão a tomar é sobre recall, com número
+medido na frente; o que não se pode é herdá-la por omissão de um padrão.
+
 ## O que este marco NÃO faz
 
 * **Nenhuma geração, nenhum LLM.** M6.3. Barrado por dois contratos de

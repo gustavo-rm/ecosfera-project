@@ -133,10 +133,56 @@ async def test_an_external_reference_without_license_is_refused(engine: Any) -> 
 # --- O corpus atravessa o banco inteiro --------------------------------------
 
 
-async def test_the_whole_manifest_survives_the_round_trip(indexed: Any) -> None:
-    retriever = RetrievePassagesUseCase(DeterministicEmbedder(), indexed)
-    found = await retriever.execute("planeta vida clima espécie evolução", limit=100)
-    assert {passage.entry_id for passage in found} == {entry.entry_id for entry in MANIFEST.entries}
+async def test_the_whole_manifest_survives_the_round_trip(indexed: Any, engine: Any) -> None:
+    """A completude é perguntada ao ARMAZENAMENTO, e não a uma busca por similaridade.
+
+    A primeira versão deste teste pedia o corpus inteiro com `limit=100` e
+    comparava conjuntos. Falhou no CI faltando sete entradas, e o motivo é
+    estrutural, não um defeito de gravação: o índice é **HNSW**, e busca por
+    vizinhos aproximados promete os `k` melhores — não uma varredura exaustiva.
+    Pedir cem de vinte e uma não obriga o índice a devolver as vinte e uma.
+
+    Confundir as duas perguntas escondia um risco real: uma gravação incompleta
+    passaria despercebida sempre que a busca aproximada, por acaso, devolvesse
+    tudo. "Indexou tudo?" se responde lendo a tabela; "recupera o certo?" se
+    responde consultando — e são os testes de ranking que fazem a segunda.
+    """
+    del indexed  # a fixture indexa; a verificação aqui é sobre o que ficou gravado
+    from sqlalchemy import text
+
+    async with engine.connect() as conn:
+        result = await conn.execute(
+            text("SELECT entry_id FROM rag.corpus_entry WHERE model_name = :model"),
+            {"model": "ecosfera-deterministic-v1"},
+        )
+        stored = {row.entry_id for row in result}
+
+    assert stored == {entry.entry_id for entry in MANIFEST.entries}
+
+
+async def test_the_search_does_not_silently_lose_recall_to_the_approximate_index(
+    indexed: Any,
+) -> None:
+    """Guarda de regressão do `hnsw.ef_search` fixado pelo adaptador.
+
+    Distinta do teste acima de propósito: aquele pergunta ao ARMAZENAMENTO o que
+    foi gravado; este pergunta à BUSCA se ela alcança o que está gravado. Com o
+    `ef_search` padrão do pgvector (40) esta afirmação era FALSA — a varredura
+    aproximada devolvia 14 das 21. O risco de produto não é o fim da lista: é a
+    aproximação descartar a passagem MAIS relevante sem erro nenhum.
+
+    Se alguém remover o `SET LOCAL` do adaptador, é aqui que aparece.
+
+    A pergunta é feita à PORTA e não ao caso de uso: o corte `min_similarity`
+    também descartaria entradas (o embedder de referência usa projeção com sinal,
+    então há similaridade negativa), e aí um teste vermelho não distinguiria
+    "índice perdeu" de "corte descartou". O que se mede aqui é só o índice.
+    """
+    embedder = DeterministicEmbedder()
+    vector = embedder.embed(["especiação"])[0]
+    found = await indexed.search(embedder.name, vector, limit=len(MANIFEST.entries))
+
+    assert {scored.entry.entry_id for scored in found} == {e.entry_id for e in MANIFEST.entries}
 
 
 async def test_provenance_survives_the_round_trip(indexed: Any) -> None:
