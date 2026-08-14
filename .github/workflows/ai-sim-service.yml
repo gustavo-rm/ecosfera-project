@@ -102,3 +102,51 @@ jobs:
 
       - name: Testes com cobertura
         run: uv run pytest --cov=ecosfera_ai --cov-report=term-missing
+
+  # ── Portão do embedder semântico (M6.3, pre-flight b) ───────────────────────
+  #
+  # O M6.2 declarou uma lacuna em voz alta: `SentenceTransformerEmbedder` nunca
+  # rodou com pesos de verdade, porque a política de rede do ambiente de
+  # desenvolvimento nega `huggingface.co` (403 no CONNECT) e o gate acima
+  # sincroniza sem o extra `ai`. Enquanto a lacuna existir, o M6.3 estaria
+  # ancorando geração numa recuperação cuja qualidade ninguém mediu.
+  #
+  # Este job é o mesmo padrão do Postgres: o que não roda na máquina de quem
+  # escreve, roda AQUI — e reprova em vez de pular. Fica separado do gate rápido
+  # porque baixa ~1 GB de pesos; não fica opcional, porque uma verificação
+  # opcional é a que ninguém executa no dia em que ela importa.
+  embedder-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ai-sim-service/uv.lock
+          python-version-file: services/ai-sim-service/.python-version
+
+      # Os pesos não mudam entre execuções; baixá-los toda vez seria pagar
+      # minutos de CI por um arquivo idêntico. A chave inclui o nome do modelo
+      # para que trocá-lo invalide o cache em vez de servir o anterior.
+      - name: Cache dos pesos do modelo
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-paraphrase-multilingual-mpnet-base-v2-v1
+
+      - name: Sincronizar com o extra `ai`
+        run: uv sync --extra sim --extra infra --extra ai --group dev
+
+      # Sondagem de alcance, ANTES do portão pesado. Se a política de egresso do
+      # runner negar o host, o log diz isso em uma linha em vez de deixar a causa
+      # enterrada num stack trace de httpx trezentas linhas abaixo.
+      - name: Sondar alcance dos hosts de modelo
+        run: |
+          for host in huggingface.co registry.ollama.ai; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://$host/" || echo "000")
+            echo "$host -> HTTP $code"
+          done
+
+      - name: Validar o embedder real contra o de referência
+        run: uv run python scripts/validate_real_embedder.py
