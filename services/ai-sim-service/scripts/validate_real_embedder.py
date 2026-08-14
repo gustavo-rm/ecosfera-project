@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from ecosfera_ai.application.rag.corpus_index import InMemoryCorpusIndex
@@ -93,8 +94,22 @@ async def _rank_of(
 async def _retriever_for(
     embedder: EmbeddingModel, manifest: CorpusManifest
 ) -> RetrievePassagesUseCase:
+    """Indexa as MESMAS entradas com o embedder pedido, num índice só dele.
+
+    O manifesto declara `ecosfera-deterministic-v1`, e `IndexCorpusUseCase`
+    RECUSA indexá-lo com outro modelo — foi a primeira coisa que este roteiro
+    encontrou no CI, e a recusa está certa: gravar vetores de um modelo sob o
+    nome de outro é exatamente o defeito que o M6.2 fechou pondo `model_name` na
+    chave primária.
+
+    Trocar o campo aqui não contorna a guarda, exerce a intenção dela. O que se
+    compara são dois espaços vetoriais SEPARADOS, cada um indexado e consultado
+    sob o seu próprio nome; o que os dois têm em comum são as entradas do corpus.
+    Misturá-los num índice só é que seria o erro.
+    """
     index = InMemoryCorpusIndex()
-    await IndexCorpusUseCase(embedder, index).execute(manifest)
+    for_this_model = replace(manifest, embedding_model=embedder.name)
+    await IndexCorpusUseCase(embedder, index).execute(for_this_model)
     return RetrievePassagesUseCase(embedder, index)
 
 

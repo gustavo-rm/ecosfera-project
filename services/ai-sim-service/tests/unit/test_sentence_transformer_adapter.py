@@ -75,6 +75,34 @@ def test_a_model_that_does_not_declare_its_dimension_is_accepted() -> None:
     assert embedder.dimensions == EMBEDDING_DIMENSIONS
 
 
+class _RenamedModel(_FakeModel):
+    """A biblioteca depois da renomeação: só o nome NOVO existe."""
+
+    get_sentence_embedding_dimension = None  # type: ignore[assignment]
+
+    def get_embedding_dimension(self) -> int | None:
+        return self._dimensions
+
+
+def test_either_name_of_the_dimension_method_is_accepted() -> None:
+    """A `sentence-transformers` renomeou o método; os dois nomes valem.
+
+    Achado ao rodar o modelo DE VERDADE no CI, e invisível para todo teste com
+    carregador injetado até este: o falso implementava justamente o nome que o
+    adaptador pedia, então a dupla concordava sozinha enquanto a biblioteca real
+    já avisava `FutureWarning`.
+
+    Fixar um nome só faria a checagem de dimensão sumir numa atualização de
+    dependência — e é ela que impede vetores do tamanho errado de chegarem ao
+    `INSERT`. Por isso a contraprova é o modelo que só tem o nome NOVO.
+    """
+    embedder = SentenceTransformerEmbedder(loader=lambda _n: _RenamedModel())
+    assert embedder.dimensions == EMBEDDING_DIMENSIONS
+
+    with pytest.raises(EmbeddingDimensionMismatchError, match="384"):
+        SentenceTransformerEmbedder(loader=lambda _n: _RenamedModel(dimensions=384))
+
+
 def test_the_encoding_is_normalized_so_the_two_adapters_share_a_scale() -> None:
     """Sem normalizar, um limiar calibrado num adaptador não valeria no outro."""
     model = _FakeModel()
