@@ -398,9 +398,79 @@ ela some o único critério que separa o Tutor certo do que inventa.
 | --- | --- | --- |
 | **M6.0** (feito) | o fato verificável | narrar |
 | **M6.1** (feito) | frase por template — o **piso** que o LLM terá de bater | inventar fato |
-| M6.2 | RAG pedagógico sobre material BNCC | inventar fato |
+| **M6.2** (feito) | RAG pedagógico: de onde vem o REGISTRO | inventar fato |
 | M6.3 | LLM (Ollama) reescreve | decidir o que aconteceu |
 | M6.4 | avaliação adversarial + guardrails | — |
+
+### O que o M6.2 entrega — recuperação, e não geração
+
+De onde o Tutor tira a VOZ. O corpus existe para ele **soar** como um professor
+alinhado ao currículo, não para ele **saber** mais ciência — o fato continua
+vindo do Event Store, e é inviolável.
+
+```python
+from ecosfera_ai.application.rag.retrieve import RetrievePassagesUseCase
+
+# o atalho central: dado o cause_code de um evento REAL do planeta,
+# quais regras de linguagem governam a forma de contá-lo
+passagens = await retriever.for_cause_code("CATASTROPHIC_EVENT")
+# -> VAL-Q8  "catástrofe é independente de aptidão" (Tássia, Q8)
+#    VOC-006 "as duas famílias de extinção não se misturam" (ADR 0019)
+
+passagens[0].source      # o documento de onde a regra saiu — auditoria
+passagens[0].similarity  # o M6.4 vai calibrar confiança com isto
+```
+
+**Uma passagem recuperada NÃO é um fato**, e a garantia é de forma:
+`RetrievedPassage` não tem `event_id`, `occurred_at` nem `cause_code`, não tem
+parentesco com `DomainEvent`/`FactualContext`, e o `mypy` recusa passar uma onde
+um fato é esperado — afirmado **rodando** o verificador, não deduzido.
+
+Sem isso, no M6.3 uma passagem dizendo *"extinções catastróficas são independentes
+de aptidão"* poderia ser lida como *"houve uma extinção catastrófica neste
+planeta"*: fluente, pedagogicamente correta em tese, e falsa sobre o planeta da
+criança.
+
+### Como acrescentar uma entrada ao corpus
+
+Edite `configs/pedagogical_corpus.yaml` — é YAML de propósito, para ser revisável
+por quem entende de pedagogia **sem rodar código**. Toda entrada exige:
+
+| Campo | Obrigatório | Por quê |
+| --- | --- | --- |
+| `source` | sempre | "por que o Tutor falou assim?" precisa de resposta documental |
+| `license` | se `external_reference` | na dúvida sobre a procedência, o material fica de fora |
+| `code_verified` | se `curriculum_objective` | preserva o "(conferir)" do Dossiê — código não conferido não vira certeza |
+
+O banco recusa o que o YAML deixar passar: `NOT NULL` + `CHECK` na
+migration 0006. **Nenhum conteúdo curricular se inventa** — os códigos BNCC são
+conferidos, um a um, contra o texto do Dossiê.
+
+Prioridade do corpus (ADR 0027): regras de linguagem da Fase 0 → correções
+validadas pela especialista → objetivos BNCC citados no Dossiê → referências
+externas com licença. Livros-texto gerais foram **rejeitados** como fonte
+primária: empurram o registro para a voz de um manual universitário.
+
+### O embedder é porta, e a de referência é a que roda no CI
+
+O CI sincroniza sem o extra `ai`, então um teste de pgvector que dependesse de
+`sentence-transformers` pularia justamente onde precisa rodar.
+`DeterministicEmbedder` (léxico, `blake2b`, determinístico entre processos) é a
+implementação de referência; `SentenceTransformerEmbedder`
+(`paraphrase-multilingual-mpnet-base-v2`, 768-dim, multilíngue) é a de produção.
+
+O nome do modelo entra na chave primária e no `WHERE` de toda consulta:
+similaridade entre vetores de modelos diferentes não significa nada.
+
+> **Limitação medida.** O embedder de referência é LÉXICO, não semântico, e o
+> cosseno favorece entradas curtas — foi o roteiro de fumaça que mostrou, e a
+> correção foi encurtar a entrada no corpus, não mexer no algoritmo. A
+> similaridade é comparável DENTRO de uma consulta, não entre consultas de
+> formatos diferentes; quem calibrar um limiar no M6.4 precisa saber disso.
+
+```bash
+uv run python scripts/smoke_m6_2.py    # imprime as passagens antes de afirmar
+```
 
 ### O que o M6.1 entrega — a explicação, sem LLM
 
