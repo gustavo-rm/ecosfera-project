@@ -1,0 +1,95 @@
+# Especificação do prompt ancorado e do verificador — M6.3, como DADO.
+#
+# Mesma escolha que `causal_rules.yaml` e `explanation_templates.yaml` fizeram, e
+# pela mesma razão levada um passo adiante: aqui o texto não é só revisado por
+# quem entende de ensino, ele é o que CONTÉM um componente não-determinístico.
+# Ajustar a instrução dada ao modelo não pode exigir mexer na lógica de geração,
+# senão toda correção de redação vira risco de regressão no caminho de fallback.
+#
+# Este arquivo pertence à camada de GERAÇÃO. Os templates do M6.1 não foram
+# tocados: o piso continua sendo dele, e o M6.3 apenas o consome.
+version: 1
+
+# O modelo escolhido. Ver ADR 0028 para a justificativa.
+model: "llama3.1:8b"
+timeout_seconds: 60
+
+# --- A instrução ao modelo ----------------------------------------------------
+#
+# A hierarquia de ancoragem dita a forma: o piso é a VERDADE, as passagens são
+# REGISTRO, e a tarefa é reescrever o primeiro no tom das segundas. A instrução
+# diz isso explicitamente porque um modelo que receba dois blocos de texto sem
+# hierarquia declarada vai tratá-los como igualmente autoritativos.
+system: |
+  Você reescreve explicações de ciência para estudantes brasileiros do ensino
+  fundamental II. Você NÃO decide o que aconteceu.
+
+  O texto entre <fatos> é a única verdade sobre o planeta deste aluno. Ele foi
+  derivado do registro de eventos da simulação dele.
+
+  O texto entre <registro> são regras de linguagem do projeto. Elas dizem COMO
+  falar, nunca O QUE aconteceu. Nada em <registro> descreve este planeta.
+
+  Regras absolutas:
+  1. Não acrescente nenhum acontecimento, número, espécie ou causa que não esteja
+     em <fatos>. Se <fatos> não menciona um meteoro, não houve meteoro.
+  2. Não atribua intenção à evolução. Nunca "a espécie desenvolveu X para
+     sobreviver". A variação vem antes e sem propósito; o ambiente decide depois.
+  3. Não trate extinção catastrófica como falha de adaptação. Um evento extremo
+     não seleciona: elimina quem estava lá, por mais bem adaptado que estivesse.
+  4. Não classifique espécies como superiores, inferiores ou mais evoluídas.
+  5. Escreva em português do Brasil, em no máximo o dobro do tamanho de <fatos>.
+
+  Responda apenas com o texto reescrito, sem preâmbulo e sem comentários.
+
+user: |
+  <fatos>
+  {floor_text}
+  </fatos>
+
+  <registro>
+  {register_guidance}
+  </registro>
+
+  Reescreva o conteúdo de <fatos> com clareza, no registro indicado.
+
+# --- Assinaturas de evento, para o verificador de fundamentação ----------------
+#
+# Como se detecta um acontecimento INVENTADO: se a prosa gerada fala de um
+# meteoro e o dossiê daquele planeta não tem `MeteorImpact`, o modelo acrescentou
+# um fato. Esta é a pior alucinação que este sistema admite, porque a frase soa
+# perfeitamente plausível.
+#
+# ## Por que a lista é revisada, e não derivada
+#
+# A primeira tentativa derivou os termos automaticamente do vocabulário do M6.1,
+# ficando com os que fossem exclusivos de um tipo de evento. O resultado foi
+# inutilizável nas duas direções: guardou palavras genéricas ("grande", "começo",
+# "atividade"), que qualquer reescrita correta usaria, e perdeu justamente os
+# eventos centrais, porque "extinção" e "linhagem" aparecem no corpus pedagógico
+# — como têm de aparecer, já que o corpus fala disso.
+#
+# Então a lista é escolhida a olho, com um critério: termos CONCRETOS e raros,
+# que não têm por que aparecer numa reescrita fiel de um dossiê que não os
+# contém. `test_event_signatures_come_from_the_m6_1_vocabulary` impede que ela
+# vire fantasia: todo termo aqui tem de ocorrer no substantivo que o M6.1 já usa
+# para aquele tipo de evento.
+#
+# ## O que esta verificação NÃO cobre, dito em voz alta
+#
+# Só entram tipos com termo concreto próprio. `TemperatureShift`,
+# `PopulationDeclined`, `TrophicCollapse`, `LifeEmerged` e `SpeciationOccurred`
+# ficam de fora: o vocabulário deles é o vocabulário comum da explicação, e
+# qualquer termo escolhido reprovaria reescritas corretas. Inventar uma queda de
+# população não é pego POR ESTA verificação — é pego pela de números quando vier
+# com quantidade, e continua sendo trabalho do M6.4 fechar o resto.
+event_signatures:
+  MeteorImpact: ["meteoro"]
+  SupervolcanicEruption: ["supervulcânica"]
+  VolcanicEruption: ["vulcânica"]
+  IceAgeOnset: ["glacial"]
+  WildfireIgnited: ["incêndio"]
+  StormOccurred: ["tempestade"]
+  DroughtBegan: ["seca"]
+  OceanAcidification: ["acidificação"]
+  MassMortality: ["mortandade"]

@@ -247,7 +247,6 @@ forbidden_modules = [
     "ecosfera_ai.embeddings",
     "ecosfera_ai.domain.rag",
     "ecosfera_ai.application.rag",
-    "ecosfera_ai.application.ports.llm",
 ]
 
 # O M6.2 entrega RECUPERACAO, e nao geracao. A fronteira e a que decide se o
@@ -265,8 +264,45 @@ source_modules = [
 forbidden_modules = [
     "ollama",
     "langgraph",
-    "ecosfera_ai.application.ports.llm",
     "ecosfera_ai.infrastructure.llm",
+    "ecosfera_ai.application.generation",
+]
+
+# O M6.3 poe um LLM no caminho, e a exclusividade do adaptador e o que permite
+# ao M6.4 trocar o modelo por um adversarial sem tocar na ancoragem. Se qualquer
+# outro modulo pudesse falar com o Ollama, existiria um segundo caminho ate o
+# aluno — e ele nao passaria pela verificacao de fundamentacao.
+[[tool.importlinter.contracts]]
+name = "So o adaptador fala com o LLM"
+type = "forbidden"
+source_modules = [
+    "ecosfera_ai.domain.generation",
+    "ecosfera_ai.application.generation",
+    "ecosfera_ai.domain.consumers",
+    "ecosfera_ai.application.consumers",
+    "ecosfera_ai.domain.rag",
+    "ecosfera_ai.application.rag",
+]
+forbidden_modules = [
+    "ollama",
+    "httpx",
+    "langgraph",
+    "ecosfera_ai.infrastructure.llm",
+]
+
+# A verificacao de fundamentacao confere a prosa gerada contra o PISO e o
+# DOSSIE, nunca contra o corpus. O ADR 0027 mediu que a busca devolve tanto a
+# regra de vocabulario quanto a correcao validada que diz o mesmo; se o
+# verificador lesse passagem, trocar uma irma pela outra mudaria o veredito sem
+# que nada de factual tivesse mudado. Passagem informa lingua, e nao e fonte de
+# fato — aqui isso deixa de ser disciplina e vira barreira.
+[[tool.importlinter.contracts]]
+name = "A verificacao de fundamentacao nao le o corpus"
+type = "forbidden"
+source_modules = ["ecosfera_ai.domain.generation.grounding"]
+forbidden_modules = [
+    "ecosfera_ai.domain.rag.passage",
+    "ecosfera_ai.application.rag",
 ]
 
 # O corpus e material do PROJETO, nao do planeta de ninguem. Ele nao le o Event

@@ -1,7 +1,7 @@
 """A porta de embedding e a implementação de REFERÊNCIA — determinística.
 
 Mesma escolha que este serviço já fez para persistência (in-memory × Postgres),
-fila (inline × ARQ) e LLM (`NullLLM` × real): o modelo de embedding é uma PORTA
+fila (inline × ARQ) e LLM (nulo × Ollama): o modelo de embedding é uma PORTA
 com duas implementações, e a de referência é a que roda em qualquer lugar.
 
 ## Por que a de referência não é conveniência, e sim requisito
