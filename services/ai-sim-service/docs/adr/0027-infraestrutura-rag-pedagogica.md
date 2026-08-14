@@ -151,6 +151,82 @@ modelo, normalização, formato) é exercitada com um carregador injetado; o que
 aconteceu foi uma execução ponta a ponta com o modelo semântico. Fica declarado
 aqui em vez de implícito, e é a primeira coisa a provar num ambiente com acesso.
 
+> **Adendo (M6.3, pre-flight): a lacuna acima está FECHADA.** Ver a seção
+> "O modelo semântico real, finalmente medido", ao final deste ADR.
+
+## O modelo semântico real, finalmente medido
+
+Adendo escrito no pre-flight do M6.3, que tratou a lacuna acima como PORTÃO: não
+se ancora geração não-determinística numa recuperação cuja qualidade ninguém
+mediu.
+
+**Onde a medição passou a caber.** A política de egresso do ambiente de
+desenvolvimento continua negando `huggingface.co` (403 no CONNECT, confirmado
+host a host). O runner do CI não a nega — `huggingface.co` responde 200. Então
+vale aqui a mesma solução que o M5 deu ao Postgres: o que a máquina de quem
+escreve não pode exercitar, o CI exercita, e REPROVA em vez de pular. O job
+`embedder-gate` instala o extra `ai`, baixa
+`paraphrase-multilingual-mpnet-base-v2` e roda `scripts/validate_real_embedder.py`.
+
+**O que ele mede.** As mesmas consultas do roteiro de fumaça, indexadas duas
+vezes — uma com cada embedder, cada qual no seu próprio espaço vetorial e sob o
+seu próprio nome — imprimindo posição e nota dos dois lados antes de afirmar
+qualquer coisa.
+
+Resultado, com o modelo real:
+
+| consulta | referência (léxico) | real (semântico) |
+| --- | --- | --- |
+| `CATASTROPHIC_EVENT` | VAL-Q8 0,101 | VOC-006 0,399 · VAL-Q8 0,322 |
+| `DIVERGENT_NICHE` | VOC-002 0,196 | VOC-002 0,405 |
+| `PREY_COLLAPSE` | VAL-Q12 0,264 | VAL-Q12 0,307 |
+| "especiação ancestral comum linhagens" | VOC-002 0,416 | VOC-002 0,733 |
+| "aptidão contextual ou absoluta" | VOC-005 0,545 | VAL-Q5 0,533 · VOC-005 0,462 |
+| "efeito estufa gás carbônico temperatura" | BNCC-EFEITO-ESTUFA 0,604 | BNCC-EFEITO-ESTUFA 0,723 |
+
+**A regra que governa a consulta chegou em 1º nos seis casos.** As notas subiram
+de modo geral, o que era esperado: o modelo mede sentido, e não sobreposição de
+vocabulário.
+
+### O achado que quase virou reprovação, e por que não era defeito
+
+Em dois casos o modelo real trocou QUAL entrada vem em primeiro. Em
+`CATASTROPHIC_EVENT` pôs VOC-006 à frente de VAL-Q8; na consulta de aptidão pôs
+VAL-Q5 à frente de VOC-005. O critério original exigia uma entrada específica, e
+teria reprovado o modelo.
+
+Investigadas uma a uma, nenhuma das trocas é recuperação errada: em cada par, as
+duas entradas declaram o mesmo tópico e dizem a MESMA regra — uma como regra de
+vocabulário, a outra como correção validada de onde a regra saiu. O corpus tem
+essa forma de propósito, porque a prioridade declarada põe as duas categorias
+lado a lado, e os conceitos de maior risco pedagógico aparecem nas duas. Além
+disso `for_cause_code` devolve as duas categorias juntas, então o M6.3 recebe o
+par de qualquer maneira.
+
+O critério passou a ser um CONJUNTO fechado e justificado por consulta: em 1º tem
+de vir uma entrada que carregue a regra pedida. A barra continua mordendo — na
+consulta de aptidão, `BNCC-EVOLUCAO-ADAPTACAO` ficou em 2º, e um objetivo de
+currículo em 1º reprovaria.
+
+**A limitação a registrar, então, não é de qualidade — é de granularidade:** o
+modelo semântico não distingue regra de vocabulário de correção validada quando
+as duas dizem o mesmo. Quem, no M6.4, quiser priorizar uma categoria sobre a
+outra terá de fazê-lo por FILTRO de categoria, e não esperando que a similaridade
+o faça.
+
+### Um defeito de produção que só o modelo real podia revelar
+
+`sentence-transformers` renomeou `get_sentence_embedding_dimension` para
+`get_embedding_dimension`, e o nome antigo — o que o adaptador usava — já emite
+`FutureWarning`. **Nenhum teste com carregador injetado poderia ter encontrado
+isso:** o falso implementava justamente o nome que o adaptador pedia, e a dupla
+concordava sozinha enquanto a biblioteca real avisava.
+
+O adaptador aceita os dois nomes, o novo primeiro, com contraprova que expõe só o
+novo. Perder essa checagem numa atualização de dependência deixaria vetores do
+tamanho errado chegarem ao `INSERT` — que é precisamente o que ela existe para
+impedir.
+
 ## Duas limitações medidas do embedder de referência
 
 Medidas, e não deduzidas — o roteiro de fumaça as encontrou.
