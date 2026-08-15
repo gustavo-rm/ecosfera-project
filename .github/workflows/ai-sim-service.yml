@@ -150,3 +150,60 @@ jobs:
 
       - name: Validar o embedder real contra o de referência
         run: uv run python scripts/validate_real_embedder.py
+
+  # ── Portão da geração real (M6.3, correção 1) ───────────────────────────────
+  #
+  # Os testes de geração com modelo roteirizado afirmam que o portão reage a
+  # saídas escolhidas a dedo. Nenhum deles responde à pergunta que decide se a
+  # camada serve: com este prompt, um LLM de verdade produz texto que PASSA?
+  #
+  # Se o prompt for ambíguo, se o modelo ignorar a instrução ou se o verificador
+  # for estrito demais, o sintoma é recuo em 100% das gerações — e como recuar é
+  # comportamento correto, isso passaria como verde em toda suíte roteirizada.
+  # `test_at_least_one_real_generation_survives_the_gate` é o que impede a camada
+  # de ser custo puro e parecer sucesso.
+  #
+  # Mesma política do Postgres desde o M5: sem daemon, FALHA — não pula.
+  generation-gate:
+    runs-on: ubuntu-latest
+    env:
+      ECOSFERA_REQUIRE_OLLAMA: "1"
+      ECOSFERA_OLLAMA_BASE_URL: "http://localhost:11434"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ai-sim-service/uv.lock
+          python-version-file: services/ai-sim-service/.python-version
+
+      - name: Sincronizar dependências
+        run: uv sync --extra sim --extra infra --group dev
+
+      # `llama3.2:1b` e não um modelo maior: ver ADR 0028. O que se verifica aqui
+      # é que a ancoragem funciona ponta a ponta, e isso não melhora com um
+      # modelo que leve dez minutos para baixar em todo run de CI.
+      - name: Instalar o Ollama e baixar o modelo
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:11434/api/tags >/dev/null && break
+            sleep 1
+          done
+          ollama pull llama3.2:1b
+
+      # Falha ANTES dos testes se o daemon não subiu. Sem este passo a causa real
+      # apareceria como seis erros de marca, e não como "o serviço não está de pé".
+      - name: Verificar que a geração é verificável aqui
+        run: |
+          curl -sf "$ECOSFERA_OLLAMA_BASE_URL/api/tags" >/dev/null || {
+            echo "::error::O daemon Ollama não respondeu — os testes de geração"
+            echo "::error::real falhariam por ausência de serviço, não por defeito."
+            exit 1
+          }
+          ollama list
+
+      - name: Testes de geração contra o modelo real
+        run: uv run pytest tests/integration/test_generation_over_ollama.py -v

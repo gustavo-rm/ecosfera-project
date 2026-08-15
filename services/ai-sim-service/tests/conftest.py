@@ -26,6 +26,11 @@ def pytest_configure(config: object) -> None:
         "fail_without_docker: exige Docker; falha (em vez de pular) quando "
         "ECOSFERA_REQUIRE_POSTGRES está ligada",
     )
+    config.addinivalue_line(  # type: ignore[attr-defined]
+        "markers",
+        "fail_without_ollama: exige um daemon Ollama com o modelo baixado; falha "
+        "(em vez de pular) quando ECOSFERA_REQUIRE_OLLAMA está ligada",
+    )
 
 
 def pytest_runtest_setup(item: object) -> None:
@@ -33,6 +38,11 @@ def pytest_runtest_setup(item: object) -> None:
         raise AssertionError(
             "ECOSFERA_REQUIRE_POSTGRES está ligada e não há daemon Docker: "
             "os testes de persistência NÃO podem ser pulados neste ambiente"
+        )
+    if item.get_closest_marker("fail_without_ollama") is not None:  # type: ignore[attr-defined]
+        raise AssertionError(
+            "ECOSFERA_REQUIRE_OLLAMA está ligada e não há daemon Ollama respondendo: "
+            "os testes de geração real NÃO podem ser pulados neste ambiente"
         )
 
 
@@ -51,7 +61,7 @@ def pytest_runtest_setup(item: object) -> None:
 # passa a REPROVAR a suíte, seja qual for o mecanismo que o produziu.
 # ─────────────────────────────────────────────────────────────────────────────
 
-_INFRA_SKIP_HINTS = ("docker", "testcontainers", "postgres", "redis")
+_INFRA_SKIP_HINTS = ("docker", "testcontainers", "postgres", "redis", "ollama")
 _infra_skips: list[str] = []
 
 
@@ -67,14 +77,15 @@ def pytest_runtest_logreport(report: object) -> None:
 
 def pytest_sessionfinish(session: object, exitstatus: int) -> None:
     from tests.docker_guard import postgres_required
+    from tests.ollama_guard import ollama_required
 
-    if not (postgres_required() and _infra_skips):
+    if not ((postgres_required() or ollama_required()) and _infra_skips):
         return
     print(
-        "\nECOSFERA_REQUIRE_POSTGRES está ligada e "
+        "\nUm requisito de infraestrutura está ligado e "
         f"{len(_infra_skips)} teste(s) de infraestrutura PULARAM:\n  "
         + "\n  ".join(_infra_skips)
-        + "\n\nNeste ambiente a persistência é verificada, não presumida: um pulo "
+        + "\n\nNeste ambiente a infraestrutura é verificada, não presumida: um pulo "
         "aqui é uma verificação que não aconteceu com a árvore verde.",
     )
     session.exitstatus = 1  # type: ignore[attr-defined]
