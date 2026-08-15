@@ -83,13 +83,38 @@ class GroundingVerdict:
 
     `reasons` existe para o M6.4: uma falha que diz apenas "reprovado" não monta
     conjunto de avaliação. Cada motivo nomeia o que foi encontrado e onde.
+
+    ## Três estados, e não dois
+
+    `evaluated` existe porque o roteiro de fumaça mostrou a confusão: com o modelo
+    desligado, a saída dizia `veredito: reprovado` — e não houve reprovação
+    alguma, não houve texto para verificar. Um booleano só obriga "não avaliado" a
+    se disfarçar de "reprovado", e é justamente a diferença que o M6.4 precisa
+    para não somar indisponibilidade de rede à taxa de alucinação.
     """
 
     passed: bool
     reasons: tuple[str, ...] = ()
+    evaluated: bool = True
+
+    @classmethod
+    def not_evaluated(cls) -> GroundingVerdict:
+        """Não houve geração; não há o que verificar."""
+        return cls(passed=False, reasons=(), evaluated=False)
+
+    @property
+    def summary(self) -> str:
+        """Como se diz o estado em uma palavra, para log e inspeção humana."""
+        if not self.evaluated:
+            return "não avaliado (não houve geração)"
+        return "passou" if self.passed else "reprovado"
 
     def to_dict(self) -> dict[str, Any]:
-        return {"passed": self.passed, "reasons": list(self.reasons)}
+        return {
+            "passed": self.passed,
+            "evaluated": self.evaluated,
+            "reasons": list(self.reasons),
+        }
 
 
 @dataclass(frozen=True, slots=True)

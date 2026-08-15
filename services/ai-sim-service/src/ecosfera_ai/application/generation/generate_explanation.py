@@ -132,7 +132,19 @@ class GenerateAnchoredExplanationUseCase:
             floor_text=floor.summary,
             register_guidance=render_register_guidance(ordered),
         )
-        generated = await self._model.generate(prompt)
+        try:
+            generated = await self._model.generate(prompt)
+        except Exception as escaped:
+            # A porta PROMETE `None` em vez de exceção, e o adaptador Ollama
+            # cumpre. Mas a promessa é do adaptador, e o M6.4 vai injetar aqui um
+            # harness adversarial que ninguém escreveu ainda. Confiar na promessa
+            # neste ponto faria o aluno pagar por uma implementação de terceiro
+            # mal-comportada, existindo o piso do M6.1 pronto para entregar.
+            #
+            # `except Exception` é amplo de propósito: a única falha que NÃO se
+            # quer capturar aqui é a que também não é `Exception` (cancelamento
+            # de tarefa, interrupção), e essas continuam subindo.
+            return self._fallback(floor, sources, reason=f"o modelo levantou exceção: {escaped!r}")
         if generated is None:
             return self._fallback(
                 floor, sources, reason=self._failure_reason(), verdict_known=False
@@ -184,7 +196,11 @@ class GenerateAnchoredExplanationUseCase:
             register=floor.register if floor.register else Register.STANDARD,
             text=floor.summary,
             floor_text=floor.summary,
-            verdict=verdict if verdict_known and verdict is not None else GroundingVerdict(False),
+            verdict=(
+                verdict
+                if verdict_known and verdict is not None
+                else GroundingVerdict.not_evaluated()
+            ),
             fell_back=True,
             model_name=self._model.model_name,
             register_sources=sources,
