@@ -29,32 +29,13 @@ from typing import Any
 import pytest
 import yaml
 
-# Lista negra MÍNIMA: formulações que afirmam intenção, propósito ou progresso.
-# Curta de propósito — uma lista longa vira ruído e ninguém a mantém.
-TELEOLOGICAL = (
-    "desenvolveu resistência",
-    "desenvolveram resistência",
-    "criou resistência",
-    "criaram resistência",
-    "desenvolveu a capacidade",
-    "evoluiu para",
-    "evoluir para",
-    "evoluíram para",
-    "para se adaptar",
-    "a fim de se adaptar",
-    "se adaptou para",
-    "adaptou-se para",
-    "a fim de sobreviver",
-    "com o objetivo de sobreviver",
-    "a espécie quis",
-    "a espécie decidiu",
-    "a espécie precisava",
-    "a espécie precisou",
-    "a natureza escolheu",
-    "a evolução escolheu",
-    "mais evoluída",
-    "mais evoluído",
-)
+# A lista MIGROU para o domínio no M6.3, e este arquivo passou a importá-la.
+#
+# Ela sempre foi a fonte única — o teste de contrato já a importava daqui. O que
+# mudou é quem mais precisa dela: o verificador de fundamentação do M6.3 confere
+# a saída do LLM em tempo de execução, e código de produção não importa de
+# `tests/`. Reexportar aqui mantém válido tudo o que já apontava para este nome.
+from ecosfera_ai.domain.consumers.wording import TELEOLOGICAL, teleological_phrases_in
 
 RULES = Path("configs/causal_rules.yaml")
 # A prosa do M6.1 entra NESTA guarda, e não numa segunda parecida. O vocabulário
@@ -158,3 +139,38 @@ def test_the_guard_does_not_accuse_a_quoted_mention() -> None:
     """Citar o erro para rejeitá-lo é o oposto do erro."""
     mention = 'nunca dizer "a espécie desenvolveu resistência" ao aluno'
     assert not any(phrase in _without_quoted(mention) for phrase in TELEOLOGICAL)
+
+
+# --- A prosa do corpus e a lista de imposição não derivam ----------------------
+
+
+def test_the_corpus_rule_matches_the_canonical_list() -> None:
+    """Tudo o que a VOC-001 declara proibido, o verificador tem de pegar.
+
+    A VOC-001 é material de REGISTRO: ela ensina a regra ao Tutor em português, e
+    por isso cita formulações erradas no meio da prosa. Não é uma segunda lista
+    negra — mas nada impedia que as duas divergissem, e na consolidação do M6.3
+    elas ESTAVAM divergindo: a entrada citava "a espécie desenvolveu" e a lista
+    só alcançava completações mais específicas.
+
+    O efeito seria silencioso e do pior tipo: o corpus dizendo ao modelo que a
+    formulação é proibida, e o verificador deixando-a passar até o aluno.
+    """
+    corpus: dict[str, Any] = yaml.safe_load(
+        Path("configs/pedagogical_corpus.yaml").read_text(encoding="utf-8")
+    )
+    entry = next(item for item in corpus["entries"] if item["id"] == "VOC-001")
+    text = str(entry["text"])
+
+    # Só o que vem depois de "Proibidas:" — antes disso a entrada cita as
+    # formulações CERTAS como exemplo, e cobrá-las da lista negra inverteria a
+    # regra.
+    forbidden_part = text.split("Proibidas:", 1)[1]
+    cited = re.findall(r'"([^"]+)"', forbidden_part)
+    assert cited, "a VOC-001 deixou de citar formulações proibidas — teste vazio"
+
+    for phrase in cited:
+        assert teleological_phrases_in(phrase), (
+            f"a VOC-001 declara {phrase!r} proibida e a lista canônica não a pega: "
+            "o corpus ensinaria uma regra que o verificador não impõe"
+        )

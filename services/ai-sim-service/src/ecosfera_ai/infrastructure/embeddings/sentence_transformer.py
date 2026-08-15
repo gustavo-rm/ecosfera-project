@@ -42,11 +42,34 @@ DEFAULT_MODEL_NAME = "paraphrase-multilingual-mpnet-base-v2"
 
 
 class _SentenceTransformerLike(Protocol):
-    """O mínimo que este adaptador usa da biblioteca."""
-
-    def get_sentence_embedding_dimension(self) -> int | None: ...
+    """O mínimo que este adaptador usa da biblioteca: codificar."""
 
     def encode(self, sentences: list[str], **kwargs: Any) -> Any: ...
+
+
+# A biblioteca renomeou o método de dimensão: `get_sentence_embedding_dimension`
+# virou `get_embedding_dimension`, e a versão antiga já emite `FutureWarning`.
+# Descoberta rodando o modelo DE VERDADE no CI — nenhum teste com carregador
+# injetado a encontraria, porque o falso implementa o nome que o adaptador pede.
+#
+# Os dois nomes ficam aceitos, o novo primeiro. Fixar só um faria este adaptador
+# quebrar numa atualização de dependência, e a checagem de dimensão é justamente
+# o que impede vetores do tamanho errado de chegarem ao `INSERT`.
+_DIMENSION_METHODS = ("get_embedding_dimension", "get_sentence_embedding_dimension")
+
+
+def _declared_dimensions(model: object) -> int | None:
+    """A dimensão que o modelo anuncia, sob qualquer um dos nomes conhecidos.
+
+    None quando o modelo não anuncia nenhuma — caso em que a checagem de saída
+    do `embed` continua valendo, e é ela que dá a garantia final.
+    """
+    for method_name in _DIMENSION_METHODS:
+        method = getattr(model, method_name, None)
+        if callable(method):
+            declared = method()
+            return int(declared) if declared is not None else None
+    return None
 
 
 class EmbeddingDimensionMismatchError(ValueError):
@@ -80,7 +103,7 @@ class SentenceTransformerEmbedder:
         self._dimensions = dimensions
         self._model = (loader or _default_loader)(model_name)
 
-        declared = self._model.get_sentence_embedding_dimension()
+        declared = _declared_dimensions(self._model)
         if declared is not None and declared != dimensions:
             raise EmbeddingDimensionMismatchError(
                 f"o modelo {model_name!r} produz vetores de {declared} dimensões e o "

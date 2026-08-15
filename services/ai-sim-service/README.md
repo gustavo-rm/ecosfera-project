@@ -594,6 +594,79 @@ uv run python scripts/smoke_m6_0.py                  # dossiê de uma corrida re
 uv run --no-extra sim python scripts/smoke_m6_0.py
 ```
 
+## Camada de Geração (M6.3) — o LLM reescreve, e não decide
+
+O primeiro componente não-determinístico do serviço. Tudo o que veio antes existe
+para que o trabalho dele seja estreito: **reescrever o piso do M6.1 no registro
+que o M6.2 recupera.** Ele não decide o que aconteceu, não acrescenta fato e não
+sobrepõe o Event Store (ADR 0028).
+
+```
+Event Store → FactualContext (M6.0) → Explanation (M6.1) ─┐
+                                      ^ o QUE aconteceu   ├→ prompt → LLM → verificação → aluno
+corpus      → RetrievedPassage (M6.2) ────────────────────┘            │        │
+              ^ COMO se diz                                            └ falhou ┴→ piso do M6.1
+```
+
+### O contrato de ancoragem
+
+O prompt entrega as duas metades ROTULADAS — `<fatos>` e `<registro>` — e declara
+em texto qual delas é verdade. Um modelo que receba dois blocos sem hierarquia
+declarada trata os dois como igualmente autoritativos, e a passagem que diz
+"extinções catastróficas são independentes de aptidão" vira "houve uma extinção
+catastrófica neste planeta".
+
+A instrução vive em `configs/generation_prompt.yaml`, como dado versionado. Ajustar
+a redação é a manutenção mais comum desta camada; se exigisse mexer na lógica de
+geração, cada correção de palavra arriscaria o caminho de recuo.
+
+### A verificação fica ENTRE a geração e o aluno
+
+Não há caminho em que texto não verificado chegue lá. Confere-se:
+
+* **números** — todo numeral da saída tem de aparecer no piso (omitir pode,
+  acrescentar não);
+* **formulação proibida** — as listas canônicas do BIO-005 e da aptidão absoluta;
+* **acontecimento inventado** — falar de meteoro num planeta sem `MeteorImpact`.
+
+Cobertura **parcial e declarada**: só tipos de evento com termo concreto próprio.
+`TemperatureShift`, `PopulationDeclined` e `SpeciationOccurred` ficam de fora
+porque o vocabulário deles é o vocabulário comum da explicação — está escrito no
+próprio YAML, com o motivo.
+
+### Como o recuo se comporta
+
+Qualquer falha — rede, tempo esgotado, JSON malformado, corpo vazio, exceção do
+adaptador, ou reprovação na verificação — entrega **o piso do M6.1 inteiro**, e
+não uma versão degradada dele. Nenhuma exceção sobe: o comportamento correto
+quando o modelo falha não é estourar, é entregar a explicação correta que já
+existe.
+
+`GeneratedExplanation` registra o que aconteceu: `fell_back`, `fallback_reason`, e
+um veredito de **três** estados — passou, reprovado, e *não avaliado* (não houve
+geração). Somar queda de rede à taxa de alucinação faria o M6.4 medir a
+infraestrutura achando que mede o modelo.
+
+### Arbitragem por categoria
+
+O ADR 0027 mediu que a similaridade não distingue uma regra de vocabulário da
+correção validada que diz o mesmo. Entre irmãs, **a regra de vocabulário entra
+primeiro**; dentro da mesma categoria a similaridade continua mandando. O ganho é
+reprodutibilidade: sem isso, trocar de embedder mudaria o prompt sem que nada de
+factual tivesse mudado.
+
+### Rodar
+
+```bash
+uv run python scripts/smoke_m6_3.py                  # sem Ollama: mostra o RECUO
+ECOSFERA_OLLAMA_BASE_URL=http://localhost:11434 uv run python scripts/smoke_m6_3.py
+docker compose --profile ai up -d ollama && docker compose exec ollama ollama pull llama3.1:8b
+```
+
+Os testes de geração real exigem um daemon Ollama. Sem ele PULAM; com
+`ECOSFERA_REQUIRE_OLLAMA=1` (o job `generation-gate` do CI) a ausência vira
+**FALHA** — mesma política que a persistência tem desde o M5.
+
 ## Rodar
 ```bash
 uv sync            # cria .venv e instala deps (modo inmemory, sem banco)
