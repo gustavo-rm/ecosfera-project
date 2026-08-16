@@ -78,6 +78,35 @@ class RegisterSource:
 
 
 @dataclass(frozen=True, slots=True)
+class DetectionCoverage:
+    """QUAIS tipos de evento a verificação realmente conferiu.
+
+    O M6.3 aprendeu, com o roteiro de fumaça, que um veredito de dois estados
+    obriga "não avaliado" a se disfarçar de "reprovado". Este campo aplica a mesma
+    disciplina ao outro eixo: um APROVADO não pode se passar por mais conferência
+    do que houve.
+
+    Sem isto, a lacuna que o M6.4 veio fechar seria invisível de novo — uma prosa
+    inventando um `TemperatureShift` recebia exatamente o mesmo "passou" de uma
+    prosa impecável, e nada no objeto distinguia as duas.
+    """
+
+    checked: frozenset[str] = frozenset()
+    unchecked: frozenset[str] = frozenset()
+
+    @property
+    def is_complete(self) -> bool:
+        return not self.unchecked
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "checked": sorted(self.checked),
+            "unchecked": sorted(self.unchecked),
+            "complete": self.is_complete,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class GroundingVerdict:
     """O resultado da verificação pós-geração, com o motivo por extenso.
 
@@ -96,6 +125,7 @@ class GroundingVerdict:
     passed: bool
     reasons: tuple[str, ...] = ()
     evaluated: bool = True
+    coverage: DetectionCoverage = DetectionCoverage()
 
     @classmethod
     def not_evaluated(cls) -> GroundingVerdict:
@@ -107,13 +137,18 @@ class GroundingVerdict:
         """Como se diz o estado em uma palavra, para log e inspeção humana."""
         if not self.evaluated:
             return "não avaliado (não houve geração)"
-        return "passou" if self.passed else "reprovado"
+        if not self.passed:
+            return "reprovado"
+        if self.coverage.is_complete:
+            return "passou"
+        return f"passou (cobertura parcial: {len(self.coverage.unchecked)} tipo(s) sem checagem)"
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed,
             "evaluated": self.evaluated,
             "reasons": list(self.reasons),
+            "coverage": self.coverage.to_dict(),
         }
 
 
@@ -162,6 +197,7 @@ class GeneratedExplanation:
 
 __all__ = [
     "FACT_BEARING_FIELDS",
+    "DetectionCoverage",
     "GeneratedExplanation",
     "GroundingVerdict",
     "RegisterSource",

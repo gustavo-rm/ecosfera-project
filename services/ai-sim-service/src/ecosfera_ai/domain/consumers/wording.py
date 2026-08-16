@@ -89,6 +89,45 @@ ABSOLUTE_FITNESS: tuple[str, ...] = (
 )
 
 
+# BIO-001 na PROSA — a escada de progresso, dita com outras palavras.
+#
+# O M6.0 tornou "A deu origem a B" inexprimível no TIPO: `SpeciationFact` recusa
+# o ancestral como uma das linhagens resultantes, e o template do M6.1 não tem
+# slot de linhagem. Nenhuma das duas garantias alcança prosa livre — um modelo
+# escreve "a espécie antiga se transformou na nova" sem tocar em estrutura
+# alguma, e o aluno recebe exatamente a escada que a Fase 0 existe para desfazer.
+#
+# Terceiro eixo, e lista própria pelo mesmo motivo dos outros dois: a mensagem de
+# erro precisa citar a regra certa. "Descende de" não atribui intenção (BIO-005)
+# nem ordena espécies por valor (Q5) — afirma uma linha de descendência direta
+# onde houve divisão.
+LINEAR_DESCENT: tuple[str, ...] = (
+    "deu origem a",
+    "deu origem à",
+    "deram origem a",
+    "originou a",
+    "originou-se de",
+    "se transformou em",
+    "transformou-se em",
+    "se transformaram em",
+    "virou outra espécie",
+    "descende de",
+    "descendem de",
+    "descendente da espécie",
+    "evoluiu da",
+    "evoluiu do",
+    "veio da espécie",
+    "versão antiga da",
+    "versão moderna da",
+)
+
+
+def linear_descent_phrases_in(text: str) -> tuple[str, ...]:
+    """As formulações de descendência linear presentes no texto, se houver."""
+    lowered = text.lower()
+    return tuple(phrase for phrase in LINEAR_DESCENT if phrase in lowered)
+
+
 def teleological_phrases_in(text: str) -> tuple[str, ...]:
     """As formulações teleológicas presentes no texto, se houver.
 
@@ -112,7 +151,9 @@ def absolute_fitness_phrases_in(text: str) -> tuple[str, ...]:
 
 __all__ = [
     "ABSOLUTE_FITNESS",
+    "LINEAR_DESCENT",
     "TELEOLOGICAL",
     "absolute_fitness_phrases_in",
+    "linear_descent_phrases_in",
     "teleological_phrases_in",
 ]
