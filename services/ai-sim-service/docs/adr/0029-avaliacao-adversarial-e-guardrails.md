@@ -158,19 +158,116 @@ graus. Verdadeiro em geral, falso ali.
 > superfície, passa a existir. A remoção não foi feita aqui por ser mudança de
 > contrato de API fora do escopo deste marco.
 
+## Encerramento do M6.4 — quatro itens fechados depois da primeira medição
+
+A primeira execução da avaliação produziu números e, ao ser lida com atenção,
+produziu também quatro pendências. Elas foram fechadas num turno próprio, e o
+que segue é o registro do que mudou.
+
+### 1. A cobertura era uma constante disfarçada de medida — CORRIGIDA
+
+`full_coverage_rate` imprimia **0,0% em toda execução**. Não era pessimismo: era
+artefato. `is_complete` comparava contra TODOS os tipos que o sistema conhece, e
+como sempre há algum sem checagem, ele nunca podia ser verdadeiro. O número
+descrevia o SISTEMA e nunca a TENTATIVA, e por isso não distinguia caso nenhum de
+caso nenhum.
+
+O recorte passou a ser o **dossiê sob teste**: os eventos que aquele planeta de
+fato tem. Um planeta inteiramente verificável reporta cobertura completa; um que
+contenha `TrophicCollapse` não reporta, porque ali há mesmo um evento sobre o
+qual esta verificação não sabe falar. Um teste afirma que a cascata chega a 1,0 —
+provando que a métrica não é insatisfazível por construção — e o caso contrário
+existe ao lado, para que "pode chegar a 1,0" não vire "é sempre 1,0".
+
+**O que a métrica continua não dizendo**, e está escrito junto dela: ela responde
+"os eventos deste planeta são verificáveis?", e não "poderia ter passado uma
+invenção de um tipo que este planeta não tem?". Esse risco residual é do sistema,
+e vive em `unchecked_event_types`.
+
+### 2. A contagem "três fechados, cinco declarados" estava errada — eram SEIS
+
+Reconciliar os números encontrou um defeito real, e não uma discrepância de
+redação. O Task 0 fechou três tipos (`SpeciationOccurred`, `TemperatureShift`,
+`PopulationDeclined`), e o relatório dizia "cinco seguem sem checagem". O
+vocabulário do M6.1 tem **dezoito** tipos; nove têm termo concreto; quatro foram
+fechados por checagem de afirmação. Sobravam **seis**, e a lista literal declarava
+cinco.
+
+O que faltava era **`SpeciesExtinct`** — nem conferido, nem admitido como não
+conferido, que é a pior das duas metades: o ponto cego não aparecia sequer na
+lista de pontos cegos.
+
+Duas correções, e a segunda importa mais que a primeira:
+
+* **`SpeciesExtinct` foi FECHADO**, e não adiado. Inventar uma extinção é das
+  afirmações mais graves que este sistema pode fazer sobre o planeta de uma
+  criança; o mecanismo de afirmação já existia para a especiação; e declarar o
+  arco encerrado carregando um buraco conhecido e tratável contradiria o motivo de
+  encerrá-lo. A decisão é registrada aqui porque ela ultrapassa em pouco o escopo
+  literal do turno de encerramento.
+* **A lista deixou de ser literal e passou a ser DERIVADA** do vocabulário. Uma
+  lista escrita à mão que descreve outra lista envelhece sozinha — é a família do
+  `atmosphere.oxygen` sem escritor e do filtro fantasma de `planet_id`, que este
+  serviço já pagou duas vezes. `test_the_declared_blind_spots_match_the_vocabulary`
+  impede a volta.
+
+**Os cinco que seguem sem checagem**, agora corretamente enumerados:
+`LifeEmerged`, `TrophicCollapse`, `GreenhouseForcingChanged`,
+`CarryingCapacityShift` e `ClimateThresholdCrossed`. Todos ficaram de fora por
+decisão e não por esquecimento: nenhum tem termo concreto próprio nem alavanca
+estrutural como a da especiação, e o vocabulário deles é o vocabulário comum da
+explicação — qualquer termo escolhido reprovaria reescrita correta.
+
+### 3. A amostra subiu de n=3 para n=15 por célula
+
+n=3 não distingue "robusto" de "pouco amostrado": 100% sobre doze gerações é
+compatível com uma taxa real de falha bem alta. A avaliação passou a rodar quinze
+amostras por célula (dois cenários × dois modelos = sessenta gerações). Isso não
+torna a medida definitiva; torna a diferença entre modelos observável.
+
+### 4. A forma do piso da cascata — ACHADO CONFIRMADO, correção NÃO implementada
+
+**O que se mediu.** O piso da cascata tem cinco frases, e a repetição é
+estrutural, não estilística:
+
+* as **cinco** abrem com a mesma construção — *"No ciclo N, …"*;
+* duas delas saem do mesmo template (`T-CHAIN-CAUSED`) e repetem, palavra por
+  palavra, o mesmo prefixo de onze palavras: *"a queda de um meteoro veio antes e
+  é o que explica:"*.
+
+**Por que isso deprecia a medição naquele cenário.** O prompt pede reescrita em
+no máximo o dobro do tamanho. Diante de um bloco repetitivo, a saída mais provável
+é a quase-cópia — e foi o que a primeira execução mostrou. Uma quase-cópia passa
+na fundamentação trivialmente, porque não acrescenta nada que se possa inventar.
+A taxa de aprovação da cascata mede, em boa parte, **o quanto o modelo deixou de
+reescrever**, e não o quanto ele se manteve fiel.
+
+**Como seria uma correção, em alto nível.** Variar a estrutura das cinco frases:
+alternar os conectivos de abertura em vez de repetir "No ciclo N", e dar ao
+`T-CHAIN-CAUSED` mais de uma forma para que duas ocorrências seguidas não saiam
+idênticas. Nada disso muda o que o piso AFIRMA — só a forma.
+
+> **Item aberto para decisão do arquiteto. NÃO implementado aqui.** O piso é
+> contrato do M6.1, e o M6.3 já depende dele na montagem do prompt: mudar sua
+> forma altera o texto que o modelo recebe e, portanto, a linha de base contra a
+> qual toda medição desta rodada foi feita. É decisão de outro marco, com o
+> impacto a jusante na mesa, e não um ajuste a fazer de passagem no encerramento
+> do M6.4.
+
 ## O que este marco NÃO fecha
 
 * **Qualidade pedagógica.** Passar na fundamentação diz que a prosa não inventou
   nada; não diz que ela ensina melhor que o piso do M6.1. Comparar exige leitor
   humano com critério.
 * **Cinco tipos de evento** seguem sem checagem de invenção — nomeados, não
-  escondidos.
+  escondidos, e agora DERIVADOS em vez de escritos à mão (ver o encerramento).
 * **Paráfrase criativa** de afirmação direcional ("o planeta virou um forno") e
   magnitude sem número.
 * **Injeção de prompt**, por não haver de onde injetar. O dia em que houver, este
   ADR é o registro de que a avaliação não a cobriu.
-* **A forma do piso da cascata**, que segue como confundidor conhecido — é questão
-  do M6.1, e mexer nela aqui misturaria dois marcos.
+* **A forma do piso da cascata**, agora confundidor MEDIDO e não apenas suspeito
+  (ver o encerramento, item 4). Segue aberto para decisão do arquiteto, por ser
+  contrato do M6.1 com consumidor a jusante no M6.3.
 
 ## Consequências
 
