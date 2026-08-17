@@ -86,6 +86,20 @@ ABSOLUTE_FITNESS: tuple[str, ...] = (
     "mais evoluída",
     "não era boa o suficiente",
     "perdeu a competição da evolução",
+    # Plurais, acrescentados no M6.4 porque a avaliação adversarial os encontrou
+    # escapando. A lista nasceu no singular feminino ("a comunidade era inferior")
+    # e uma frase sobre DUAS comunidades — que é o que um dossiê com duas
+    # extinções produz naturalmente — passava inteira pelo verificador.
+    #
+    # A lição vale além destas linhas: uma lista negra escrita a partir de um
+    # exemplo herda a flexão daquele exemplo, e a checagem por substring não
+    # flexiona sozinha.
+    "eram inferiores",
+    "eram fracas",
+    "não serviam",
+    "menos evoluídas",
+    "mais evoluídas",
+    "não eram boas o suficiente",
 )
 
 
