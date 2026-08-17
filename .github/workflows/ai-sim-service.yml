@@ -184,7 +184,16 @@ jobs:
       # `llama3.2:1b` e não um modelo maior: ver ADR 0028. O que se verifica aqui
       # é que a ancoragem funciona ponta a ponta, e isso não melhora com um
       # modelo que leve dez minutos para baixar em todo run de CI.
-      - name: Instalar o Ollama e baixar o modelo
+      # Os pesos do Ollama não mudam entre execuções. Sem cache, o modelo maior
+      # da avaliação (~5 GB) seria baixado em todo run só para produzir o mesmo
+      # número.
+      - name: Cache dos modelos do Ollama
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-llama3.2-1b-llama3.1-8b-v1
+
+      - name: Instalar o Ollama e baixar os modelos
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
           ollama serve &
@@ -193,6 +202,12 @@ jobs:
             sleep 1
           done
           ollama pull llama3.2:1b
+          # O segundo modelo existe para a MEDIÇÃO do M6.4, e não para o portão:
+          # o pre-flight perguntou se a avaliação deve usar o modelo pequeno com
+          # que o M6.3 provou o pipeline ou um maior, e a resposta honesta é
+          # medir os dois. Escolher em silêncio faria o número parecer
+          # propriedade do sistema quando é, em parte, do modelo escolhido.
+          ollama pull llama3.1:8b
 
       # Falha ANTES dos testes se o daemon não subiu. Sem este passo a causa real
       # apareceria como seis erros de marca, e não como "o serviço não está de pé".
@@ -207,3 +222,22 @@ jobs:
 
       - name: Testes de geração contra o modelo real
         run: uv run pytest tests/integration/test_generation_over_ollama.py -v
+
+      # A MEDIÇÃO do M6.4. Não é portão: nenhum limiar é cobrado aqui, porque
+      # perseguir um número seria ajustar o sistema à métrica. O que se exige é
+      # que o relatório seja PRODUZIDO e fique legível no log, com as ressalvas
+      # junto — a forma do piso da cascata e os cinco tipos de evento que seguem
+      # sem checagem de invenção.
+      - name: Avaliação adversarial (M6.4) — medir e imprimir, sem limiar
+        env:
+          ECOSFERA_EVAL_MODELS: "llama3.2:1b,llama3.1:8b"
+          ECOSFERA_EVAL_SAMPLES: "3"
+        run: uv run python scripts/evaluate_m6_4.py
+
+      - name: Guardar o registro de tentativas
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generation-attempts
+          path: services/ai-sim-service/var/generation_attempts.jsonl
+          if-no-files-found: warn

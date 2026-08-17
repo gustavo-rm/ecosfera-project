@@ -48,14 +48,56 @@ import re
 
 from ecosfera_ai.domain.consumers.explanation import Explanation
 from ecosfera_ai.domain.consumers.factual_context import FactualContext
+from ecosfera_ai.domain.consumers.vocabulary import (
+    MASS_MORTALITY,
+    POPULATION_DECLINED,
+    SPECIATION_OCCURRED,
+)
 from ecosfera_ai.domain.consumers.wording import (
     absolute_fitness_phrases_in,
+    linear_descent_phrases_in,
     teleological_phrases_in,
 )
-from ecosfera_ai.domain.generation.anchoring import GroundingVerdict
+from ecosfera_ai.domain.generation.anchoring import DetectionCoverage, GroundingVerdict
+from ecosfera_ai.domain.generation.fact_claims import (
+    TEMPERATURE_SHIFT,
+    directional_problems_in,
+    speciation_problems_in,
+)
 from ecosfera_ai.domain.generation.prompt import PromptSpec
 
 _NUMBER = re.compile(r"\d+")
+
+# Os tipos que o M6.4 passou a conferir sem depender de termo concreto próprio.
+_CLAIM_CHECKED = frozenset(
+    {SPECIATION_OCCURRED, TEMPERATURE_SHIFT, POPULATION_DECLINED, MASS_MORTALITY}
+)
+
+# Os que seguem SEM checagem de invenção, e que por isso rebaixam a cobertura de
+# um veredito aprovado. Declarados aqui, e não só no YAML, porque é este módulo
+# que precisa dizer a verdade sobre si mesmo.
+UNCHECKED_EVENT_TYPES: frozenset[str] = frozenset(
+    {
+        "LifeEmerged",
+        "TrophicCollapse",
+        "GreenhouseForcingChanged",
+        "CarryingCapacityShift",
+        "ClimateThresholdCrossed",
+    }
+)
+
+
+def _coverage_for(spec: PromptSpec) -> DetectionCoverage:
+    """O que esta verificação conferiu, e o que ela não conferiu.
+
+    `checked` soma os tipos com termo concreto (M6.3) aos que ganharam checagem
+    estrutural ou direcional (M6.4). `unchecked` é o resto — e existe para que um
+    APROVADO nunca afirme mais conferência do que houve.
+    """
+    return DetectionCoverage(
+        checked=frozenset(spec.detectable_event_types) | _CLAIM_CHECKED,
+        unchecked=UNCHECKED_EVENT_TYPES,
+    )
 
 
 def _numbers_in(text: str) -> set[str]:
@@ -97,7 +139,7 @@ def verify_grounding(
     for phrase in absolute_fitness_phrases_in(generated):
         reasons.append(f"aptidão absoluta {phrase!r} (Q5): a aptidão é relação, não nota")
 
-    # --- 3. Acontecimento inventado ------------------------------------------
+    # --- 3. Acontecimento inventado, por termo concreto -----------------------
     present = {event.event_type for event in context.events}
     lowered = generated.lower()
     for event_type in sorted(spec.detectable_event_types - present):
@@ -108,7 +150,27 @@ def verify_grounding(
                     f"{event_type} — o modelo acrescentou um acontecimento"
                 )
 
-    return GroundingVerdict(passed=not reasons, reasons=tuple(reasons))
+    # --- 4. Os três tipos sem termo concreto (M6.4, Task 0) -------------------
+    #
+    # Especiação por identificador estrutural; temperatura e população por
+    # direção conferida contra o delta do log. Ver `fact_claims` para o porquê de
+    # cada um, e por que a cobertura daqui é parcial e declarada.
+    reasons.extend(speciation_problems_in(generated, context))
+    reasons.extend(directional_problems_in(generated, context))
+
+    # --- 5. Descendência linear na prosa (BIO-001) ----------------------------
+    #
+    # O tipo recusa "A deu origem a B" e o template não tem slot de linhagem;
+    # nenhuma das duas garantias alcança prosa livre.
+    for phrase in linear_descent_phrases_in(generated):
+        reasons.append(
+            f"descendência linear {phrase!r} (BIO-001): houve divisão a partir de um "
+            "ancestral comum, e nenhuma linhagem é a versão antiga da outra"
+        )
+
+    return GroundingVerdict(
+        passed=not reasons, reasons=tuple(reasons), coverage=_coverage_for(spec)
+    )
 
 
 def describe_failure(generated: str, verdict: GroundingVerdict) -> str:
@@ -122,4 +184,4 @@ def describe_failure(generated: str, verdict: GroundingVerdict) -> str:
     return f"geração reprovada na fundamentação [{motives}] | texto: {generated.strip()!r}"
 
 
-__all__ = ["describe_failure", "verify_grounding"]
+__all__ = ["UNCHECKED_EVENT_TYPES", "describe_failure", "verify_grounding"]

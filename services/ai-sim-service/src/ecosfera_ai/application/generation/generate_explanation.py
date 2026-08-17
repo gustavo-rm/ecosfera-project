@@ -34,6 +34,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from ecosfera_ai.application.generation.language_model import LanguageModelPort
+from ecosfera_ai.application.generation.rejection_log import AttemptRecorder, GenerationAttempt
 from ecosfera_ai.domain.consumers.explanation import Explanation, Register
 from ecosfera_ai.domain.consumers.factual_context import FactualContext
 from ecosfera_ai.domain.generation.anchoring import (
@@ -100,9 +101,22 @@ def arbitrate_by_category(passages: Sequence[RetrievedPassage]) -> tuple[Retriev
 class GenerateAnchoredExplanationUseCase:
     """Piso + registro → prosa reescrita, ou o piso de volta."""
 
-    def __init__(self, model: LanguageModelPort, spec: PromptSpec) -> None:
+    def __init__(
+        self,
+        model: LanguageModelPort,
+        spec: PromptSpec,
+        *,
+        recorder: AttemptRecorder | None = None,
+        scenario: str = "",
+    ) -> None:
         self._model = model
         self._spec = spec
+        # O registro é OPCIONAL na produção e obrigatório na avaliação. Sem ele,
+        # o M6.4 mediria falhas imaginadas em vez das que o sistema produziu — a
+        # lacuna que o ADR 0028 deixou ao prometer "motivos utilizáveis" sem
+        # guardar nenhum.
+        self._recorder = recorder
+        self._scenario = scenario
 
     async def execute(
         self,
@@ -110,8 +124,31 @@ class GenerateAnchoredExplanationUseCase:
         floor: Explanation,
         context: FactualContext,
         passages: Sequence[RetrievedPassage] = (),
+        scenario: str = "",
     ) -> GeneratedExplanation:
         """Gera com ancoragem, verifica, e recua ao piso em qualquer falha."""
+        return self._recorded(
+            await self._generate(floor=floor, context=context, passages=passages),
+            scenario=scenario or self._scenario,
+        )
+
+    def _recorded(self, result: GeneratedExplanation, *, scenario: str) -> GeneratedExplanation:
+        """Registra a tentativa — aprovada, reprovada ou sem geração.
+
+        As três entram, e é a aprovação que torna a medição possível: um arquivo
+        só de falhas não tem denominador, e a tentação seguinte seria estimá-lo.
+        """
+        if self._recorder is not None:
+            self._recorder.record(GenerationAttempt.of(result, scenario=scenario))
+        return result
+
+    async def _generate(
+        self,
+        *,
+        floor: Explanation,
+        context: FactualContext,
+        passages: Sequence[RetrievedPassage] = (),
+    ) -> GeneratedExplanation:
         ordered = arbitrate_by_category(passages)
         sources = tuple(
             RegisterSource(

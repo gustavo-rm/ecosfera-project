@@ -75,14 +75,27 @@ user: |
 # vire fantasia: todo termo aqui tem de ocorrer no substantivo que o M6.1 já usa
 # para aquele tipo de evento.
 #
-# ## O que esta verificação NÃO cobre, dito em voz alta
+# ## O que esta lista cobre, e o que passou a ser coberto FORA dela (M6.4)
 #
-# Só entram tipos com termo concreto próprio. `TemperatureShift`,
-# `PopulationDeclined`, `TrophicCollapse`, `LifeEmerged` e `SpeciationOccurred`
-# ficam de fora: o vocabulário deles é o vocabulário comum da explicação, e
-# qualquer termo escolhido reprovaria reescritas corretas. Inventar uma queda de
-# população não é pego POR ESTA verificação — é pego pela de números quando vier
-# com quantidade, e continua sendo trabalho do M6.4 fechar o resto.
+# Aqui só entram tipos com termo concreto próprio. Isso deixava de fora
+# `SpeciationOccurred`, `TemperatureShift` e `PopulationDeclined`, cujo
+# vocabulário é o vocabulário comum da explicação — qualquer termo escolhido
+# reprovaria reescritas corretas.
+#
+# O M6.4 fechou os três, por outro caminho que não o termo concreto (ver
+# `domain/generation/fact_claims.py`):
+#
+#   * `SpeciationOccurred` — por identificador ESTRUTURAL e por afirmação de
+#     divisão conferida contra o log. O modelo nunca recebe id de linhagem, então
+#     um id na prosa é invenção por construção.
+#   * `TemperatureShift` / `PopulationDeclined` — pelo par (assunto, direção),
+#     conferido contra o delta gravado no `cause_detail`. Distingue inventar o
+#     evento de contradizer a direção dele.
+#
+# **O que segue sem checagem de invenção:** `LifeEmerged`, `TrophicCollapse`,
+# `GreenhouseForcingChanged`, `CarryingCapacityShift` e `ClimateThresholdCrossed`.
+# A lista vive em `UNCHECKED_EVENT_TYPES` e viaja em toda `DetectionCoverage`,
+# para que um veredito APROVADO nunca se passe por conferência completa.
 event_signatures:
   MeteorImpact: ["meteoro"]
   SupervolcanicEruption: ["supervulcânica"]

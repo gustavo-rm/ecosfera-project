@@ -667,6 +667,62 @@ Os testes de geração real exigem um daemon Ollama. Sem ele PULAM; com
 `ECOSFERA_REQUIRE_OLLAMA=1` (o job `generation-gate` do CI) a ausência vira
 **FALHA** — mesma política que a persistência tem desde o M5.
 
+## O arco M6, fechado (M6.4)
+
+O Tutor tem, ponta a ponta, uma cadeia em que cada elo é verificável:
+
+| Marco | Entrega | Garantia |
+| --- | --- | --- |
+| M6.0 | `FactualContext` | a verdade é o Event Store, escopada no planeta |
+| M6.1 | explicação por template | piso auditável frase a frase, sem LLM |
+| M6.2 | RAG pedagógico | registro, estruturalmente separado de fato |
+| M6.3 | geração ancorada | o modelo reescreve; recuo ao piso em qualquer falha |
+| M6.4 | avaliação adversarial | detecção fechada, cobertura declarada, taxa medida |
+
+### O que o M6.4 acrescentou
+
+**Fechou a lacuna do ADR 0028.** `SpeciationOccurred` passou a ser conferida por
+identificador estrutural — o modelo nunca recebe id de linhagem, então um id na
+prosa é invenção por construção. `TemperatureShift` e `PopulationDeclined` são
+conferidas pelo par (assunto, direção) contra o delta do log, o que distingue
+inventar o evento de contradizer a direção dele.
+
+**Tornou a cobertura parte da resposta.** Cinco tipos seguem sem checagem de
+invenção, e `DetectionCoverage` os nomeia em todo veredito: um aprovado parcial
+diz "cobertura parcial", e não "passou".
+
+**Passou a registrar as tentativas.** `var/generation_attempts.jsonl` acumula, em
+append, cada geração — aprovada, reprovada ou sem geração. É de onde a taxa sai.
+
+```bash
+uv run python scripts/evaluate_m6_4.py                       # sem Ollama: só o registro
+ECOSFERA_EVAL_MODELS=llama3.2:1b,llama3.1:8b   ECOSFERA_OLLAMA_BASE_URL=http://localhost:11434   uv run python scripts/evaluate_m6_4.py
+```
+
+### Como ler a taxa de aprovação
+
+Três ressalvas, e nenhuma é opcional:
+
+* **falhas de infraestrutura ficam fora do denominador** — recuo por rede não é
+  alucinação, e somá-lo faria a taxa piorar quando o Ollama cai;
+* **aprovação com cobertura parcial é contada à parte** da completa;
+* **a cascata sai separada** — o piso dela é um parágrafo repetitivo de cinco
+  frases (ADR 0028), e numa média única ninguém distingue "o modelo é pior" de "o
+  texto que ele recebeu é difícil".
+
+A medição **não é portão**: o CI exige que o relatório seja produzido e legível,
+e não que ele alcance um número. Cobrar um limiar convidaria a ajustar o prompt
+até alcançá-lo, que é otimizar a métrica em vez do sistema.
+
+### O que o Tutor explicitamente NÃO faz
+
+Não há interface do aluno: `apps/web-client` é esqueleto, nenhuma rota alcança a
+geração, e não existe entrada de texto livre. Não há ajuste fino de modelo, nem
+camada de espécies com identidade, nem defesa contra injeção de prompt — esta
+última porque não há de onde injetar. O que a avaliação mede é FUNDAMENTAÇÃO, e
+não qualidade pedagógica: passar significa que a prosa não inventou nada, e não
+que ela ensina melhor que o piso do M6.1 (ADR 0029).
+
 ## Rodar
 ```bash
 uv sync            # cria .venv e instala deps (modo inmemory, sem banco)
