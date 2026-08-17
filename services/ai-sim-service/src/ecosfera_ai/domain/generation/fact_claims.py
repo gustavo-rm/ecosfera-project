@@ -53,6 +53,7 @@ from ecosfera_ai.domain.consumers.vocabulary import (
     MASS_MORTALITY,
     POPULATION_DECLINED,
     SPECIATION_OCCURRED,
+    SPECIES_EXTINCT,
 )
 
 TEMPERATURE_SHIFT = "TemperatureShift"
@@ -79,6 +80,27 @@ _SPECIATION_CLAIMS: tuple[str, ...] = (
     "surgiu uma espécie nova",
     "houve uma especiação",
     "ocorreu uma especiação",
+)
+
+# A extinção AFIRMADA. Fechada no turno de encerramento do M6.4, porque a
+# reconciliação da contagem de tipos revelou que `SpeciesExtinct` estava fora da
+# lista declarada de pontos cegos — nem conferido, nem admitido como não
+# conferido. É o pior lugar para um esquecimento: inventar uma extinção é das
+# afirmações mais graves que este sistema pode fazer sobre o planeta de alguém.
+#
+# Mesmo critério da especiação: a palavra solta não basta ("extinção" aparece o
+# tempo todo no corpus e no vocabulário de mecanismo). O que caracteriza
+# afirmação é dizer que a comunidade DESAPARECEU naquele planeta.
+_EXTINCTION_CLAIMS: tuple[str, ...] = (
+    "a comunidade desapareceu",
+    "a comunidade foi eliminada",
+    "a comunidade morreu",
+    "a comunidade se extinguiu",
+    "a espécie se extinguiu",
+    "a espécie desapareceu",
+    "houve uma extinção",
+    "ocorreu uma extinção",
+    "todos morreram",
 )
 
 # Direção GENÉRICA: precisa de um assunto por perto para significar alguma coisa.
@@ -223,6 +245,23 @@ def speciation_problems_in(text: str, context: FactualContext) -> tuple[str, ...
     return tuple(problems)
 
 
+def extinction_problems_in(text: str, context: FactualContext) -> tuple[str, ...]:
+    """Extinção afirmada onde o log não a tem.
+
+    Fechada no encerramento do M6.4. Ver `_EXTINCTION_CLAIMS` para por que a
+    palavra solta não serve como sinal.
+    """
+    lowered = text.lower()
+    if any(event.event_type == SPECIES_EXTINCT for event in context.events):
+        return ()
+    return tuple(
+        f"a prosa afirma {claim!r} e o dossiê deste planeta não tem "
+        f"{SPECIES_EXTINCT} — o modelo inventou uma extinção"
+        for claim in _EXTINCTION_CLAIMS
+        if claim in lowered
+    )
+
+
 def directional_problems_in(text: str, context: FactualContext) -> tuple[str, ...]:
     """Afirmações de direção sobre temperatura e população, conferidas no log."""
     problems: list[str] = []
@@ -271,5 +310,6 @@ def directional_problems_in(text: str, context: FactualContext) -> tuple[str, ..
 __all__ = [
     "TEMPERATURE_SHIFT",
     "directional_problems_in",
+    "extinction_problems_in",
     "speciation_problems_in",
 ]
