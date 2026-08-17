@@ -45,6 +45,7 @@ língua; ela não é fonte de fato e não é objeto de fundamentação.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 from ecosfera_ai.domain.consumers.explanation import Explanation
 from ecosfera_ai.domain.consumers.factual_context import FactualContext
@@ -52,6 +53,7 @@ from ecosfera_ai.domain.consumers.vocabulary import (
     MASS_MORTALITY,
     POPULATION_DECLINED,
     SPECIATION_OCCURRED,
+    SPECIES_EXTINCT,
 )
 from ecosfera_ai.domain.consumers.wording import (
     absolute_fitness_phrases_in,
@@ -62,6 +64,7 @@ from ecosfera_ai.domain.generation.anchoring import DetectionCoverage, Grounding
 from ecosfera_ai.domain.generation.fact_claims import (
     TEMPERATURE_SHIFT,
     directional_problems_in,
+    extinction_problems_in,
     speciation_problems_in,
 )
 from ecosfera_ai.domain.generation.prompt import PromptSpec
@@ -70,33 +73,69 @@ _NUMBER = re.compile(r"\d+")
 
 # Os tipos que o M6.4 passou a conferir sem depender de termo concreto próprio.
 _CLAIM_CHECKED = frozenset(
-    {SPECIATION_OCCURRED, TEMPERATURE_SHIFT, POPULATION_DECLINED, MASS_MORTALITY}
-)
-
-# Os que seguem SEM checagem de invenção, e que por isso rebaixam a cobertura de
-# um veredito aprovado. Declarados aqui, e não só no YAML, porque é este módulo
-# que precisa dizer a verdade sobre si mesmo.
-UNCHECKED_EVENT_TYPES: frozenset[str] = frozenset(
     {
-        "LifeEmerged",
-        "TrophicCollapse",
-        "GreenhouseForcingChanged",
-        "CarryingCapacityShift",
-        "ClimateThresholdCrossed",
+        SPECIATION_OCCURRED,
+        SPECIES_EXTINCT,
+        TEMPERATURE_SHIFT,
+        POPULATION_DECLINED,
+        MASS_MORTALITY,
     }
 )
 
 
-def _coverage_for(spec: PromptSpec) -> DetectionCoverage:
-    """O que esta verificação conferiu, e o que ela não conferiu.
+def checkable_event_types(spec: PromptSpec) -> frozenset[str]:
+    """Tudo o que esta verificação sabe detectar como INVENÇÃO.
 
-    `checked` soma os tipos com termo concreto (M6.3) aos que ganharam checagem
-    estrutural ou direcional (M6.4). `unchecked` é o resto — e existe para que um
-    APROVADO nunca afirme mais conferência do que houve.
+    Termo concreto (M6.3) mais checagem estrutural ou direcional (M6.4).
     """
+    return frozenset(spec.detectable_event_types) | _CLAIM_CHECKED
+
+
+def unchecked_event_types(spec: PromptSpec, vocabulary: Iterable[str]) -> frozenset[str]:
+    """Os tipos do vocabulário do M6.1 que NINGUÉM confere quanto a invenção.
+
+    DERIVADO, e não escrito à mão. A versão anterior era uma lista literal, e o
+    turno de encerramento a pegou errada: declarava cinco tipos e o vocabulário
+    tinha seis sem checagem — faltava `SpeciesExtinct`, que é dos piores lugares
+    possíveis para um esquecimento.
+
+    Uma lista literal que descreve outra lista envelhece sozinha; é a família do
+    `atmosphere.oxygen` sem escritor e do filtro fantasma de `planet_id`. Derivar
+    faz a declaração acompanhar a realidade, e
+    `test_the_declared_blind_spots_match_the_vocabulary` impede a volta.
+    """
+    return frozenset(vocabulary) - checkable_event_types(spec)
+
+
+def _coverage_for(spec: PromptSpec, context: FactualContext) -> DetectionCoverage:
+    """A cobertura do que ESTE dossiê contém — e não do universo de tipos.
+
+    ## Por que a versão anterior era enganosa, e não apenas imprecisa
+
+    A primeira versão comparava contra TODOS os tipos conhecidos, e como sempre
+    há algum sem checagem, `is_complete` nunca podia ser verdadeiro. O relatório
+    de avaliação imprimia "das aprovadas, com verificação COMPLETA: 0,0%" em toda
+    execução — um número que parecia achado e era artefato: ele descrevia o
+    sistema, e nunca a tentativa.
+
+    Agora o recorte é o dossiê sob teste. Um planeta cujos eventos são todos
+    verificáveis reporta cobertura completa, e um que contenha um
+    `TrophicCollapse` não — porque ali há mesmo um evento sobre o qual esta
+    verificação não sabe falar.
+
+    ## O que esta métrica NÃO diz
+
+    Ela responde "os eventos que este planeta TEM são verificáveis?". Não responde
+    "poderia ter passado uma invenção de tipo que este planeta não tem?" — e essa
+    segunda pergunta continua com resposta ruim, porque os tipos sem checagem
+    seguem indetectáveis se o modelo os inventar. Esse risco residual é do
+    sistema, não da tentativa, e vive em `unchecked_event_types`.
+    """
+    relevant = {event.event_type for event in context.events}
+    checkable = checkable_event_types(spec)
     return DetectionCoverage(
-        checked=frozenset(spec.detectable_event_types) | _CLAIM_CHECKED,
-        unchecked=UNCHECKED_EVENT_TYPES,
+        checked=frozenset(relevant & checkable),
+        unchecked=frozenset(relevant - checkable),
     )
 
 
@@ -156,6 +195,7 @@ def verify_grounding(
     # direção conferida contra o delta do log. Ver `fact_claims` para o porquê de
     # cada um, e por que a cobertura daqui é parcial e declarada.
     reasons.extend(speciation_problems_in(generated, context))
+    reasons.extend(extinction_problems_in(generated, context))
     reasons.extend(directional_problems_in(generated, context))
 
     # --- 5. Descendência linear na prosa (BIO-001) ----------------------------
@@ -169,7 +209,7 @@ def verify_grounding(
         )
 
     return GroundingVerdict(
-        passed=not reasons, reasons=tuple(reasons), coverage=_coverage_for(spec)
+        passed=not reasons, reasons=tuple(reasons), coverage=_coverage_for(spec, context)
     )
 
 
@@ -184,4 +224,9 @@ def describe_failure(generated: str, verdict: GroundingVerdict) -> str:
     return f"geração reprovada na fundamentação [{motives}] | texto: {generated.strip()!r}"
 
 
-__all__ = ["UNCHECKED_EVENT_TYPES", "describe_failure", "verify_grounding"]
+__all__ = [
+    "checkable_event_types",
+    "describe_failure",
+    "unchecked_event_types",
+    "verify_grounding",
+]

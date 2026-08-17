@@ -153,3 +153,34 @@ def test_the_correct_sibling_framing_is_not_accused() -> None:
         "separados a partir dele: são irmãs."
     )
     assert verify_grounding(correct, floor=FLOOR, context=_with_speciation(), spec=spec()).passed
+
+
+# --- Extinção inventada: o tipo que a reconciliação de contagem revelou -------
+
+
+def test_an_extinction_absent_from_the_log_is_caught() -> None:
+    """`SpeciesExtinct` estava fora da lista declarada de pontos cegos.
+
+    Nem conferido, nem admitido como não conferido — a pior das duas metades.
+    Encontrado ao reconciliar "três fechados" com "cinco declarados": o
+    vocabulário tinha SEIS tipos sem checagem, e este era o sexto.
+
+    Inventar uma extinção é das afirmações mais graves que este sistema pode
+    fazer sobre o planeta de uma criança, então foi fechado junto.
+    """
+    from ecosfera_ai.domain.generation.fact_claims import extinction_problems_in
+
+    no_extinction = _with_speciation()  # tem especiação, e nenhuma extinção
+    assert not no_extinction.extinctions
+
+    problems = extinction_problems_in("A comunidade desapareceu naquele ciclo.", no_extinction)
+    assert problems
+    assert any("SpeciesExtinct" in problem for problem in problems)
+
+
+def test_the_same_sentence_passes_where_the_extinction_is_in_the_log() -> None:
+    """Contraprova: a detecção é sobre o LOG, e não sobre a palavra."""
+    from ecosfera_ai.domain.generation.fact_claims import extinction_problems_in
+
+    assert NO_SPECIATION.extinctions, "a cascata tem extinções"
+    assert extinction_problems_in("A comunidade desapareceu naquele ciclo.", NO_SPECIATION) == ()

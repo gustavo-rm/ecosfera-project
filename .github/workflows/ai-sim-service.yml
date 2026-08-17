@@ -231,7 +231,12 @@ jobs:
       - name: Avaliação adversarial (M6.4) — medir e imprimir, sem limiar
         env:
           ECOSFERA_EVAL_MODELS: "llama3.2:1b,llama3.1:8b"
-          ECOSFERA_EVAL_SAMPLES: "3"
+          # n=15 por célula (2 cenários x 2 modelos = 60 gerações). O turno de
+          # encerramento subiu de 3, porque n=3 não distingue "robusto" de
+          # "pouco amostrado" — uma taxa de 100% sobre 12 gerações é compatível
+          # com uma taxa real de falha bem alta. Quinze por célula não torna a
+          # medida definitiva, e torna a diferença entre modelos observável.
+          ECOSFERA_EVAL_SAMPLES: "15"
         run: uv run python scripts/evaluate_m6_4.py
 
       - name: Guardar o registro de tentativas

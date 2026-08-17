@@ -23,7 +23,7 @@ from tests.support_explanation import explain
 from tests.support_generation import cascade_context, spec
 
 from ecosfera_ai.domain.generation.anchoring import DetectionCoverage, GroundingVerdict
-from ecosfera_ai.domain.generation.grounding import UNCHECKED_EVENT_TYPES, verify_grounding
+from ecosfera_ai.domain.generation.grounding import verify_grounding
 
 FLOOR = explain(list(branching_cascade()))
 CONTEXT = cascade_context()
@@ -34,23 +34,41 @@ FAITHFUL = "No ciclo 100, a queda de um meteoro atingiu o planeta."
 
 
 def test_a_passing_verdict_declares_what_was_checked() -> None:
+    """A cobertura nomeia os tipos DESTE dossiê que foram conferidos.
+
+    **Reescrito no encerramento do M6.4.** A versão anterior cobrava aqui a
+    presença de `SpeciationOccurred` e `PopulationDeclined`, que o Task 0 fechou —
+    mas a cascata não tem nenhum dos dois, e cobrá-los de um veredito sobre ela
+    era confundir "o que o sistema sabe conferir" com "o que foi conferido nesta
+    tentativa". A primeira pergunta é de `checkable_event_types`, e vive em
+    `test_detection_coverage_is_scoped_to_the_dossier`.
+    """
     verdict = verify_grounding(FAITHFUL, floor=FLOOR, context=CONTEXT, spec=spec())
+    present = {event.event_type for event in CONTEXT.events}
 
     assert verdict.passed
     assert verdict.coverage.checked, "um aprovado sem cobertura declarada não diz nada"
+    assert verdict.coverage.checked == present, "a cascata é inteiramente verificável"
     assert "MeteorImpact" in verdict.coverage.checked
-    assert "SpeciationOccurred" in verdict.coverage.checked, "fechado no M6.4"
     assert "TemperatureShift" in verdict.coverage.checked, "fechado no M6.4"
-    assert "PopulationDeclined" in verdict.coverage.checked, "fechado no M6.4"
+    assert "SpeciesExtinct" in verdict.coverage.checked, "fechado no encerramento"
 
 
 def test_the_types_that_remain_unchecked_are_named_not_hidden() -> None:
-    """A honestidade exige nomear o que falta, e não apenas contar."""
+    """A honestidade exige nomear o que falta, e não apenas contar.
+
+    **Reescrito no encerramento do M6.4.** A versão anterior comparava contra a
+    lista de TODOS os tipos sem checagem, e por isso afirmava que a cascata tinha
+    cobertura parcial. Depois de a métrica passar a falar do dossiê, a cascata é
+    inteiramente verificável — o que o teste cobra agora é que, quando falta
+    algo, o que falta seja NOMEADO. Ver
+    `test_detection_coverage_is_scoped_to_the_dossier` para os dois lados.
+    """
     verdict = verify_grounding(FAITHFUL, floor=FLOOR, context=CONTEXT, spec=spec())
 
-    assert verdict.coverage.unchecked == UNCHECKED_EVENT_TYPES
-    assert not verdict.coverage.is_complete
-    assert "TrophicCollapse" in verdict.coverage.unchecked
+    assert verdict.coverage.checked, "um aprovado sem cobertura declarada não diz nada"
+    assert verdict.coverage.unchecked == frozenset(), "a cascata é toda verificável"
+    assert verdict.coverage.to_dict()["checked"] == sorted(verdict.coverage.checked)
 
 
 def test_the_summary_of_a_partial_pass_says_so_out_loud() -> None:
@@ -59,10 +77,15 @@ def test_the_summary_of_a_partial_pass_says_so_out_loud() -> None:
     É a mesma correção do roteiro de fumaça do M6.3, no outro eixo: o resumo é o
     que a pessoa lê, e ele não pode dizer "passou" quando passou parcialmente.
     """
-    verdict = verify_grounding(FAITHFUL, floor=FLOOR, context=CONTEXT, spec=spec())
+    partial = GroundingVerdict(
+        passed=True,
+        coverage=DetectionCoverage(
+            checked=frozenset({"MeteorImpact"}), unchecked=frozenset({"TrophicCollapse"})
+        ),
+    )
 
-    assert "cobertura parcial" in verdict.summary
-    assert verdict.summary != "passou"
+    assert "cobertura parcial" in partial.summary
+    assert partial.summary != "passou"
 
 
 def test_a_complete_coverage_pass_reads_plainly() -> None:
@@ -101,9 +124,15 @@ def test_the_no_attempt_state_survives_the_new_field() -> None:
 
 
 def test_the_serialised_form_carries_the_coverage_for_the_evaluation_set() -> None:
-    """O conjunto de avaliação do M6.4 lê isto; se não serializar, não mede."""
+    """O conjunto de avaliação do M6.4 lê isto; se não serializar, não mede.
+
+    **Reescrito no encerramento do M6.4:** a cascata agora serializa cobertura
+    COMPLETA, porque todos os seus tipos são verificáveis. O que este teste cobra
+    é que os três campos atravessem a serialização — não um valor em particular.
+    """
     payload = verify_grounding(FAITHFUL, floor=FLOOR, context=CONTEXT, spec=spec()).to_dict()
 
     assert payload["passed"] is True
-    assert payload["coverage"]["complete"] is False
-    assert "TrophicCollapse" in payload["coverage"]["unchecked"]
+    assert payload["coverage"]["complete"] is True
+    assert payload["coverage"]["unchecked"] == []
+    assert "MeteorImpact" in payload["coverage"]["checked"]
