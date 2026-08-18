@@ -1,7 +1,7 @@
 # ADR 0029 — Avaliação adversarial: fechar a lacuna, medir com honestidade
 
 **Status:** aceito
-**Marco:** M6.4 — e o fechamento do arco M6
+**Marco:** M6.4 — e o fechamento do arco M6 (com o adendo do M6.5, a forma do piso)
 **Relacionados:** ADR 0025 (M6.0) · ADR 0026 (M6.1) · ADR 0027 (M6.2 e o adendo do
 embedder) · ADR 0028 (M6.3, e as lacunas que este ADR fecha) · ADR 0019
 (catastrófica × ecológica) · ADR 0023 (BIO-001) · ADR 0021/0022 (Event Store, LGPD)
@@ -227,6 +227,15 @@ torna a medida definitiva; torna a diferença entre modelos observável.
 
 ### 4. A forma do piso da cascata — ACHADO CONFIRMADO, correção NÃO implementada
 
+> **Correção de fato, feita no M6.5.** Esta seção descreveu o piso errado. As
+> cinco frases e as duas `T-CHAIN-CAUSED` gêmeas são do `branching_cascade()`, que
+> é FIXTURE DE TESTE. O cenário que a medição de n=15 realmente usou — o
+> `_cascade()` de `scripts/evaluate_m6_4.py` — tem **três** frases e **uma**
+> `T-CHAIN-CAUSED`. A metade "abertura repetida" do achado vale para os dois
+> artefatos; a metade "prefixo gêmeo de onze palavras" não estava presente no que
+> foi medido. Os dois foram corrigidos mesmo assim: numa fatia ramificada de
+> verdade — o caso comum de uma corrida real — as gêmeas aparecem.
+
 **O que se mediu.** O piso da cascata tem cinco frases, e a repetição é
 estrutural, não estilística:
 
@@ -254,6 +263,162 @@ idênticas. Nada disso muda o que o piso AFIRMA — só a forma.
 > impacto a jusante na mesa, e não um ajuste a fazer de passagem no encerramento
 > do M6.4.
 
+## M6.5 — a forma do piso da cascata, CORRIGIDA
+
+O item acima voltou com aval do arquiteto e foi implementado num turno próprio.
+O que segue é o registro do que se mediu antes, do que mudou, e do que a
+remedição mostrou.
+
+### O antes, lido em vez de suposto
+
+O log do portão de geração da rodada de n=15 guarda as sessenta gerações. Lidas
+uma a uma, a cascata mostra isto:
+
+* **`llama3.1:8b` — 15 de 15** abrem com a MESMA frase, palavra por palavra:
+  *"No ciclo 100, um evento extraordinário começou."* Catorze das quinze seguem
+  com *"No ciclo 101, a queda de um meteoro veio antes e …"*, variando só o verbo
+  (`explica` ×7, `explicou` ×4, `é o que explica` ×3). O prefixo comum às quinze
+  tem **15 palavras**. Não é paráfrase com pouca variação: é transcrição com uma
+  palavra de folga.
+* **`llama3.2:1b` — 12 de 15** abrem com *"No ciclo 100, a queda de um meteoro
+  aconteceu porque …"*, e seis delas continuam na mesma oração, literalmente.
+
+E o controle se comporta de outro jeito, que é o que torna isto propriedade do
+PISO e não do modelo: no cenário curto o mesmo `llama3.1:8b` **reestrutura** —
+*"A mudança de temperatura no ciclo 200 foi causada pela alteração…"* move o ciclo
+para o meio da frase, coisa que ele não fez uma única vez na cascata.
+
+### A correção
+
+Um template pode declarar mais de uma FORMA da mesma frase, numeradas em
+`variant`, e o renderizador escolhe pela POSIÇÃO da frase. Duas propriedades
+vêm juntas, e a segunda é inegociável:
+
+* duas ocorrências seguidas do mesmo template saem diferentes — o caso das gêmeas;
+* a saída continua função pura do dossiê. Nada de aleatório entra, e não pode
+  entrar: o M6.4 mede um componente não-determinístico contra este piso.
+
+Três formas para `T-CHAIN-ROOT`, `T-CHAIN-CAUSED` e `T-EXTINCTION-CATASTROPHIC`.
+Duas escolhas merecem registro:
+
+* **As formas da catástrofe variam só a ABERTURA.** A oração *"por mais bem
+  adaptada que ela estivesse"* é o que desfaz *"quem se extingue era inferior"*, e
+  reescrevê-la de três jeitos seria arriscar a lição do ADR 0019 em nome da forma.
+  Um teste cobra a oração de TODAS as formas, de modo que isso é propriedade, e
+  não coincidência de qual posição renderizou.
+* **Nenhuma forma usa conectivo de sucessão** (*"em seguida"*, *"logo depois"*).
+  Seria a variação mais natural e afirmaria algo que o dossiê nem sempre sustenta:
+  duas frases podem sair do MESMO tick — a cascata ramificada tem dois efeitos no
+  ciclo 101 —, e ali "em seguida" seria uma afirmação de ordem que o log não
+  contém. A âncora segue sendo o tick absoluto.
+
+O `T-EXTINCTION-ECOLOGICAL` ficou de fora, e o cenário de piso curto renderiza
+**byte a byte igual ao de antes**. É de propósito: ele é o controle contra o qual
+o confundidor é comparado, e mexer nele trocaria o confundidor pelo controle.
+
+### O depois — a remedição
+
+Mesmo portão, mesma amostra de n=15 por célula, mesmos dois modelos. A expectativa
+tinha sido escrita ANTES de olhar: a taxa continuaria perto de 100%, porque
+nenhum fato mudou, e o que devia se mexer era a diversidade. **A metade da
+expectativa sobre a taxa estava errada, e é o achado mais valioso desta rodada.**
+
+#### O modelo parou de transcrever
+
+A medida decisiva é a mais simples: quantas gerações reproduziram a construção
+assinatura do piso, *"veio antes e é o que explica"*.
+
+| | antes | depois |
+|---|---:|---:|
+| cascata, `llama3.1:8b` | 14 / 15 | **0 / 15** |
+| cascata, `llama3.2:1b` | 6 / 15 | **0 / 15** |
+| prefixo comum às 15 amostras (`8b`) | 15 palavras | **4 palavras** |
+
+O que aparece no lugar é reescrita de verdade: *"No ciclo 100, um meteoro caiu.
+Isso aconteceu porque um evento extraordinário começou"* inverte a ordem das
+orações; *"A mudança de temperatura veio depois, porque…"* troca a construção
+inteira; *"No ciclo seguinte"* substitui o número pelo advérbio. Nada disso
+apareceu uma única vez na rodada anterior.
+
+A diversidade ENTRE as quinze amostras subiu pouco (de 7 para 9 saídas distintas
+no `8b`, e o maior grupo idêntico foi de 6 para 7). Isso é honesto e é outro
+eixo: o modelo agora parafraseia o piso, e converge na mesma paráfrase preferida
+— o que é propriedade da decodificação, e não da forma do piso.
+
+#### E a taxa caiu, que é o ponto
+
+| célula | antes | depois |
+|---|---:|---:|
+| `llama3.1:8b` · cascata | 100,0% | 100,0% |
+| `llama3.1:8b` · ecológica (controle) | 100,0% | 100,0% |
+| `llama3.2:1b` · cascata | 100,0% | **73,3%** (11/15) |
+| `llama3.2:1b` · ecológica (controle) | 100,0% | 100,0% |
+| agregada, 60 gerações | 100,0% | 93,3% |
+
+**Não é regressão. É a medida passando a medir.** O ADR suspeitava que aquele
+100% da cascata media *o quanto o modelo deixou de reescrever*; agora que o
+modelo reescreve, o que aparece é a taxa de erro que sempre esteve lá. E o que
+ele escreve quando reescreve são exatamente as concepções que a Fase 0 existe
+para desfazer:
+
+* "era inferior" (Q5) — duas vezes;
+* "mais evoluída" (BIO-005 e Q5 ao mesmo tempo) — uma vez;
+* o número "0019" sem origem no piso — uma vez.
+
+> As três aparecem aqui entre aspas retas, e não entre crases, porque é assim que
+> a guarda da Fase 0 reconhece MENÇÃO. Ela reprovou a primeira versão desta
+> seção, que as citava em crase — e reprovou com razão: o filtro é estreito de
+> propósito, e alargá-lo para caber a citação seria afrouxar, para escrever um
+> ADR, exatamente a regra que o ADR está documentando.
+
+Nenhuma delas chegou a aluno algum: as quatro recuaram para o piso do M6.1. É a
+primeira vez em todo o arco M6 que o portão do M6.3 barra alucinação REAL de um
+modelo real, e não uma saída roteirizada por um teste.
+
+O controle se manteve em 100% nos dois modelos, com piso byte a byte idêntico ao
+de antes — o que permite atribuir a queda à célula da cascata, e não à rodada.
+
+E, pela primeira vez, **a diferença entre modelos é observável**: 100% contra
+73,3% na mesma célula. Era exatamente para isso que a amostra tinha subido de 3
+para 15 no encerramento do M6.4, e com os dois modelos em 100% ela não tinha
+aparecido.
+
+#### Três achados novos, todos fora do escopo deste turno
+
+A paráfrase de verdade expôs o que a transcrição escondia. Nenhum destes é
+consertado aqui, e nenhum é pequeno:
+
+1. **Segunda ocorrência inventada, e APROVADA.** Sete das quinze saídas do `8b`
+   afirmam um segundo meteoro — *"No ciclo 101, outro meteoro caiu"*, *"A queda de
+   um meteoro também aconteceu no ciclo 101"*. O dossiê tem UM `MeteorImpact`. A
+   verificação passa porque ela confere PRESENÇA DE TIPO, e o tipo está presente:
+   o que foi inventado é a contagem. A ambiguidade que convida ao erro está no
+   próprio `T-CHAIN-CAUSED`, cuja forma canônica também põe o tick do EFEITO ao
+   lado do substantivo da CAUSA — herdada, portanto, e não criada pelas formas
+   novas; o que mudou é que agora ela é exercitada. Fechá-la exige ou reescrever
+   a forma 0 (contrato do M6.1) ou ensinar o verificador a contar ocorrências
+   (lógica de fundamentação). As duas são decisão do arquiteto.
+2. **Marca do prompt vazando para a prosa.** Seis das quinze saídas do `1b`
+   começam com `<fatos>`, que é delimitador do prompt e não língua para o aluno.
+   Todas passaram: ninguém confere estrutura de prompt na saída. Já ocorria antes
+   (1 em 15), e subiu com a reescrita.
+3. **Identificador de origem copiado.** O `'0019'` reprovado veio do campo
+   `origem:` de uma passagem de registro — `docs/adr/0019-…`. O prompt entrega a
+   origem para que o modelo saiba distinguir regra do projeto de lembrança
+   própria, e o modelo pode copiá-la. Aqui o guarda de números pegou; um
+   identificador sem dígitos não seria pego.
+
+#### Veredito
+
+A correção funcionou no que se propunha: o piso deixou de ser copiável, e a
+medição daquela célula passou a informar alguma coisa. O confundidor da forma
+está **resolvido**; o da diversidade entre amostras está apenas **melhorado**, e
+a distinção importa — quem ler a taxa da cascata continua lendo a taxa de um
+cenário mais difícil que o controle, agora por comprimento e conteúdo, e não mais
+por repetição.
+
+## O que este marco NÃO fecha
+
 ## O que este marco NÃO fecha
 
 * **Qualidade pedagógica.** Passar na fundamentação diz que a prosa não inventou
@@ -263,11 +428,20 @@ idênticas. Nada disso muda o que o piso AFIRMA — só a forma.
   escondidos, e agora DERIVADOS em vez de escritos à mão (ver o encerramento).
 * **Paráfrase criativa** de afirmação direcional ("o planeta virou um forno") e
   magnitude sem número.
+* **Ocorrência inventada de um tipo que o dossiê TEM.** A verificação confere
+  presença de tipo, não contagem, e a remedição do M6.5 mostrou o buraco sendo
+  usado: sete de quinze saídas afirmaram um segundo meteoro num planeta que teve
+  um. Aberto, e dos mais graves da lista.
+* **Marca do prompt na prosa** (`<fatos>`) e **identificador de origem copiado**
+  de uma passagem de registro. Nenhum dos dois é conferido.
 * **Injeção de prompt**, por não haver de onde injetar. O dia em que houver, este
   ADR é o registro de que a avaliação não a cobriu.
-* **A forma do piso da cascata**, agora confundidor MEDIDO e não apenas suspeito
-  (ver o encerramento, item 4). Segue aberto para decisão do arquiteto, por ser
-  contrato do M6.1 com consumidor a jusante no M6.3.
+* ~~**A forma do piso da cascata**~~ — FECHADO no M6.5 (ver a seção própria). O
+  que continua aberto ali é menor e está contado: o arquivo tem 22 pares
+  (id, registro), três ganharam formas alternativas, e **17 dos 19 restantes ainda
+  abrem com *"No ciclo N, …"*** — as duas exceções são as frases de período
+  tranquilo, que não têm ciclo a citar. A mesma correção caberia em todos eles;
+  ficaram de fora por não estarem no escopo MEDIDO, e não por estarem certos.
 
 ## Consequências
 

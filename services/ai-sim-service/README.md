@@ -493,9 +493,9 @@ explicacao.facts[0].grounding  # de onde CADA afirmação dela saiu
 
 Exemplo de saída real (corrida de 400 ticks com meteoro):
 
-> No ciclo 357, a queda de um meteoro eliminou a comunidade de uma só vez, por
-> mais bem adaptada que ela estivesse ao ambiente em que vivia: um evento extremo
-> como esse não escolhe quem sobrevive.
+> Foi a queda de um meteoro que, no ciclo 357, eliminou a comunidade de uma só
+> vez, por mais bem adaptada que ela estivesse ao ambiente em que vivia — um
+> evento extremo não escolhe quem sobrevive.
 >
 > No ciclo 315, uma população ancestral se dividiu em duas linhagens porque as
 > populações passaram a viver de maneiras diferentes. As duas compartilham um
@@ -504,6 +504,17 @@ Exemplo de saída real (corrida de 400 ticks com meteoro):
 
 **A prosa é DADO versionado** (`configs/explanation_templates.yaml`): quem entende
 de pedagogia corrige uma palavra sem abrir um módulo Python.
+
+**A família da cascata tem mais de uma FORMA por frase** (`variant`, no mesmo
+arquivo), e o renderizador escolhe pela posição da frase. As formas dizem a mesma
+coisa com outras palavras — mesmos slots, mesma afirmação, mesma lição —, e a
+escolha continua determinística: mesma fatia, mesma prosa, palavra por palavra.
+
+Não é enfeite. Um piso que repetia a mesma abertura em toda frase fazia o LLM do
+M6.3 devolver quase-cópia em vez de paráfrase, e uma quase-cópia passa na
+fundamentação trivialmente, por não acrescentar nada que se possa inventar — de
+modo que a taxa de aprovação da cascata media, em boa parte, o quanto o modelo
+deixou de reescrever (ADR 0029).
 
 ### Por que o piso vem antes do gerador
 
@@ -706,9 +717,11 @@ Três ressalvas, e nenhuma é opcional:
 * **falhas de infraestrutura ficam fora do denominador** — recuo por rede não é
   alucinação, e somá-lo faria a taxa piorar quando o Ollama cai;
 * **aprovação com cobertura parcial é contada à parte** da completa;
-* **a cascata sai separada** — o piso dela é um parágrafo repetitivo de cinco
-  frases (ADR 0028), e numa média única ninguém distingue "o modelo é pior" de "o
-  texto que ele recebeu é difícil".
+* **a cascata sai separada** — ela é o cenário de piso LONGO, e numa média única
+  ninguém distingue "o modelo é pior" de "o texto que ele recebeu é difícil". O
+  confundidor que o ADR 0028 previu ali era a repetição do próprio piso, e ele foi
+  corrigido dando mais de uma forma às frases da família da cascata; a separação
+  por cenário continua, porque comprimento e forma não são a mesma coisa.
 
 A medição **não é portão**: o CI exige que o relatório seja produzido e legível,
 e não que ele alcance um número. Cobrar um limiar convidaria a ajustar o prompt
