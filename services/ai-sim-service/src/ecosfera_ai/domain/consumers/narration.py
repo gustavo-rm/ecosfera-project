@@ -378,6 +378,24 @@ def narrate(
     fabricado e sem pedido de desculpas. Uma era tranquila é resultado legítimo
     do planeta, e a ausência de especiação, em particular, é o caso COMUM deste
     modelo (~6 σ; `docs/decisions/deferred.md`), não uma lacuna a lamentar.
+
+    ## A escolha da FORMA, e por que ela é a posição (M6.5)
+
+    Um template pode ter mais de uma forma para a mesma afirmação, e a que sai é
+    `posição % número de formas`. Duas propriedades vêm juntas:
+
+    * duas ocorrências SEGUIDAS do mesmo template saem diferentes — que era o
+      defeito medido: na cascata ramificada, duas frases de `T-CHAIN-CAUSED`
+      repetiam palavra por palavra o mesmo prefixo de onze palavras;
+    * a saída continua função pura do dossiê. A ordem dos rascunhos já é
+      determinística, então a forma escolhida também é. Nada de aleatório entra
+      aqui, e não pode entrar: o M6.4 mede a variação do LLM contra este piso, e
+      um piso que variasse sozinho tiraria o chão da medição.
+
+    A posição, e não o `event_id`: o que se quer quebrar é a repetição VIZINHA,
+    e só a posição sabe quem é vizinho de quem. Um índice derivado do evento
+    daria formas estáveis por evento e não impediria dois vizinhos de caírem na
+    mesma — que é justamente o caso a evitar.
     """
     drafts = _drafts(context, templates)
     if not drafts:
@@ -393,8 +411,8 @@ def narrate(
         )
 
     facts: list[ExplainedFact] = []
-    for draft in drafts:
-        template = templates.get(draft.template_id, register)
+    for position, draft in enumerate(drafts):
+        template = templates.get(draft.template_id, register, variant=position)
         facts.append(
             ExplainedFact(
                 template_id=draft.template_id,

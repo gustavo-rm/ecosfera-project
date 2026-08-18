@@ -44,6 +44,32 @@
 # escopo do M6.0 — não algo a completar aqui com texto plausível. Inventar o
 # valor é exatamente a alucinação que este marco existe para tornar impossível,
 # e um template a comete tão facilmente quanto um LLM.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# `variant` — mais de uma FORMA para a mesma afirmação (M6.5)
+# ─────────────────────────────────────────────────────────────────────────────
+# Um mesmo `id` + `register` pode aparecer mais de uma vez, cada ocorrência com
+# um `variant` distinto (0, 1, 2, …, sem buracos). As formas dizem A MESMA COISA
+# com outras palavras: mesmos slots, mesma afirmação, mesma lição. Trocar de
+# forma nunca pode trocar o que a frase afirma — só como ela soa.
+#
+# O renderizador escolhe pela POSIÇÃO da frase na explicação (`variant =
+# posição % número de formas`), o que mantém a saída função pura do dossiê: mesma
+# fatia, mesma prosa, palavra por palavra. A variação não é aleatória, e não pode
+# ser: o M6.4 mede um componente não-determinístico contra este piso, e um piso
+# que mudasse sozinho tiraria o chão da medição.
+#
+# Por que ela existe: o ADR 0028 previu, e a medição de n=15 do M6.4 confirmou,
+# que um piso repetitivo faz o LLM do M6.3 devolver QUASE-CÓPIA em vez de
+# paráfrase — e uma quase-cópia passa na fundamentação trivialmente, por não
+# acrescentar nada que se possa inventar. A taxa de aprovação daquele cenário
+# media, em boa parte, o quanto o modelo deixou de reescrever. Dar mais de uma
+# forma ao piso é o que devolve sentido à medida (ADR 0029, encerramento).
+#
+# Só a família da CASCATA ganhou formas alternativas neste turno — `T-CHAIN-ROOT`,
+# `T-CHAIN-CAUSED` e `T-EXTINCTION-CATASTROPHIC`. Os demais templates seguem em
+# forma única, e a maioria ainda abre com "No ciclo {tick}, …": é a mesma
+# repetição, fora do escopo medido, e está declarada no ADR 0029.
 version: 1
 
 # Substantivos por tipo de evento — o nome que o aluno lê no lugar do
@@ -148,10 +174,31 @@ templates:
   # ───────────────────────────────────────────────────────────────────────────
   - id: T-EXTINCTION-CATASTROPHIC
     register: standard
+    variant: 0
     text: >-
       No ciclo {tick}, {trigger} eliminou a comunidade de uma só vez, por mais
       bem adaptada que ela estivesse ao ambiente em que vivia: um evento extremo
       como esse não escolhe quem sobrevive.
+  # As duas formas abaixo mudam a ABERTURA, e conservam intacta a oração que
+  # carrega a lição — "por mais bem adaptada que ela estivesse". Não é descuido
+  # de variação: essa oração é o que inverte a intuição do aluno ("quem se
+  # extingue era inferior"), e reescrevê-la de três jeitos diferentes seria
+  # arriscar a lição em nome da forma. O que repetia no piso da cascata era o
+  # COMEÇO das frases, e é ele que varia aqui.
+  - id: T-EXTINCTION-CATASTROPHIC
+    register: standard
+    variant: 1
+    text: >-
+      Foi {trigger} que, no ciclo {tick}, eliminou a comunidade de uma só vez,
+      por mais bem adaptada que ela estivesse ao ambiente em que vivia — um
+      evento extremo não escolhe quem sobrevive.
+  - id: T-EXTINCTION-CATASTROPHIC
+    register: standard
+    variant: 2
+    text: >-
+      A comunidade foi eliminada de uma só vez no ciclo {tick}, e o que a
+      eliminou foi {trigger}, por mais bem adaptada que ela estivesse ao
+      ambiente em que vivia: um evento extremo não escolhe quem sobrevive.
   - id: T-EXTINCTION-CATASTROPHIC
     register: simple
     text: >-
@@ -295,10 +342,32 @@ templates:
     text: >-
       No ciclo {tick}, {cause_subject} veio antes e é o que explica: {subject}
       aconteceu porque {mechanism}.
+  # `T-CHAIN-ROOT` ganha formas alternativas pela razão de sempre: ele costuma abrir a
+  # explicação, e a abertura era idêntica à de todas as frases seguintes.
+  #
+  # Nenhuma das formas usa conectivo de SUCESSÃO ("em seguida", "logo depois").
+  # A tentação é grande — seria a variação mais natural — e ela afirmaria algo
+  # que o dossiê nem sempre sustenta: duas frases podem sair do MESMO tick (é o
+  # caso da cascata ramificada, com dois efeitos no ciclo 101), e "em seguida"
+  # ali seria uma afirmação de ordem que o log não contém. A âncora continua
+  # sendo o tick absoluto, que é o que o dossiê tem.
   - id: T-CHAIN-ROOT
     register: standard
+    variant: 0
     text: >-
       No ciclo {tick}, {subject} aconteceu porque {mechanism}.
+  - id: T-CHAIN-ROOT
+    register: standard
+    variant: 1
+    text: >-
+      Quando o planeta chegou ao ciclo {tick}, {subject} aconteceu, e a razão
+      foi esta: {mechanism}.
+  - id: T-CHAIN-ROOT
+    register: standard
+    variant: 2
+    text: >-
+      Foi no ciclo {tick} que {subject} aconteceu, e o que estava por trás disso
+      foi que {mechanism}.
 
   # Recorrência: quando o mesmo tipo de acontecimento se repete na fatia, o
   # dossiê sabe QUANTAS vezes, e dizer o número é melhor que repetir a frase

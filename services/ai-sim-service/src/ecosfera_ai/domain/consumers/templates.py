@@ -47,6 +47,23 @@ class MissingSlotError(KeyError):
     """
 
 
+class MalformedVariantError(ValueError):
+    """As formas de um mesmo template não numeram 0, 1, 2, … sem buracos.
+
+    Falha no CARREGAMENTO, e não na renderização, porque o custo do silêncio aqui
+    é alto e tardio: até o M6.5 duas entradas com o mesmo `id` e `register`
+    simplesmente se sobrescreviam no dicionário, e a segunda vencia. Uma revisão
+    pedagógica que duplicasse um id por engano perdia uma frase sem aviso, e o
+    sintoma só apareceria como "aquele texto que eu escrevi não está no ar".
+
+    Com formas alternativas isso deixa de ser hipótese: passa a ser o jeito
+    normal de escrever no arquivo, e o modo de errar mais provável é numerar
+    errado. Um `variant: 2` sem o `variant: 1` produziria uma tupla de dois
+    elementos em que a posição 1 é o texto que o autor numerou como 2 — variação
+    silenciosamente diferente da escrita.
+    """
+
+
 @dataclass(frozen=True, slots=True)
 class ExplanationTemplate:
     """Uma frase parametrizada, num registro de leitura."""
@@ -69,32 +86,54 @@ class ExplanationTemplate:
 
 @dataclass(frozen=True, slots=True)
 class TemplateSet:
-    """Os templates carregados, indexados por (id, registro)."""
+    """Os templates carregados, indexados por (id, registro).
+
+    O valor é uma TUPLA de formas, e não uma frase só. Quase todo template tem
+    uma forma; a família da cascata tem três, porque um piso que repete a si
+    mesmo faz o M6.3 devolver quase-cópia em vez de paráfrase (ADR 0029, M6.5).
+    """
 
     version: int
-    templates: Mapping[tuple[str, Register], ExplanationTemplate]
+    templates: Mapping[tuple[str, Register], tuple[ExplanationTemplate, ...]]
     nouns: Mapping[str, str]
     mechanisms: Mapping[str, str]
     # Códigos que nunca chegam ao aluno (moldura, diagnóstico). Declarados para
     # que a ausência de frase seja DECISÃO registrada, e não lacuna silenciosa.
     not_narrated: frozenset[str] = frozenset()
 
-    def get(self, template_id: str, register: Register) -> ExplanationTemplate:
+    def get(self, template_id: str, register: Register, *, variant: int = 0) -> ExplanationTemplate:
         """Busca o template no registro pedido, CAINDO para `STANDARD`.
 
         O recuo é o que torna a costura de registro extensível linha a linha: o
         M6.3 acrescenta uma variante nova ao YAML e ela passa a valer, sem que
         nenhum template existente precise ganhar variante ao mesmo tempo.
+
+        `variant` é reduzido módulo o número de formas, e a razão é a mesma que
+        justifica o recuo de registro: quem chama não deveria precisar saber
+        quantas formas um template tem para pedir a frase. Um template de forma
+        única devolve sempre a mesma frase, qualquer que seja o índice — que é
+        exatamente o comportamento anterior ao M6.5, preservado por construção.
         """
-        found = self.templates.get((template_id, register))
-        if found is None:
-            found = self.templates.get((template_id, Register.STANDARD))
-        if found is None:
+        forms = self.templates.get((template_id, register))
+        if not forms:
+            forms = self.templates.get((template_id, Register.STANDARD))
+        if not forms:
             raise MissingTemplateError(
                 f"nenhum template {template_id!r} em registro algum — "
                 "um acontecimento do planeta ficaria sem narração"
             )
-        return found
+        return forms[variant % len(forms)]
+
+    def variants_of(self, template_id: str, register: Register) -> tuple[ExplanationTemplate, ...]:
+        """Todas as formas daquele template, na ordem em que foram numeradas.
+
+        Existe para que os testes possam cobrar de CADA forma o que cobram da
+        primeira — a lição do ADR 0019, o vocabulário da Fase 0, os slots. Sem
+        isto, acrescentar uma forma seria acrescentar prosa que chega ao aluno
+        sem passar por verificação alguma, que é precisamente o risco que este
+        arquivo inteiro existe para conter.
+        """
+        return self.templates.get((template_id, register), ())
 
     def noun_for(self, event_type: str) -> str | None:
         """O substantivo do tipo de evento, ou None quando não há vocabulário.
@@ -112,9 +151,10 @@ class TemplateSet:
 
 
 def load_templates(path: Path) -> TemplateSet:
-    """Lê o arquivo versionado de templates."""
+    """Lê o arquivo versionado de templates, com as formas de cada um em ordem."""
     raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    templates: dict[tuple[str, Register], ExplanationTemplate] = {}
+    numbered: dict[tuple[str, Register], dict[int, ExplanationTemplate]] = {}
+
     for entry in raw.get("templates", []):
         register = Register(str(entry.get("register", Register.STANDARD.value)))
         template = ExplanationTemplate(
@@ -122,7 +162,25 @@ def load_templates(path: Path) -> TemplateSet:
             register=register,
             text=" ".join(str(entry["text"]).split()),
         )
-        templates[(template.template_id, register)] = template
+        variant = int(entry.get("variant", 0))
+        forms = numbered.setdefault((template.template_id, register), {})
+        if variant in forms:
+            raise MalformedVariantError(
+                f"{template.template_id} ({register.value}) declara duas vezes a forma "
+                f"{variant} — uma delas nunca chegaria a aluno algum"
+            )
+        forms[variant] = template
+
+    templates: dict[tuple[str, Register], tuple[ExplanationTemplate, ...]] = {}
+    for key, forms in numbered.items():
+        expected = set(range(len(forms)))
+        if set(forms) != expected:
+            raise MalformedVariantError(
+                f"{key[0]} ({key[1].value}) numera as formas {sorted(forms)}, e não "
+                f"{sorted(expected)} — a escolha por posição leria a frase errada"
+            )
+        templates[key] = tuple(forms[index] for index in sorted(forms))
+
     return TemplateSet(
         version=int(raw.get("version", 1)),
         templates=templates,
@@ -134,6 +192,7 @@ def load_templates(path: Path) -> TemplateSet:
 
 __all__ = [
     "ExplanationTemplate",
+    "MalformedVariantError",
     "MissingSlotError",
     "MissingTemplateError",
     "TemplateSet",
