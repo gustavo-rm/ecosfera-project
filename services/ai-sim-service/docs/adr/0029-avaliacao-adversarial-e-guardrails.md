@@ -1,7 +1,7 @@
 # ADR 0029 — Avaliação adversarial: fechar a lacuna, medir com honestidade
 
 **Status:** aceito
-**Marco:** M6.4 — e o fechamento do arco M6
+**Marco:** M6.4 — e o fechamento do arco M6 (com o adendo do M6.5, a forma do piso)
 **Relacionados:** ADR 0025 (M6.0) · ADR 0026 (M6.1) · ADR 0027 (M6.2 e o adendo do
 embedder) · ADR 0028 (M6.3, e as lacunas que este ADR fecha) · ADR 0019
 (catastrófica × ecológica) · ADR 0023 (BIO-001) · ADR 0021/0022 (Event Store, LGPD)
@@ -227,6 +227,15 @@ torna a medida definitiva; torna a diferença entre modelos observável.
 
 ### 4. A forma do piso da cascata — ACHADO CONFIRMADO, correção NÃO implementada
 
+> **Correção de fato, feita no M6.5.** Esta seção descreveu o piso errado. As
+> cinco frases e as duas `T-CHAIN-CAUSED` gêmeas são do `branching_cascade()`, que
+> é FIXTURE DE TESTE. O cenário que a medição de n=15 realmente usou — o
+> `_cascade()` de `scripts/evaluate_m6_4.py` — tem **três** frases e **uma**
+> `T-CHAIN-CAUSED`. A metade "abertura repetida" do achado vale para os dois
+> artefatos; a metade "prefixo gêmeo de onze palavras" não estava presente no que
+> foi medido. Os dois foram corrigidos mesmo assim: numa fatia ramificada de
+> verdade — o caso comum de uma corrida real — as gêmeas aparecem.
+
 **O que se mediu.** O piso da cascata tem cinco frases, e a repetição é
 estrutural, não estilística:
 
@@ -254,6 +263,72 @@ idênticas. Nada disso muda o que o piso AFIRMA — só a forma.
 > impacto a jusante na mesa, e não um ajuste a fazer de passagem no encerramento
 > do M6.4.
 
+## M6.5 — a forma do piso da cascata, CORRIGIDA
+
+O item acima voltou com aval do arquiteto e foi implementado num turno próprio.
+O que segue é o registro do que se mediu antes, do que mudou, e do que a
+remedição mostrou.
+
+### O antes, lido em vez de suposto
+
+O log do portão de geração da rodada de n=15 guarda as sessenta gerações. Lidas
+uma a uma, a cascata mostra isto:
+
+* **`llama3.1:8b` — 15 de 15** abrem com a MESMA frase, palavra por palavra:
+  *"No ciclo 100, um evento extraordinário começou."* Catorze das quinze seguem
+  com *"No ciclo 101, a queda de um meteoro veio antes e …"*, variando só o verbo
+  (`explica` ×7, `explicou` ×4, `é o que explica` ×3). O prefixo comum às quinze
+  tem **15 palavras**. Não é paráfrase com pouca variação: é transcrição com uma
+  palavra de folga.
+* **`llama3.2:1b` — 12 de 15** abrem com *"No ciclo 100, a queda de um meteoro
+  aconteceu porque …"*, e seis delas continuam na mesma oração, literalmente.
+
+E o controle se comporta de outro jeito, que é o que torna isto propriedade do
+PISO e não do modelo: no cenário curto o mesmo `llama3.1:8b` **reestrutura** —
+*"A mudança de temperatura no ciclo 200 foi causada pela alteração…"* move o ciclo
+para o meio da frase, coisa que ele não fez uma única vez na cascata.
+
+### A correção
+
+Um template pode declarar mais de uma FORMA da mesma frase, numeradas em
+`variant`, e o renderizador escolhe pela POSIÇÃO da frase. Duas propriedades
+vêm juntas, e a segunda é inegociável:
+
+* duas ocorrências seguidas do mesmo template saem diferentes — o caso das gêmeas;
+* a saída continua função pura do dossiê. Nada de aleatório entra, e não pode
+  entrar: o M6.4 mede um componente não-determinístico contra este piso.
+
+Três formas para `T-CHAIN-ROOT`, `T-CHAIN-CAUSED` e `T-EXTINCTION-CATASTROPHIC`.
+Duas escolhas merecem registro:
+
+* **As formas da catástrofe variam só a ABERTURA.** A oração *"por mais bem
+  adaptada que ela estivesse"* é o que desfaz *"quem se extingue era inferior"*, e
+  reescrevê-la de três jeitos seria arriscar a lição do ADR 0019 em nome da forma.
+  Um teste cobra a oração de TODAS as formas, de modo que isso é propriedade, e
+  não coincidência de qual posição renderizou.
+* **Nenhuma forma usa conectivo de sucessão** (*"em seguida"*, *"logo depois"*).
+  Seria a variação mais natural e afirmaria algo que o dossiê nem sempre sustenta:
+  duas frases podem sair do MESMO tick — a cascata ramificada tem dois efeitos no
+  ciclo 101 —, e ali "em seguida" seria uma afirmação de ordem que o log não
+  contém. A âncora segue sendo o tick absoluto.
+
+O `T-EXTINCTION-ECOLOGICAL` ficou de fora, e o cenário de piso curto renderiza
+**byte a byte igual ao de antes**. É de propósito: ele é o controle contra o qual
+o confundidor é comparado, e mexer nele trocaria o confundidor pelo controle.
+
+### O depois — a remedição
+
+A remedição roda no mesmo portão, com a mesma amostra de n=15 por célula e os
+mesmos dois modelos, e os números entram aqui quando ela fechar. A expectativa
+declarada ANTES de olhar, para que ela possa ser desmentida: a taxa de aprovação
+deve continuar em torno de 100%, porque nenhum fato mudou — o que este turno
+corrige é a VALIDADE da medida, e não a taxa. O que tem de mudar é a diversidade
+das saídas, medida do mesmo jeito nos dois lados: quantas palavras iniciais as
+quinze amostras da cascata ainda compartilham.
+
+Se as saídas continuarem quase-cópias, a correção não funcionou, e é isso que
+será registrado aqui — não uma leitura generosa de um número que não se mexeu.
+
 ## O que este marco NÃO fecha
 
 * **Qualidade pedagógica.** Passar na fundamentação diz que a prosa não inventou
@@ -265,9 +340,12 @@ idênticas. Nada disso muda o que o piso AFIRMA — só a forma.
   magnitude sem número.
 * **Injeção de prompt**, por não haver de onde injetar. O dia em que houver, este
   ADR é o registro de que a avaliação não a cobriu.
-* **A forma do piso da cascata**, agora confundidor MEDIDO e não apenas suspeito
-  (ver o encerramento, item 4). Segue aberto para decisão do arquiteto, por ser
-  contrato do M6.1 com consumidor a jusante no M6.3.
+* ~~**A forma do piso da cascata**~~ — FECHADO no M6.5 (ver a seção própria). O
+  que continua aberto ali é menor e está contado: o arquivo tem 22 pares
+  (id, registro), três ganharam formas alternativas, e **17 dos 19 restantes ainda
+  abrem com *"No ciclo N, …"*** — as duas exceções são as frases de período
+  tranquilo, que não têm ciclo a citar. A mesma correção caberia em todos eles;
+  ficaram de fora por não estarem no escopo MEDIDO, e não por estarem certos.
 
 ## Consequências
 
