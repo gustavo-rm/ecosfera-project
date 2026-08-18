@@ -361,9 +361,15 @@ modelo reescreve, o que aparece é a taxa de erro que sempre esteve lá. E o que
 ele escreve quando reescreve são exatamente as concepções que a Fase 0 existe
 para desfazer:
 
-* `'era inferior'` (Q5) — duas vezes;
-* `'mais evoluída'` (BIO-005 e Q5 ao mesmo tempo) — uma vez;
-* o número `'0019'` sem origem no piso — uma vez.
+* "era inferior" (Q5) — duas vezes;
+* "mais evoluída" (BIO-005 e Q5 ao mesmo tempo) — uma vez;
+* o número "0019" sem origem no piso — uma vez.
+
+> As três aparecem aqui entre aspas retas, e não entre crases, porque é assim que
+> a guarda da Fase 0 reconhece MENÇÃO. Ela reprovou a primeira versão desta
+> seção, que as citava em crase — e reprovou com razão: o filtro é estreito de
+> propósito, e alargá-lo para caber a citação seria afrouxar, para escrever um
+> ADR, exatamente a regra que o ADR está documentando.
 
 Nenhuma delas chegou a aluno algum: as quatro recuaram para o piso do M6.1. É a
 primeira vez em todo o arco M6 que o portão do M6.3 barra alucinação REAL de um
