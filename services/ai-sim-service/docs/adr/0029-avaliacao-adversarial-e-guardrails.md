@@ -318,16 +318,100 @@ o confundidor é comparado, e mexer nele trocaria o confundidor pelo controle.
 
 ### O depois — a remedição
 
-A remedição roda no mesmo portão, com a mesma amostra de n=15 por célula e os
-mesmos dois modelos, e os números entram aqui quando ela fechar. A expectativa
-declarada ANTES de olhar, para que ela possa ser desmentida: a taxa de aprovação
-deve continuar em torno de 100%, porque nenhum fato mudou — o que este turno
-corrige é a VALIDADE da medida, e não a taxa. O que tem de mudar é a diversidade
-das saídas, medida do mesmo jeito nos dois lados: quantas palavras iniciais as
-quinze amostras da cascata ainda compartilham.
+Mesmo portão, mesma amostra de n=15 por célula, mesmos dois modelos. A expectativa
+tinha sido escrita ANTES de olhar: a taxa continuaria perto de 100%, porque
+nenhum fato mudou, e o que devia se mexer era a diversidade. **A metade da
+expectativa sobre a taxa estava errada, e é o achado mais valioso desta rodada.**
 
-Se as saídas continuarem quase-cópias, a correção não funcionou, e é isso que
-será registrado aqui — não uma leitura generosa de um número que não se mexeu.
+#### O modelo parou de transcrever
+
+A medida decisiva é a mais simples: quantas gerações reproduziram a construção
+assinatura do piso, *"veio antes e é o que explica"*.
+
+| | antes | depois |
+|---|---:|---:|
+| cascata, `llama3.1:8b` | 14 / 15 | **0 / 15** |
+| cascata, `llama3.2:1b` | 6 / 15 | **0 / 15** |
+| prefixo comum às 15 amostras (`8b`) | 15 palavras | **4 palavras** |
+
+O que aparece no lugar é reescrita de verdade: *"No ciclo 100, um meteoro caiu.
+Isso aconteceu porque um evento extraordinário começou"* inverte a ordem das
+orações; *"A mudança de temperatura veio depois, porque…"* troca a construção
+inteira; *"No ciclo seguinte"* substitui o número pelo advérbio. Nada disso
+apareceu uma única vez na rodada anterior.
+
+A diversidade ENTRE as quinze amostras subiu pouco (de 7 para 9 saídas distintas
+no `8b`, e o maior grupo idêntico foi de 6 para 7). Isso é honesto e é outro
+eixo: o modelo agora parafraseia o piso, e converge na mesma paráfrase preferida
+— o que é propriedade da decodificação, e não da forma do piso.
+
+#### E a taxa caiu, que é o ponto
+
+| célula | antes | depois |
+|---|---:|---:|
+| `llama3.1:8b` · cascata | 100,0% | 100,0% |
+| `llama3.1:8b` · ecológica (controle) | 100,0% | 100,0% |
+| `llama3.2:1b` · cascata | 100,0% | **73,3%** (11/15) |
+| `llama3.2:1b` · ecológica (controle) | 100,0% | 100,0% |
+| agregada, 60 gerações | 100,0% | 93,3% |
+
+**Não é regressão. É a medida passando a medir.** O ADR suspeitava que aquele
+100% da cascata media *o quanto o modelo deixou de reescrever*; agora que o
+modelo reescreve, o que aparece é a taxa de erro que sempre esteve lá. E o que
+ele escreve quando reescreve são exatamente as concepções que a Fase 0 existe
+para desfazer:
+
+* `'era inferior'` (Q5) — duas vezes;
+* `'mais evoluída'` (BIO-005 e Q5 ao mesmo tempo) — uma vez;
+* o número `'0019'` sem origem no piso — uma vez.
+
+Nenhuma delas chegou a aluno algum: as quatro recuaram para o piso do M6.1. É a
+primeira vez em todo o arco M6 que o portão do M6.3 barra alucinação REAL de um
+modelo real, e não uma saída roteirizada por um teste.
+
+O controle se manteve em 100% nos dois modelos, com piso byte a byte idêntico ao
+de antes — o que permite atribuir a queda à célula da cascata, e não à rodada.
+
+E, pela primeira vez, **a diferença entre modelos é observável**: 100% contra
+73,3% na mesma célula. Era exatamente para isso que a amostra tinha subido de 3
+para 15 no encerramento do M6.4, e com os dois modelos em 100% ela não tinha
+aparecido.
+
+#### Três achados novos, todos fora do escopo deste turno
+
+A paráfrase de verdade expôs o que a transcrição escondia. Nenhum destes é
+consertado aqui, e nenhum é pequeno:
+
+1. **Segunda ocorrência inventada, e APROVADA.** Sete das quinze saídas do `8b`
+   afirmam um segundo meteoro — *"No ciclo 101, outro meteoro caiu"*, *"A queda de
+   um meteoro também aconteceu no ciclo 101"*. O dossiê tem UM `MeteorImpact`. A
+   verificação passa porque ela confere PRESENÇA DE TIPO, e o tipo está presente:
+   o que foi inventado é a contagem. A ambiguidade que convida ao erro está no
+   próprio `T-CHAIN-CAUSED`, cuja forma canônica também põe o tick do EFEITO ao
+   lado do substantivo da CAUSA — herdada, portanto, e não criada pelas formas
+   novas; o que mudou é que agora ela é exercitada. Fechá-la exige ou reescrever
+   a forma 0 (contrato do M6.1) ou ensinar o verificador a contar ocorrências
+   (lógica de fundamentação). As duas são decisão do arquiteto.
+2. **Marca do prompt vazando para a prosa.** Seis das quinze saídas do `1b`
+   começam com `<fatos>`, que é delimitador do prompt e não língua para o aluno.
+   Todas passaram: ninguém confere estrutura de prompt na saída. Já ocorria antes
+   (1 em 15), e subiu com a reescrita.
+3. **Identificador de origem copiado.** O `'0019'` reprovado veio do campo
+   `origem:` de uma passagem de registro — `docs/adr/0019-…`. O prompt entrega a
+   origem para que o modelo saiba distinguir regra do projeto de lembrança
+   própria, e o modelo pode copiá-la. Aqui o guarda de números pegou; um
+   identificador sem dígitos não seria pego.
+
+#### Veredito
+
+A correção funcionou no que se propunha: o piso deixou de ser copiável, e a
+medição daquela célula passou a informar alguma coisa. O confundidor da forma
+está **resolvido**; o da diversidade entre amostras está apenas **melhorado**, e
+a distinção importa — quem ler a taxa da cascata continua lendo a taxa de um
+cenário mais difícil que o controle, agora por comprimento e conteúdo, e não mais
+por repetição.
+
+## O que este marco NÃO fecha
 
 ## O que este marco NÃO fecha
 
@@ -338,6 +422,12 @@ será registrado aqui — não uma leitura generosa de um número que não se me
   escondidos, e agora DERIVADOS em vez de escritos à mão (ver o encerramento).
 * **Paráfrase criativa** de afirmação direcional ("o planeta virou um forno") e
   magnitude sem número.
+* **Ocorrência inventada de um tipo que o dossiê TEM.** A verificação confere
+  presença de tipo, não contagem, e a remedição do M6.5 mostrou o buraco sendo
+  usado: sete de quinze saídas afirmaram um segundo meteoro num planeta que teve
+  um. Aberto, e dos mais graves da lista.
+* **Marca do prompt na prosa** (`<fatos>`) e **identificador de origem copiado**
+  de uma passagem de registro. Nenhum dos dois é conferido.
 * **Injeção de prompt**, por não haver de onde injetar. O dia em que houver, este
   ADR é o registro de que a avaliação não a cobriu.
 * ~~**A forma do piso da cascata**~~ — FECHADO no M6.5 (ver a seção própria). O
