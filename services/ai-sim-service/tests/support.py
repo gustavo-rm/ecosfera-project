@@ -130,8 +130,14 @@ def quiet_event_engine() -> EventEngine:
     return EventEngine(replace(event_params(), scheduling_probability=0.0))
 
 
-def build_quiet_planet() -> PlanetEngine:
-    """Composição de produção, com o Diretor mudo (linha de base física)."""
+def build_quiet_planet(*, ecology: EcologyEngine | None = None) -> PlanetEngine:
+    """Composição de produção, com o Diretor mudo (linha de base física).
+
+    `ecology` injeta um Ecology Engine reparametrizado — o cenário sob teste,
+    como `build_volcanic_planet` faz com a geologia. Sem ele, o Engine de fábrica:
+    a composição segue idêntica à de produção, e todo chamador antigo é byte a
+    byte o mesmo.
+    """
     params = test_params()
     engines = [
         AstronomyEngine(),
@@ -142,7 +148,7 @@ def build_quiet_planet() -> PlanetEngine:
         HydrologyEngine(),
         ResourceEngine(),
         EvolutionEngine(),
-        EcologyEngine(),
+        EcologyEngine() if ecology is None else ecology,
         quiet_event_engine(),
     ]
     return PlanetEngine(
