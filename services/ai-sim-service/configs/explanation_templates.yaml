@@ -337,12 +337,36 @@ templates:
   # temperatura"), e encaixá-los depois de uma preposição produziria "depois de
   # a mudança". Abrindo a oração, a concordância sai certa para todos eles sem
   # que o renderizador precise saber o gênero de cada substantivo.
+  #
+  # AS TRÊS FORMAS (M6.5). Este é o template que o ADR 0029 nomeou: numa fatia
+  # ramificada ele rende DUAS frases seguidas, e as duas repetiam palavra por
+  # palavra o mesmo prefixo de onze palavras. Duas ocorrências consecutivas
+  # recebem agora formas diferentes, porque o índice vem da posição da frase.
+  #
+  # As três afirmam exatamente o mesmo: que {cause_subject} precede {subject} no
+  # elo do dossiê, e que {subject} ocorreu pelo mecanismo dado. Nenhuma delas usa
+  # anáfora de gênero ("é dela que decorre") — os substantivos deste vocabulário
+  # vêm com artigo e gênero próprios, e concordar com eles exigiria que o
+  # renderizador soubesse o gênero de cada um. "É daí" resolve isso sem saber.
   - id: T-CHAIN-CAUSED
     register: standard
+    variant: 0
     text: >-
       No ciclo {tick}, {cause_subject} veio antes e é o que explica: {subject}
       aconteceu porque {mechanism}.
-  # `T-CHAIN-ROOT` ganha formas alternativas pela razão de sempre: ele costuma abrir a
+  - id: T-CHAIN-CAUSED
+    register: standard
+    variant: 1
+    text: >-
+      O que veio antes, no ciclo {tick}, foi {cause_subject} — e é daí que vem o
+      resto: {subject} aconteceu porque {mechanism}.
+  - id: T-CHAIN-CAUSED
+    register: standard
+    variant: 2
+    text: >-
+      No ciclo {tick} a ordem foi esta: primeiro {cause_subject}, e só então
+      {subject}, que aconteceu porque {mechanism}.
+  # `T-CHAIN-ROOT` também ganha formas, e pela mesma razão: ele costuma abrir a
   # explicação, e a abertura era idêntica à de todas as frases seguintes.
   #
   # Nenhuma das formas usa conectivo de SUCESSÃO ("em seguida", "logo depois").
