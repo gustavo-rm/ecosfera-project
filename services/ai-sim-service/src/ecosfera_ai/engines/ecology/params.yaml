@@ -7,7 +7,12 @@
 # instantâneo congelado do início da era. É melhor cientificamente e muda a
 # trajetória numérica; como o M3 é o marco que introduz a biota no world-state,
 # não há baseline anterior a preservar.
-version: 1
+#
+# VERSÃO 2 (Fase 1, ECO-001): adiciona o bloco `generalist` — consumidores que
+# exploram mais de um nível trófico (onivoria), destravados por progressão de era.
+# A versão 1 continua reconstruível: sem o bloco, o carregador assume cadeia
+# estrita (o padrão de fábrica mantém a onivoria desligada na era 0).
+version: 2
 
 steps_per_tick: 1
 
@@ -44,6 +49,60 @@ max_consumer_share: 0.50
 # que a do M3, onde produtores e herbívoros empatavam (56 x 56) — base quase
 # plana, que Elton (1927) não admite.
 consumer_capacity_share: 0.60
+
+# ECO-001 (Fase 1 — validação Tássia, Div. 3): CONSUMIDORES GENERALISTAS.
+#
+# A cadeia linear estrita (predador come SÓ o nível imediatamente abaixo)
+# empobrece a ecologia: a maioria das espécies reais é generalista. Aqui o
+# predador ganha uma DIETA — pesos de preferência sobre mais de um nível de
+# presa —, e a onivoria (comer produtor além de herbívoro) abre um segundo
+# caminho de propagação: um choque nos produtores alcança o topo por dois
+# trajetos, não um só.
+#
+# PROGRESSÃO POR ERA (PED-001; compromisso da Tássia): cadeias nas eras iniciais,
+# poucos onívoros no meio, teias nas eras avançadas. A onivoria não liga de uma
+# vez — sua FORÇA cresce da era `unlock_era` (ainda cadeia estrita) à `full_era`
+# (dieta plena), em rampa linear. Antes de `unlock_era`, e portanto em TODA a
+# era 0, os pesos são (herbívoro=1, produtor=0): o passo trófico reduz EXATAMENTE
+# ao do M4, preservando a linha de base e todo predador de nível único.
+#
+# Destrava no meio do jogo (era 6 = ~tick 60 com era_length 10) e atinge força
+# plena na era 12, deixando o grosso do horizonte válido (~500 ticks) sob
+# dinâmica de teia sem tocar as primeiras eras, que seguem cadeia.
+#
+# ┌─ MAGNITUDE CONSERVADORA E DÍVIDA CRUZADA (decisão do arquiteto) ───────────┐
+# O peso do produtor é a MAGNITUDE da onivoria (não um liga/desliga), calibrada
+# como o M4 calibrou `consumer_capacity_share`: MEDINDO o horizonte longo.
+#
+# A medição (16 sementes, regime de eras, 500 ticks) mostrou que a onivoria
+# AMPLIFICA a dívida de carbono do ADR 0020 — correta na dinâmica, mas empurra a
+# amplitude de CO₂ de algumas sementes acima do teto de 60 ppm: a semente 5 vira
+# em peso ≥ 0,04 (43→66 ppm) e, no horizonte da dívida (3000 ticks), o
+# full-strength colapsa a biosfera da semente 99 onde a cadeia estrita a mantinha
+# viva. Isso é uma DÍVIDA CRUZADA: a predação generalista de força plena está
+# BLOQUEADA pela correção de carbono de longo prazo (Fase 3, ADR 0020). Ver
+# ADR 0030 §"Dependência entre fases".
+#
+# PESO = 0,02 é o default CONSERVADOR de fábrica: MEDIDO como não-amplificante —
+# em 16 sementes a amplitude de CO₂ fica idêntica à da cadeia estrita (nenhuma
+# semente nova cruza 60, incluindo a 5 e a 99), com margem abaixo do ponto de
+# virada da semente 5 (0,04). O mecanismo existe, é exercido e é versionado; a
+# FORÇA fica represada até a Fase 3 pagar a dívida de carbono. É o mesmo padrão
+# de capacidade-presente-porém-contida do M1 (framework default-off) e do M3
+# (`biology_enabled`). O valor de referência de força plena é 0,30, reproduzido
+# como resultado ESPERADO e xfail em `test_long_horizon_stability_not_worsened`.
+# └───────────────────────────────────────────────────────────────────────────┘
+generalist:
+  unlock_era: 6
+  full_era: 12
+  # Dieta do predador na FORÇA PLENA (após a rampa por era), como pesos de
+  # preferência sobre níveis de presa. Somam 1: o generalista REPARTE o esforço
+  # de forrageio entre as fontes, não o duplica — sem ganho de captura "de graça"
+  # por comer de dois poços. `herbivore` é a presa da cadeia; `producer` é a
+  # fonte fora-da-cadeia (onivoria) que a era destrava, e é a MAGNITUDE contida.
+  predator_diet:
+    herbivore: 0.98
+    producer: 0.02
 
 # Limiares de evento.
 collapse_threshold: 0.05   # fração da biomassa abaixo da qual o nível colapsa
