@@ -94,3 +94,39 @@ correção.
 
 **Precisa de:** um marco científico próprio, com dono. Investigar a hipótese
 antes de implementar — o número não foi verificado, só é coerente com os dados.
+
+### Adendo (Fase 1, ECO-001): a dívida é MAIOR do que a caracterização original
+
+Achado LATERAL do varrido de sementes da Fase 1 — não é sobre onivoria, e por
+isso está aqui, e não no ADR 0030. A tabela de dados está no
+**ADR 0030, seção "O padrão medido (16 sementes...)"**; não é re-derivada aqui.
+
+**Caracterização original (ADR 0020):** 4 sementes escolhidas (2027, 99, 11, 5),
+todas DENTRO do teto em 500 ticks — amplitude de 18–59 ppm —, o que sustentou o
+horizonte de jogo válido de ~500 ticks.
+
+**Novo achado (varrido de 16 sementes, 500 ticks, janela assentada):** na **cadeia
+estrita**, **7 de 16 sementes já passam de 60 ppm** — 3, 8, 17, 50, 123, 777 e
+2024 —, com a pior (777) em **129,4 ppm**, mais que o dobro do teto. **Sem
+onivoria alguma envolvida:** é a dívida de carbono pura. Medido nos dois regimes
+(era 0, como o ADR 0020 mediu, e com eras avançando, como o jogo roda) com
+resultado **idêntico** — logo é propriedade do modelo, não do regime de eras nem
+da Fase 1.
+
+**O que isso muda:** o teto de 60 ppm e o horizonte de ~500 ticks são propriedade
+das **4 sementes escolhidas**, não do modelo. Em quase metade das sementes o
+planeta já não é quase-estacionário DENTRO do horizonte que hoje chamamos de
+válido. A dívida não mudou de natureza — mudou de TAMANHO conhecido.
+
+**Implicação para o sequenciamento (nota de escopo, NÃO uma decisão):** a Fase 3
+(correção de carbono de longo prazo) pode precisar vir ANTES na ordem do Plano
+§9, por dois motivos independentes:
+
+1. **Independente da Fase 1** — este adendo: a dívida atinge mais planetas do que
+   se sabia, e limita o horizonte válido de sessões reais por semente.
+2. **Dependente da Fase 1** — o ADR 0030: a onivoria de força plena está
+   BLOQUEADA por esta dívida, e `ECO-002` (competição/mutualismo/parasitismo) é
+   candidato a compor a mesma amplificação.
+
+A decisão de resequenciar é do arquiteto, na próxima rodada de planejamento.
+**Nada foi resequenciado nem corrigido na Fase 1 por conta deste achado.**
