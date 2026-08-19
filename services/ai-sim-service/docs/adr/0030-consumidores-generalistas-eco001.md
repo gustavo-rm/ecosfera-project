@@ -134,6 +134,43 @@ em dois testes `xfail` de `test_long_horizon_stability_not_worsened`
 a Fase 3 pagar a dívida, eles viram `xpass` e o relatório avisa sozinho que a
 força plena foi destravada — o mesmo mecanismo de `test_carbon_stable_long_horizon`.
 
+### A contenção é real, não um adiamento — VERIFICADO no fecho da fase
+
+A contenção acima seria inútil se a progressão de era subisse o peso até 0,30
+sozinha: bastaria uma sessão jogar até a `full_era` (12) para a amplificação
+voltar em silêncio, e nenhum teste de era 0 a pegaria. Isso foi **verificado no
+código, não presumido**, antes do merge.
+
+**Resultado: o teto é o próprio dado versionado; nenhuma era o ultrapassa.** A
+rampa é MULTIPLICATIVA:
+
+```
+peso_efetivo(era) = params.predator_diet_producer × força(era),   força ∈ [0, 1]
+```
+
+Como `params.predator_diet_producer` é o default conservador (0,02), a era só
+interpola de 0 até 0,02 e **para ali**. Medido: o peso máximo sobre as eras
+0..10.000 é **0,0200**. O valor de referência 0,30 **não está no dado** — vive em
+comentário e em override explícito de teste. Alcançá-lo exige **editar o dado
+versionado**, que é exatamente o que a Fase 3 destrava; nunca apenas jogar mais
+tempo.
+
+Duas evidências adicionais, ambas medidas:
+
+- A verificação de horizonte longo **já roda com a onivoria destravada**: em 500
+  ticks com `era_length` 10, a sessão atravessa a `full_era` no tick 120 e passa
+  **381 dos 501 ticks em era ≥ 12**, com o peso no teto (0,02). A estabilidade
+  medida é a DESTE regime, e não a de um planeta que nunca destravou a onivoria.
+- `test_full_era_stays_at_conservative_ceiling` trava as duas metades da garantia:
+  o dado está contido (guarda que dispara se alguém subir o `params.yaml` para a
+  força plena antes da Fase 3) e nenhuma era ultrapassa esse teto — e continua
+  provando que o mecanismo é genérico, isto é, que a Fase 3 destrava editando o
+  dado, sem tocar no código da rampa.
+
+Nenhuma correção foi necessária: a contenção já era estrutural. O que faltava era
+**afirmá-la em teste**, para que uma mudança futura de `params.yaml` não a desfaça
+em silêncio.
+
 ## Dependência entre fases (registro para o arquiteto)
 
 > **A predação generalista de FORÇA PLENA (Fase 1) está BLOQUEADA pela correção de
@@ -151,6 +188,13 @@ são candidatos a **compor a mesma amplificação** sobre a biomassa e, por ela,
 carbono. Convém avaliar se a Fase 3 deve preceder `ECO-002`, ou ao menos se cada
 incremento de `ECO-002` precisa da mesma verificação de horizonte longo antes de
 sair do default conservador.
+
+**Há um SEGUNDO motivo, independente desta fase.** O varrido de 16 sementes
+revelou, de lambuja, que a dívida do ADR 0020 é maior do que sua caracterização
+original: na **cadeia estrita**, sem onivoria alguma, 7 das 16 sementes já passam
+de 60 ppm. Isso está registrado em `docs/decisions/pending.md` (**P-02**,
+"Adendo") porque é achado sobre o carbono, não sobre a onivoria — e porque
+reforça a urgência da Fase 3 **mesmo que a Fase 1 não existisse**.
 
 ## Consequências
 
