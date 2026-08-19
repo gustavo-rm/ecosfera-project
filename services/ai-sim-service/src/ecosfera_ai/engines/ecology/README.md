@@ -70,6 +70,42 @@ Duas correções do M3 sobre o modelo anterior:
 O crescimento do produtor é logístico (Verhulst, 1838) contra a
 `carrying_capacity` publicada pelo Resource. Sem capacidade, resta a mortalidade.
 
+### Consumidores generalistas (ECO-001, Fase 1)
+
+A cadeia acima é ESTRITA: o predador come só herbívoro. A validação da Tássia
+apontou isso como a maior lacuna — a maioria das espécies é generalista. O
+predador passa a ter uma **dieta**: pesos de preferência sobre mais de um nível
+de presa, que somam 1. Como onívoro, ele drena o produtor além do herbívoro,
+abrindo um **segundo caminho de propagação** (um choque nos produtores alcança o
+topo por dois trajetos, não um só).
+
+```
+caça      = min(herbívoro, taxa × predador × herbívoro × peso_herbívoro)
+onivoria  = min(produtor,  taxa × predador × produtor  × peso_produtor)   # NOVO
+# o poço do produtor é racionado entre pastagem + onivoria (nenhum poço negativo)
+ganho_predador = conversão × (caça + onivoria) × teto_eltoniano(predador)
+```
+
+Os pesos **somam 1**: o generalista reparte o forrageio, não ganha captura "de
+graça"; o teto eltoniano do M4 segue amortecendo o ganho TOTAL. Conservação e
+não-inversão da pirâmide preservadas (ADR 0030).
+
+**Progressão por era (cadeias → teias).** A onivoria não liga de uma vez: sua
+força cresce da era `unlock_era` (cadeia estrita) à `full_era` (dieta plena). Em
+toda a **era 0** os pesos são `(1, 0)` — o passo reduz bit a bit ao do M4, e a
+linha de base fica intacta.
+
+**Magnitude CONSERVADORA de fábrica (produtor 0,02).** A onivoria de força plena
+(0,30) é dinamicamente correta mas AMPLIFICA a dívida de carbono de longo prazo
+(ADR 0020) acima do teto de 60 ppm — está **bloqueada pela Fase 3** (correção de
+carbono). O default de fábrica é medido como não-amplificante; a força plena fica
+represada até a Fase 3 landar (ver ADR 0030, "Dependência entre fases").
+
+**Ainda pendente na Fase 1:** `ECO-002` (competição, mutualismo, parasitismo),
+`ECO-003` (decomposição/ciclo de nutrientes) e `ECO-005` (destaque das oscilações
+predador-presa). Cada um constrói sobre esta dieta e precisa da mesma verificação
+de horizonte longo.
+
 ### Cadência (mudou no M3)
 
 Roda `steps_per_tick` passos **por tick** (padrão 1), e não um lote por era.

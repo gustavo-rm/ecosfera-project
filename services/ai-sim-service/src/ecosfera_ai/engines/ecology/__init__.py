@@ -10,7 +10,11 @@ from ecosfera_ai.engines.ecology.events import (
     TROPHIC_COLLAPSE,
     EcologyCauseCode,
 )
-from ecosfera_ai.engines.ecology.service import EcologyEngine
+from ecosfera_ai.engines.ecology.service import (
+    EcologyEngine,
+    generalist_strength,
+    predator_diet,
+)
 
 __all__ = [
     "ENGINE_ID",
@@ -19,5 +23,7 @@ __all__ = [
     "EcologyCauseCode",
     "EcologyEngine",
     "EcologyEngineParams",
+    "generalist_strength",
     "load_params",
+    "predator_diet",
 ]

@@ -187,6 +187,41 @@ def viability_threshold(params: EcologyEngineParams) -> float:
     return params.mortality_rate / gain if gain > _EPS else float("inf")
 
 
+def generalist_strength(era: int, params: EcologyEngineParams) -> float:
+    """Força da onivoria destravada por esta era — de 0 (cadeia) a 1 (dieta plena).
+
+    ECO-001, progressão por era (PED-001; compromisso da Tássia): a onivoria não
+    liga de uma vez. Antes de `unlock_era` é 0 — cadeia estrita, e portanto TODA
+    a era 0 se comporta como o M4. De `unlock_era` a `full_era` sobe em rampa
+    linear (as poucas espécies onívoras do meio do jogo); de `full_era` em diante
+    é 1 (a teia das eras avançadas).
+
+    Não é um roteiro que decide o QUE cada era faz: é um único parâmetro contínuo
+    que a era desloca, exatamente como a sucessão já emerge da disponibilidade de
+    recurso e não de um cronograma.
+    """
+    unlock = params.generalist_unlock_era
+    full = params.generalist_full_era
+    if era < unlock:
+        return 0.0
+    if era >= full or full <= unlock:
+        return 1.0
+    return (era - unlock) / (full - unlock)
+
+
+def predator_diet(era: int, params: EcologyEngineParams) -> tuple[float, float]:
+    """Pesos efetivos da dieta do predador nesta era: `(herbívoro, produtor)`.
+
+    Interpola da cadeia estrita `(1, 0)` à dieta plena configurada, pela força que
+    a era destrava. O peso do produtor cresce de 0 ao valor versionado; o do
+    herbívoro é o complemento, então a soma é 1 em QUALQUER era: o generalista
+    reparte o esforço de forrageio entre as fontes, não o duplica. Em força 0 é
+    `(1, 0)` — o predador de nível único de antes desta fase, bit a bit.
+    """
+    producer_weight = params.predator_diet_producer * generalist_strength(era, params)
+    return (1.0 - producer_weight, producer_weight)
+
+
 def _seeded_levels(
     current: EcologySlice, biomass: float, params: EcologyEngineParams
 ) -> tuple[float, float, float]:
@@ -237,22 +272,66 @@ def _room(occupied: float, ceiling: float) -> float:
     return max(0.0, 1.0 - occupied / ceiling)
 
 
+def _ration_pool(stock: float, demands: tuple[float, ...]) -> tuple[float, ...]:
+    """Raciona um poço de presa entre demandas concorrentes — o teto global do M3.
+
+    Quando um generalista come do MESMO poço que outro consumidor (a onivoria do
+    predador sobre o produtor, além da pastagem do herbívoro), a captura somada
+    não pode exceder o estoque, senão a diferença vira biomassa do nada — o
+    vazamento que o M3 fechou, agora sob pressão de mais de uma fonte.
+
+    Se a demanda somada cabe, cada um leva o que pediu. Se excede, todos são
+    escalados pelo mesmo fator até a soma igualar o estoque: racionamento
+    proporcional, nenhum poço fica negativo. Para uma ÚNICA demanda positiva
+    reduz a `min(estoque, demanda)` — o caso do M4, preservado bit a bit para não
+    mover a linha de base da cadeia estrita.
+    """
+    total = sum(demands)
+    if total <= stock or total <= _EPS:
+        return demands
+    positive = tuple(d for d in demands if d > 0.0)
+    if len(positive) == 1:
+        # Consumidor único: o teto exato do M3, sem o erro de 1 ULP que
+        # `demanda × (estoque/demanda)` introduziria contra o antigo `min`.
+        return tuple(stock if d > 0.0 else 0.0 for d in demands)
+    scale = stock / total
+    return tuple(d * scale for d in demands)
+
+
 def _trophic_step(
     levels: tuple[float, float, float],
     capacity: float,
     params: EcologyEngineParams,
     ctx: TickContext,
 ) -> tuple[float, float, float]:
-    """Um passo SÍNCRONO da cadeia, com teto global de predação por nível.
+    """Um passo SÍNCRONO da cadeia, com teto global de predação por poço.
 
     Mesma correção do modelo por agente: todos leem a mesma fotografia e a
     captura é limitada ao estoque de presa — sem isso, predadores somados comem
     mais presa do que existe e a diferença vira biomassa do nada.
+
+    ECO-001: o predador tem uma DIETA (`predator_diet`, destravada por era). Como
+    generalista, reparte sua predação entre o herbívoro (presa da cadeia) e o
+    produtor (onivoria). O poço do produtor passa então a sofrer DUAS pressões —
+    a pastagem do herbívoro e a onivoria do predador —, racionadas juntas
+    (`_ration_pool`) para nunca exceder o estoque. Em era estrita a dieta é
+    `(1, 0)`: a onivoria some, o racionamento vira `min`, e o passo reduz bit a
+    bit ao do M4.
     """
     producer, herbivore, predator = levels
+    diet_herbivore, diet_producer = predator_diet(ctx.era, params)
 
-    grazed = min(producer, params.predation_rate * herbivore * producer)
-    hunted = min(herbivore, params.predation_rate * predator * herbivore)
+    # Demanda de captura por (consumidor, presa), toda sobre a MESMA fotografia.
+    # A demanda do predador é fatiada pelos pesos da dieta (que somam 1): comer
+    # de duas fontes NÃO lhe dá captura a mais, só a distribui.
+    graze_demand = params.predation_rate * herbivore * producer
+    hunt_demand = params.predation_rate * predator * herbivore * diet_herbivore
+    omni_demand = params.predation_rate * predator * producer * diet_producer
+
+    # Teto por poço. O produtor é dividido entre pastagem e onivoria; o herbívoro
+    # tem um consumidor só. Nenhum poço perde mais do que tem.
+    grazed, omnivored = _ration_pool(producer, (graze_demand, omni_demand))
+    (hunted,) = _ration_pool(herbivore, (hunt_demand,))
 
     if capacity > _EPS:
         growth = params.growth_rate * producer * (1.0 - producer / capacity)
@@ -260,7 +339,7 @@ def _trophic_step(
         growth = -params.mortality_rate * producer
 
     noise = float(ctx.rng.normal(0.0, params.demographic_noise))
-    new_producer = producer + growth - grazed + noise * producer
+    new_producer = producer + growth - grazed - omnivored + noise * producer
 
     # Q11 (validação Tássia, ADR 0019): o teto de suporte vale para TODOS os
     # níveis, não só para os produtores. Antes, herbívoro e predador cresciam
@@ -278,7 +357,11 @@ def _trophic_step(
         herbivore, consumer_ceiling
     )
     new_herbivore -= params.mortality_rate * herbivore + hunted
-    new_predator = predator + params.conversion_efficiency * hunted * _room(
+    # O predador converte a captura das DUAS fontes; o teto eltoniano (M4) segue
+    # amortecendo o ganho TOTAL, então a onivoria não fura o teto por nível nem
+    # ganha capacidade de graça por drenar dois poços ao mesmo tempo.
+    predator_intake = hunted + omnivored
+    new_predator = predator + params.conversion_efficiency * predator_intake * _room(
         predator, consumer_ceiling
     )
     new_predator -= params.mortality_rate * predator
