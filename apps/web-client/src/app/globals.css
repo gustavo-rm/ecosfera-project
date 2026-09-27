@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
 @theme inline {
+
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-sans: var(--font-body), system-ui, sans-serif;
+
+  --max-width-shell: 1180px;
+
+  --animate-scrolldot: scrolldot 2.2s ease-in-out infinite;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-space: var(--space);
+  --color-deep: var(--deep);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-lime: var(--lime);
+  --color-azure: var(--azure);
+  --color-violet: var(--violet);
+  --color-amber: var(--amber);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
-  }
+    --space: #050A16;   
+    --deep: #0A1428;    
+    --panel: #0F1B34;   
+    --line: #1E2E50;    
+    --ink: #E9EFFA;     
+    --muted: #8DA0C0;   
+    --lime: #7CE55C;    
+    --azure: #3FA9FF;   
+    --violet: #7C5CFF;  
+    --amber: #F5C451;   
+      }
 }
+
+ @keyframes scrolldot {
+    0%, 100% { 
+      transform: translateY(0); 
+      opacity: 0.9; 
+    }
+    50% { 
+      transform: translateY(6px); 
+      opacity: 0.35; 
+    }
+  }
+
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+}
+
+canvas {
+  display: block;
+}     

@@ -1,0 +1,1 @@
+export { default as PlanetSimulatorFeature } from './components/planetcanva'
