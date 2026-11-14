@@ -161,7 +161,7 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
     au.uScale.value = 0.018 + 0.03 * sh.uAtmo.value;
     su.uLayerMode.value = t.layerMode; su.uLut.value = t.layerKind === "diverging" ? luts.diverging : luts.sequential;
     damp(su.uLayerOpacity, t.layerMode ? 0.94 : 0);
-    runtime.zoom = Math.min(1, Math.max(0, (3.3 - runtime.cameraDistance) / 1.7));
+    runtime.zoom = Math.min(1, Math.max(0, (3.6 - runtime.cameraDistance) / 1.9));
     su.uZoom.value = runtime.zoom;
     su.uHighlightPulse.value = still || reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(time * 2.2);
 

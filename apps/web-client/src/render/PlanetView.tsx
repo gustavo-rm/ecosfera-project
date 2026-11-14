@@ -50,7 +50,7 @@ export default function PlanetView({ paletteSet = "default", reducedMotion = fal
   const quality = usePlanetStore((s) => s.quality);
   return (
     <Canvas
-      key={quality} className={className} flat camera={{ fov: 35, near: 0.1, far: 300, position: [0, 0, 3.9] }}
+      key={quality} className={className} flat camera={{ fov: 35, near: 0.1, far: 300, position: [0, 0, 5] }}
       gl={{ antialias: QUALITY[quality].antialias, powerPreference: "high-performance", alpha: false, preserveDrawingBuffer: false }}
       onCreated={({ gl }) => { gl.setClearColor("#04060d"); }} aria-hidden="true"
     >

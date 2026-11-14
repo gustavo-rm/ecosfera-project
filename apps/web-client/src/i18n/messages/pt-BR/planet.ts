@@ -1,0 +1,41 @@
+/** Planet vocabulary. Biome, cause-of-death and life-stage labels are PLACEHOLDERS: the spec defines no pt-BR labels for them. */
+export const planet = {
+  planet: { label: "Planeta em 3D", roleDescription: "globo interativo", loading: "Formando o planeta…", keyboardHelp: "Use as setas para girar, mais e menos para aproximar e afastar, Home para a vista inicial, Enter para selecionar o ponto no centro, F para focar a seleção e espaço para pausar ou continuar o tempo." },
+  era: { 1: { name: "Formação Planetária" }, 2: { name: "Surgimento da Água" }, 3: { name: "Moléculas Orgânicas" }, 4: { name: "Primeiras Formas de Vida" }, 5: { name: "Diversificação Biológica" }, 6: { name: "Colonização Terrestre" }, 7: { name: "Grandes Extinções" }, 8: { name: "Ecossistemas Complexos" }, 9: { name: "Civilizações (futuro)" } },
+  archetype: { molten: "mundo jovem e incandescente", airless: "mundo sem atmosfera", greenhouse: "estufa descontrolada", snowball: "bola de neve", desert: "mundo-deserto", ocean: "mundo-oceano", archipelago: "arquipélago", temperate: "mundo temperado", postExtinction: "planeta pós-extinção", primordial: "mundo primitivo com atmosfera turva" },
+  biome: { 0: "Oceano profundo", 1: "Mar raso", 2: "Gelo", 3: "Tundra", 4: "Floresta fria", 5: "Floresta temperada", 6: "Campo", 7: "Deserto", 8: "Savana", 9: "Floresta tropical", 10: "Alta montanha", 11: "Rocha nua", 12: "Lava" },
+  event: {
+    fire: { name: "Incêndio" }, drought: { name: "Seca" }, storm: { name: "Tempestade" }, glaciation: { name: "Glaciação" }, volcanism: { name: "Erupção vulcânica" }, impact: { name: "Impacto de meteoro" },
+    eutrophication: { name: "Eutrofização" }, pandemic: { name: "Pandemia (representação abstrata)" }, invasive: { name: "Espécie invasora (representação abstrata)" },
+  },
+  instrument: { seismograph: "sismógrafo", telescope: "telescópio", barometer: "barômetro", hygrometer: "higrômetro", thermometer: "termômetro", waterProbe: "sonda de água", smokeSensor: "sensor de fumaça", bioSensor: "sensor biológico" },
+  speciation: { ancestral: "Linhagem ancestral", allopatric: "Especiação alopátrica", parapatric: "Especiação parapátrica", sympatric: "Especiação simpátrica", introduced: "Linhagem introduzida" },
+  mark: { extinction: "Extinção de linhagem" },
+  cause: { STARVATION: "Falta de alimento", SENESCENCE: "Envelhecimento", PREDATION: "Predação", ENVIRONMENTAL: "Condições do ambiente" },
+  stage: { PROPAGULE: "Propágulo", JUVENILE: "Jovem", ADULT: "Adulto", SENESCENT: "Idoso", DEAD: "Morto" },
+  layer: {
+    natural: "Vista natural", needs: "Revela com: {concept}",
+    temperature: { name: "Temperatura" }, biome: { name: "Biomas" }, population: { name: "População" }, water: { name: "Água" }, precipitation: { name: "Precipitação" }, elevation: { name: "Elevação" },
+    fertility: { name: "Fertilidade do solo" }, biomass: { name: "Biomassa" }, richness: { name: "Riqueza de linhagens" }, habitat: { name: "Distribuição da linhagem" }, o2: { name: "O₂" }, co2: { name: "CO₂" },
+    mineral: { name: "Minerais" }, nitrogen: { name: "Nitrogênio" }, organicMatter: { name: "Matéria orgânica" }, disturbance: { name: "Distúrbios" }, salinity: { name: "Salinidade" }, ph: { name: "pH" },
+  },
+  legend: { title: "Legenda", literal: "Dado literal: a cor mostra o valor. Áreas hachuradas ainda não foram varridas.", relative: "valor relativo", stylized: "Vista natural: representação estilizada. O relevo está exagerado {factor} vezes; a cor do céu e a vida são ilustrativas." },
+  describe: {
+    headline: "{era}, ano {year}. O planeta é um {archetype}.", temperature: "Temperatura média de {value} °C.", noAtmosphere: "Não há atmosfera.", atmosphere: "Atmosfera com {o2}% de oxigênio, {co2} ppm de CO₂ e pressão de {pressure} bar.",
+    noOcean: "Não há oceano líquido na superfície.", ocean: "Oceanos cobrem {ocean}% da superfície, gelo cobre {ice}% e o pH do mar é {ph}.", biomes: "Biomas principais: {list}.",
+    lifeImpossible: "Não há vida, e as condições atuais não permitem vida.", noLife: "Não há vida no planeta.", life: "Há {richness} linhagens vivas em {levels} níveis tróficos.", stuck: "Matéria orgânica está se acumulando porque faltam decompositores.",
+    massExtinction: "Uma extinção em massa está em curso.", eventTelegraph: "{name} previsto perto de {lat}°, {lon}° (detectado pelo {instrument})", eventActive: "{name} em curso perto de {lat}°, {lon}°", eventAftermath: "efeitos de {name} perto de {lat}°, {lon}°",
+    events: "Eventos: {list}.", noEvents: "Nenhum evento em curso.", fastMode: "Avanço rápido ativo: menos detalhe na tela.", newEra: "Nova era: {era}.",
+  },
+  dimension: { astronomical: "Astronômica", physical: "Física", geological: "Geológica", atmospheric: "Química e atmosférica", hydrological: "Hidrológica", biological: "Biológica e do solo" },
+  param: {
+    orbitAU: { name: "Distância da estrela" }, starType: { name: "Tipo da estrela" }, massEarths: { name: "Massa" }, radiusEarths: { name: "Tamanho (raio)" }, axialTiltDeg: { name: "Inclinação do eixo" }, moons: { name: "Número de luas" },
+    dayHours: { name: "Duração do dia" }, eccentricity: { name: "Excentricidade da órbita" }, starAgeGyr: { name: "Idade da estrela" }, starActivity: { name: "Atividade da estrela" }, magneticField: { name: "Campo magnético" },
+    relief: { name: "Relevo" }, volcanism: { name: "Vulcanismo" }, tectonics: { name: "Atividade tectônica" }, crust: { name: "Composição da crosta" }, minerals: { name: "Recursos minerais" },
+    pressureBar: { name: "Pressão da atmosfera" }, co2Ppm: { name: "CO₂" }, o2Pct: { name: "O₂" }, ch4Ppm: { name: "Metano (CH₄)" }, albedo: { name: "Albedo" }, ozone: { name: "Ozônio" },
+    waterFraction: { name: "Água total" }, landDistribution: { name: "Distribuição das terras" }, salinityPpt: { name: "Salinidade" }, oceanPh: { name: "pH do oceano" },
+    soilFertility: { name: "Fertilidade do solo" }, nutrients: { name: "Nutrientes" }, lifeSeed: { name: "Semente de vida" },
+  },
+  option: { M: "Anã vermelha (M)", K: "Laranja (K)", G: "Amarela (G)", F: "Branco-amarelada (F)", A: "Branca (A)", basaltic: "Basáltica", granitic: "Granítica", ferrous: "Rica em ferro", carbonaceous: "Rica em carbono" },
+  series: { o2: "O₂ (%)", co2: "CO₂ (ppm)", temp: "Temperatura (°C)", biomass: "Biomassa (relativa)", richness: "Linhagens vivas", shannon: "Diversidade (índice de Shannon)", geneticDistance: "Distância genética acumulada", strategies: "Estratégias metabólicas", webComplexity: "Complexidade da teia", originations: "Origens por 1 000 meses", extinctions: "Extinções por 1 000 meses" },
+};

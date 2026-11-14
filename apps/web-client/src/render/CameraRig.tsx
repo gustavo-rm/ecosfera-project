@@ -6,7 +6,7 @@ import { getMesh, nearestCell } from "@/core/mesh/geodesic";
 import { usePlanetStore } from "@/store/planetStore";
 import { runtime } from "./quality";
 
-export const CAMERA_LIMITS = { min: 1.45, max: 7, home: 3.9, focus: 2.05 };
+export const CAMERA_LIMITS = { min: 1.45, max: 7, home: 5.0, focus: 2.1 };
 /** Imperative camera API, used by keyboard handlers and UI buttons. */
 const pending: (() => void)[] = [];
 export const cameraApi = {
