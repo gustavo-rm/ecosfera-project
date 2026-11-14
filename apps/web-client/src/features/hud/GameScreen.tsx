@@ -5,6 +5,7 @@ import { evidence } from "@/core/evidence/bus";
 import { t } from "@/i18n";
 import { useGameStore, type Notice } from "@/store/gameStore";
 import { usePlanetStore } from "@/store/planetStore";
+import { useSettings } from "@/store/settingsStore";
 import { Icon } from "@/ui/icons";
 import { Button, Ped } from "@/ui/kit";
 import { StudentSession } from "../session/StudentSession";
@@ -26,6 +27,7 @@ export function GameScreen() {
   const frame = usePlanetStore((s) => s.frame);
   const reportEra = useGameStore((s) => s.reportEra);
   const collapsed = useGameStore((s) => s.collapsed);
+  const textMode = useSettings((s) => s.textMode);
   const onNotice = (n: Notice) => {
     const a = n.action!;
     if (a.type === "focus" && typeof a.ref === "number") usePlanetStore.getState().focusOn(a.ref);
@@ -53,9 +55,9 @@ export function GameScreen() {
               {eraEnd && <div className="ec-panel pointer-events-auto flex flex-wrap items-center gap-2 px-3 py-1.5" role="status" data-era-end><Icon name="flag" /><span>{t("game.eraEnd")}</span><Button onClick={() => setReport(frame!.globals.era)}>{t("notice.action.report")}</Button></div>}
             </div>
             <div className="flex w-full items-end justify-between gap-2">
-              <div className="flex flex-col gap-2"><ComparePanel /><div className="hidden md:block"><MiniChart /></div></div>
+              <div className="flex flex-col gap-2" hidden={textMode}><ComparePanel /><div className="hidden md:block"><MiniChart /></div></div>
               <Onboarding />
-              <div className="flex flex-col items-end gap-2"><RegionProbe onRegion={(c) => { evidence.emit({ type: "panel_opened", panel: "region", ticksSinceLastAction: (frame?.tick ?? 0) - useGameStore.getState().lastActionTick }); setRegion(c); }} /><CameraButtons /></div>
+              <div className="flex flex-col items-end gap-2" hidden={textMode}><RegionProbe onRegion={(c) => { evidence.emit({ type: "panel_opened", panel: "region", ticksSinceLastAction: (frame?.tick ?? 0) - useGameStore.getState().lastActionTick }); setRegion(c); }} /><CameraButtons /></div>
             </div>
           </div>
           <div className={`${sheet === "layers" ? "flex" : "hidden"} w-[236px] max-w-[80vw] flex-col gap-2 md:flex`}><LayersPanel /></div>

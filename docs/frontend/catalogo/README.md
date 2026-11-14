@@ -17,4 +17,3 @@ Folhas de contato geradas por `apps/web-client/scripts/catalog.mjs` (Chromium he
 | `16-professor.jpg` | Nove telas do professor, coordenação, responsável, guarda de papel |
 | `17-laboratorio.jpg` | Abas do console de laboratório |
 
-Observação: a folha `13-temas.jpg` desta geração mostra o modo texto com painéis sobre o texto. O defeito foi corrigido depois da captura; regere o catálogo para ver o estado atual.

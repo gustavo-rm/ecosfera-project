@@ -57,7 +57,7 @@ Resumo: 43 combinações de tela e tema, 0 violações, 0 erros de console.
 - OK: O primeiro Tab leva ao link “Pular para o conteúdo”
 - OK: Início → “Começar demonstração” com Tab e Enter abre o jogo
 - OK: Planeta focado aceita setas e zoom por teclado sem erro
-- OK: Enter seleciona o ponto no centro e abre a sonda com valores (Posição 11°, 55° Biomas Oceano profundo Temperatura 26 °C Elevação -1.705 m)
+- OK: Enter seleciona o ponto no centro e abre a sonda com valores (Posição 8°, 53° Biomas Oceano profundo Temperatura 27 °C Elevação -1.809 m)
 - OK: Descrição textual do planeta presente para leitor de tela (Colonização Terrestre, ano 1.050. O planeta é um mundo temperado.  Temperatura média de 16 °C.  Atmosfera com 21,0% de oxigênio, 400 ppm de CO₂ e pres…)
 - OK: Camada de temperatura ligada por teclado (aria-pressed)
 - OK: Linha do tempo rola para o passado com a seta esquerda (mês 12600 → 12588)
@@ -86,10 +86,10 @@ Resumo: 43 combinações de tela e tema, 0 violações, 0 erros de console.
 
 | Medida (12 ações de reflorestar) | p95 |
 |---|---|
-| Disparo da ondulação no ponto (síncrono ao gesto) | 0.5 ms |
-| Ondulação desenhada (dois quadros depois) | 268 ms |
-| Novo estado do planeta recebido da fonte | 162 ms |
+| Disparo da ondulação no ponto (síncrono ao gesto) | 0.2 ms |
+| Ondulação desenhada (dois quadros depois) | 220 ms |
+| Novo estado do planeta recebido da fonte | 66 ms |
 
-- OK: Feedback visual local em até 1 s no p95, em WebGL por software (p95 = 268 ms)
+- OK: Feedback visual local em até 1 s no p95, em WebGL por software (p95 = 220 ms)
 
 **Total de falhas: 0.**
