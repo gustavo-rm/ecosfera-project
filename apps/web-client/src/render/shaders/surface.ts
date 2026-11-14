@@ -32,7 +32,7 @@ void main(){
   }
   nl = normalize(nl);
   vec3 col = vB.rgb * (0.80 + 0.40 * n1);
-  col = mix(col, col * (0.62 + 0.7 * smoothstep(0.3, 0.7, n3)) * (0.8 + 0.4 * n2), 0.85 * uZoom);
+  col = mix(col, col * (0.8 + 0.36 * smoothstep(0.3, 0.7, n3)) * (0.88 + 0.24 * n2), 0.85 * uZoom);
   col = mix(col, col * vec3(0.62, 0.9, 0.62), clamp(vB.a, 0.0, 1.0) * uZoom * smoothstep(0.45, 0.75, n2) * 0.6);
   float gray = dot(col, vec3(0.3, 0.59, 0.11));
   col = mix(col, mix(vec3(gray), vec3(0.66, 0.54, 0.36), 0.4), clamp(vD.x, 0.0, 1.0) * 0.75);
@@ -68,7 +68,7 @@ void main(){
   vec3 v = normalize(uCamPos - vPos);
   float ndl = dot(nn, uSunDir);
   float day = smoothstep(-uTermSoft, uTermSoft, dot(n, uSunDir));
-  vec3 light = uStarColor * uStarInt * uSunDim * (0.25 + 0.95 * max(ndl, 0.0)) * day + vec3(0.02) + uSkyColor * 0.07 * uAtmo * day;
+  vec3 light = uStarColor * uStarInt * uSunDim * (0.25 + 0.95 * max(ndl, 0.0)) * day + vec3(0.045, 0.055, 0.085) + uSkyColor * 0.07 * uAtmo * day;
   vec3 color = base * light;
   float water = (1.0 - land) * (1.0 - iceN);
   vec3 hv = normalize(v + uSunDir);

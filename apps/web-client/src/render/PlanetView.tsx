@@ -5,6 +5,8 @@ import type { Group } from "three";
 import type { PaletteSet } from "@/core/appearance/palettes";
 import { usePlanetStore, type QualityLevel } from "@/store/planetStore";
 import { CameraRig } from "./CameraRig";
+import { EventFx } from "./EventFx";
+import { Organisms } from "./Organisms";
 import { PlanetBody } from "./PlanetBody";
 import { perfStats, QUALITY, QUALITY_ORDER } from "./quality";
 import { Sky } from "./Sky";
@@ -39,7 +41,10 @@ function Scene({ quality, paletteSet, reducedMotion, interactive }: { quality: Q
       <PerfGovernor dprMax={q.dprMax} />
       <CameraRig planet={planet} interactive={interactive} />
       <Sky stars={q.stars} />
-      <PlanetBody planetRef={planet} renderOffset={q.renderOffset} octaves={q.octaves} paletteSet={paletteSet} reducedMotion={reducedMotion} />
+      <PlanetBody planetRef={planet} renderOffset={q.renderOffset} octaves={q.octaves} paletteSet={paletteSet} reducedMotion={reducedMotion}>
+        <Organisms budget={q.organisms} />
+        <EventFx reducedMotion={reducedMotion} />
+      </PlanetBody>
     </>
   );
 }

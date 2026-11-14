@@ -58,4 +58,12 @@ export const pedagogy = {
     era7: { desc: "Passe por dois grandes eventos e veja a vida se recuperar." }, era8: { desc: "Mantenha quatro níveis tróficos até o fim da era." }, habitable: { desc: "Posicione o planeta onde a vida é possível." }, air: { desc: "Consulte a temperatura, um gráfico e faça uma previsão sobre o clima." }, web: { desc: "Observe uma cadeia com três níveis tróficos." },
     weather: { desc: "Acompanhe uma seca e uma tempestade." }, life: { desc: "Veja novas linhagens surgirem e investigue seis delas." }, future: { desc: "Confirme três previsões." } },
   achievement: { firstPrediction: { desc: "Você previu, agiu e conferiu." }, iceAge: { desc: "Você acompanhou o gelo avançar e recuar." }, threeLevels: { desc: "Produtores, herbívoros e carnívoros ao mesmo tempo." }, recovered: { desc: "Depois de um colapso, a vida voltou." }, cartographer: { desc: "Cinco regiões varridas." }, cycleFound: { desc: "Três linhagens em que cada uma supera a outra, em círculo." }, naturalist: { desc: "Seis linhagens investigadas." }, dataReader: { desc: "Quatro gráficos consultados." } },
+  data: {
+    pyramid: "A cada passo da cadeia, a maior parte da energia se perde como calor. Por isso há poucos níveis e poucos predadores de topo.",
+    flat: "Biomassa total e número de linhagens podem ficar parados enquanto a vida muda por dentro. Olhe também a distância genética, as estratégias metabólicas e a complexidade da teia.",
+    cycles: "Numa relação cíclica, cada linhagem supera uma e perde para outra. Por isso não existe um vencedor absoluto.",
+    asexual: "{n} linhagens desta árvore se reproduzem de forma assexuada. Para elas, a separação em “espécies” usa só a distância genética: é um critério de quem observa, não uma fronteira natural.",
+    flag: { bottleneck: "A população caiu muito e perdeu variedade genética.", founder: "Poucos indivíduos fundaram uma população nova, que divergiu depressa." },
+    cycle: { carbon: "O carbono passa do ar para os seres vivos pela fotossíntese e volta pela respiração e pela decomposição.", nitrogen: "Sem fixadores e decompositores, o nitrogênio não chega às plantas.", oxygen: "A fotossíntese libera oxigênio; a respiração consome.", water: "A água circula entre oceano, ar, gelo e terra." },
+  },
 };

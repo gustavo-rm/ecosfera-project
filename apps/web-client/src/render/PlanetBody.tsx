@@ -21,7 +21,7 @@ type U = Record<string, IUniform>;
 /** One-shot visual feedback at a point (RNF-002): call it the moment the student acts, before the new state arrives. */
 export const feedback = { rippleCell: -1, rippleStart: -1, trigger(cell: number) { this.rippleCell = cell; this.rippleStart = performance.now(); } };
 
-export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reducedMotion }: { planetRef: React.RefObject<Group | null>; renderOffset: number; octaves: number; paletteSet: PaletteSet; reducedMotion: boolean }) {
+export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reducedMotion, children }: { planetRef: React.RefObject<Group | null>; renderOffset: number; octaves: number; paletteSet: PaletteSet; reducedMotion: boolean; children?: React.ReactNode }) {
   const dataLevel = usePlanetStore((s) => s.frame?.level ?? 5);
   const showClouds = usePlanetStore((s) => s.showClouds && s.layer === null);
   const { camera, gl } = useThree();
@@ -196,6 +196,7 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
             <cylinderGeometry args={[0.40, 0.33, 0.09, 64, 1, true]} />
           </mesh>
         ))}
+        {children}
       </group>
     </group>
   );

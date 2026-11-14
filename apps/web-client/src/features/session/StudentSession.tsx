@@ -24,11 +24,20 @@ export function StudentSession({ autoStart = true, passive = false }: { autoStar
     booted.current = true;
     const q = new URLSearchParams(window.location.search);
     if (q.get("still") === "1") usePlanetStore.getState().set({ still: true, autoRotate: false, autoQuality: false });
-    const scenario = q.get("cenario");
-    if (scenario || (!started && autoStart)) void useGameStore.getState().start(scenario ?? "genesis", {}, q.get("semente") ? Number(q.get("semente")) : undefined).then(() => {
-      if (q.get("tick")) { usePlanetStore.getState().seek(Number(q.get("tick"))); useGameStore.getState().patch({ onboarding: -1 }); }
-      if (q.get("camada")) usePlanetStore.getState().setLayer(q.get("camada") as never);
-    });
+    const scenario = q.get("cenario"), g = useGameStore.getState(), planet = usePlanetStore.getState();
+    if (scenario || (!started && autoStart)) {
+      void g.start(scenario ?? "genesis", {}, q.get("semente") ? Number(q.get("semente")) : undefined).then(() => {
+        if (q.get("tick")) { usePlanetStore.getState().seek(Number(q.get("tick"))); useGameStore.getState().patch({ onboarding: -1 }); }
+        if (q.get("camada")) usePlanetStore.getState().setLayer(q.get("camada") as never);
+      });
+    } else if (started && (planet.status === "idle" || planet.config?.scenarioId !== g.scenarioId || planet.config?.level !== 5)) {
+      // Continue the planet saved in this browser: same scenario and seed, the same interventions replayed, same moment.
+      void planet.init({ scenarioId: g.scenarioId, level: 5, seed: g.seed, params: g.params }).then(() => {
+        const st = usePlanetStore.getState();
+        for (const c of g.commands) { st.seek(c.tick); st.command(c.command); }
+        st.seek(g.savedTick);
+      });
+    }
   }, [hydrated, settingsReady, started, autoStart]);
   useEffect(() => {
     let last = 0;

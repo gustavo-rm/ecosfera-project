@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { BASE_LAYERS } from "@/core/appearance/layers";
 import { evidence } from "@/core/evidence/bus";
 import { getMesh } from "@/core/mesh/geodesic";
+import type { SourceCommand } from "@/core/source/port";
 import type { PlanetFrame, PlanetParams } from "@/core/state/types";
 import { ACHIEVEMENTS, EMPTY_STATS, INTERVENTION_BY_ID, MISSIONS, RESEARCH_BY_ID, type PredictVar, type ResourceId, type Stats } from "@/game/catalog";
 import type { TutorAnswer } from "@/game/tutor";
@@ -21,6 +22,8 @@ export interface GameStore {
   unlocked: string[]; stats: Stats; achievements: string[]; missionsDone: string[];
   codex: string[]; known: string[]; diary: DiaryEntry[]; scans: number[]; revealAll: boolean;
   predictions: Prediction[]; notices: Notice[]; tutorLog: TutorAnswer[];
+  /** Local save: the moment in time and the environment-level commands already applied, replayed on resume. */
+  savedTick: number; commands: { tick: number; command: SourceCommand }[];
   onboarding: number; attempts: number; lastActionTick: number; reportEra: number | null; collapsed: boolean;
   /** Displayed only. It comes from the assessment data; the student cannot buy it (simulated here). */
   playerLevel: 0 | 1 | 2 | 3;
@@ -72,13 +75,13 @@ export const useGameStore = create<GameStore>((set, get) => {
   return {
     hydrated: false, started: false, scenarioId: "genesis", seed: 7, params: {},
     resources: { ...START_RES }, cooldowns: {}, unlocked: ["sci.habitableZone", "tech.scanner"], stats: { ...EMPTY_STATS }, achievements: [], missionsDone: [],
-    codex: [], known: [], diary: [], scans: [], revealAll: false, predictions: [], notices: [], tutorLog: [],
+    codex: [], known: [], diary: [], scans: [], revealAll: false, predictions: [], notices: [], tutorLog: [], savedTick: 0, commands: [],
     onboarding: 0, attempts: 0, lastActionTick: 0, reportEra: null, collapsed: false, playerLevel: 0,
 
     async start(scenarioId, params = {}, seed) {
       const attempts = get().attempts + 1, wasCollapsed = get().collapsed;
       set({
-        started: true, scenarioId, params, seed: seed ?? params.seed ?? 7, resources: { ...START_RES }, cooldowns: {}, predictions: [], notices: [], diary: [], scans: [], known: [],
+        started: true, scenarioId, params, seed: seed ?? params.seed ?? 7, resources: { ...START_RES }, cooldowns: {}, predictions: [], notices: [], diary: [], scans: [], known: [], savedTick: 0, commands: [],
         attempts, lastActionTick: 0, reportEra: null, collapsed: false, stats: { ...get().stats, collapses: get().stats.collapses },
       });
       if (wasCollapsed) set({ stats: { ...get().stats, recoveries: get().stats.recoveries } });
@@ -89,8 +92,6 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (get().hydrated) return;
       const saved = await idbGet<Partial<GameStore>>(KEY);
       set({ ...(saved ?? {}), hydrated: true, notices: [] });
-      const g = get();
-      if (g.started && usePlanetStore.getState().status === "idle") await usePlanetStore.getState().init({ scenarioId: g.scenarioId, level: 5, seed: g.seed, params: g.params });
     },
     canAfford(id) {
       const def = INTERVENTION_BY_ID[id], r = get().resources;
@@ -110,7 +111,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         patch.scans = [...g.scans, opts.cell]; patch.resources = { ...resources, research: resources.research + 2 }; patch.stats = { ...patch.stats!, scans: g.stats.scans + 1 };
         evidence.emit({ type: "scan_done", cells: 1 });
       } else if (def.kind === "study") patch.resources = { ...resources, research: resources.research + 5 };
-      else usePlanetStore.getState().command({ type: "intervene", id: `i${frame.tick}-${id}`, kind: def.kind as never, cell: opts.cell ?? undefined, eventType: option?.eventType, role: option?.role, eventId: opts.eventId });
+      else {
+        const command: SourceCommand = { type: "intervene", id: `i${frame.tick}-${id}`, kind: def.kind as never, cell: opts.cell ?? undefined, eventType: option?.eventType, role: option?.role, eventId: opts.eventId };
+        usePlanetStore.getState().command(command);
+        patch.commands = [...g.commands, { tick: frame.tick, command }];
+      }
       if (opts.prediction) {
         const pr: Prediction = { id: `p${frame.tick}-${id}`, interventionId: id, variable: opts.prediction.variable, direction: opts.prediction.direction, tick: frame.tick, dueTick: frame.tick + 240, baseline: readVariable(frame, opts.prediction.variable, opts.cell), cell: opts.cell };
         patch.predictions = [...g.predictions, pr]; patch.stats = { ...patch.stats!, predictions: g.stats.predictions + 1 };
@@ -197,7 +202,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Simulated assessment output. In production the level comes from the stealth assessment, not from the client.
       const score = stats.correctPredictions * 2 + stats.chartsOpened + stats.scans + stats.speciesInspected.length + missionsDone.length * 2;
       patch.playerLevel = score >= 40 ? 3 : score >= 20 ? 2 : score >= 8 ? 1 : 0;
-      set({ ...patch, stats, resources, predictions, missionsDone, achievements, known, diary: diary.slice(-80) });
+      set({ ...patch, stats, resources, predictions, missionsDone, achievements, known, diary: diary.slice(-80), savedTick: frame.tick });
       if (dt > 0 && Math.floor(frame.tick / 120) !== Math.floor((prev?.tick ?? 0) / 120)) save();
     },
   };

@@ -1,1 +1,17 @@
-export const data = {};
+export const data = {
+  data: {
+    title: "Dados do planeta", noLife: "Ainda não há vida para mostrar aqui.", noLifeHint: "Este painel se preenche quando surgirem linhagens.",
+    tab: { series: "Séries no tempo", energy: "Energia", web: "Teia trófica", phylogeny: "Árvore das linhagens", structure: "Diversidade e estrutura", cycles: "Ciclos", progress: "Meu progresso" },
+    mark: { era: "Início de era", event: "Evento", extinction: "Extinção de linhagem" },
+    series: { marks: "Marcas sobre o tempo", summary: "{name}, do ano {y0} ao ano {y1}: foi de {from} a {to}. Mínimo de {min} no ano {yMin} e máximo de {max} no ano {yMax}.", population: "População por linhagem", populationSummary: "As {n} linhagens mais abundantes: {list}. Oscilações de presas e predadores aparecem defasadas.", log: "Escala logarítmica", popUnit: "milhares de indivíduos" },
+    pyramid: { title: "Pirâmide de energia", energy: "Fluxo de energia", share: "Do nível anterior", unit: "Fluxo de energia em unidades relativas. Entre parênteses: quanto chegou do nível de baixo.", summary: "{levels} níveis tróficos. {list}.", level: { 0: "Produtores", 1: "Consumidores primários", 2: "Consumidores secundários", 3: "Predadores de topo" } },
+    web: { title: "Teia trófica", summary: "{n} linhagens vivas, {links} relações de alimentação, {levels} níveis tróficos, conectância {connectance} e {cycles} relações cíclicas.", from: "De", to: "Para", kind: { _: "Tipo", trophic: "Fluxo de energia (quem é comido → quem come)", cycle: "Relação cíclica (competição em círculo)" }, flux: "Fluxo", openSheet: "Abrir a ficha", cycleFound: "Relações cíclicas: {list}" },
+    phylo: { title: "Árvore das linhagens", summary: "{n} linhagens registradas: {alive} vivas e {extinct} extintas. Modos de origem: {modes}.", zoom: "Zoom no tempo", parent: "Linhagem-mãe", mode: "Modo de origem", massBand: "Extinção em massa", radiationBand: "Radiação adaptativa" },
+    structure: { now: "Estrutura agora", shannon: "Diversidade (Shannon)", evenness: "Equitabilidade", connectance: "Conectância da teia", intransitive: "Relações cíclicas", rates: "Origens e extinções de linhagens", ratesSummary: "Nos últimos 1 000 meses: {orig} origens e {ext} extinções. {mass}", massYes: "Há uma extinção em massa em curso.", massNo: "A extinção está no nível de fundo.", flags: "Sinais populacionais", noFlags: "Nenhum sinal registrado." },
+    flag: { bottleneck: "Gargalo populacional", founder: "Efeito fundador" },
+    cycles: { title: "Ciclos biogeoquímicos", titleOf: "Ciclo: {element}", summary: "Ciclo de {element}. Maiores fluxos agora: {list}.", unit: "Estoques e fluxos em unidades relativas. A espessura da seta acompanha o fluxo.", fluxName: "Fluxo",
+      element: { carbon: "Carbono", nitrogen: "Nitrogênio", oxygen: "Oxigênio", water: "Água" },
+      stock: { atmosphere: "Atmosfera", biomass: "Seres vivos", biomassO: "Seres vivos", organic: "Matéria orgânica", ocean: "Oceano", rock: "Rochas", soil: "Solo", ice: "Gelo", land: "Terra firme" },
+      flux: { photosynthesis: "fotossíntese", respiration: "respiração", death: "morte", decomposition: "decomposição", volcanism: "vulcanismo", dissolution: "dissolução", fixation: "fixação", uptake: "absorção", mineralization: "mineralização", denitrification: "desnitrificação", oxidation: "oxidação", evaporation: "evaporação", precipitation: "chuva em terra", precipitationOcean: "chuva no mar", runoff: "rios", transpiration: "transpiração" } },
+  },
+};
