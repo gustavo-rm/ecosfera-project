@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { evidence } from "@/core/evidence/bus";
 import { t } from "@/i18n";
 import { useGameStore, type Notice } from "@/store/gameStore";
 import { usePlanetStore } from "@/store/planetStore";
@@ -54,7 +55,7 @@ export function GameScreen() {
             <div className="flex w-full items-end justify-between gap-2">
               <div className="flex flex-col gap-2"><ComparePanel /><div className="hidden md:block"><MiniChart /></div></div>
               <Onboarding />
-              <div className="flex flex-col items-end gap-2"><RegionProbe onRegion={setRegion} /><CameraButtons /></div>
+              <div className="flex flex-col items-end gap-2"><RegionProbe onRegion={(c) => { evidence.emit({ type: "panel_opened", panel: "region", ticksSinceLastAction: (frame?.tick ?? 0) - useGameStore.getState().lastActionTick }); setRegion(c); }} /><CameraButtons /></div>
             </div>
           </div>
           <div className={`${sheet === "layers" ? "flex" : "hidden"} w-[236px] max-w-[80vw] flex-col gap-2 md:flex`}><LayersPanel /></div>
@@ -64,7 +65,7 @@ export function GameScreen() {
           <Button className="flex-1" icon="bolt" aria-pressed={sheet === "actions"} onClick={() => setSheet(sheet === "actions" ? null : "actions")}>{t("hud.actionsShort")}</Button>
           <Button className="flex-1" icon="layers" aria-pressed={sheet === "layers"} onClick={() => setSheet(sheet === "layers" ? null : "layers")}>{t("hud.layers")}</Button>
         </div>
-        <TimeBar onTutor={() => setTutor(!tutor)} onMissions={() => router.push("/jogo/missoes")} />
+        <TimeBar onTutor={() => { if (!tutor) evidence.emit({ type: "panel_opened", panel: "tutor", ticksSinceLastAction: (frame?.tick ?? 0) - useGameStore.getState().lastActionTick }); setTutor(!tutor); }} onMissions={() => router.push("/jogo/missoes")} />
       </div>
       <InterventionDialog key={intervention ?? "none"} id={intervention} onClose={() => setIntervention(null)} />
       <WhyDialog open={why.open} eventId={why.eventId} onClose={() => setWhy({ open: false, eventId: null })} />

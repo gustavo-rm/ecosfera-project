@@ -28,7 +28,7 @@ export function TextMode() {
     return { label: t("textMode.band", { lo, hi }), temp: temp / n, rain: rain / n, veg: veg / n, ice: ice / n, water: water / n };
   });
   return (
-    <div className="ec-scroll h-full p-4 pt-20 sm:px-[280px]" data-text-mode tabIndex={0} role="region" aria-label={t("textMode.title")}>
+    <div className="ec-scroll h-full bg-ec-bg px-4 pb-40 pt-56 md:pl-[270px] md:pr-[256px]" data-text-mode tabIndex={0} role="region" aria-label={t("textMode.title")}>
       <h2>{t("textMode.title")}</h2>
       <p className="mt-2 font-semibold">{d.headline}</p>
       <ul className="mt-2 list-disc space-y-1 pl-6">{d.sentences.map((s, i) => <li key={i}>{s}</li>)}</ul>

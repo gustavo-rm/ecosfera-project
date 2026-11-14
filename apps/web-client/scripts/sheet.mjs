@@ -24,5 +24,6 @@ tiles.forEach((t, i) => {
   composite.push({ input: t.png, left: x, top: y + pad });
   composite.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${pad}"><rect width="100%" height="100%" fill="#10141f"/><text x="8" y="18" font-family="sans-serif" font-size="14" fill="#fff">${esc(t.label)}</text></svg>`), left: x, top: y });
 });
-await sharp({ create: { width: cols * w, height: rows * (h + pad), channels: 3, background: "#000" } }).composite(composite).png().toFile(out);
+const sheet = sharp({ create: { width: cols * w, height: rows * (h + pad), channels: 3, background: "#000" } }).composite(composite);
+await (out.endsWith(".png") ? sheet.png() : sheet.jpeg({ quality: 68, mozjpeg: true })).toFile(out);
 console.log(`${out}: ${tiles.length} tiles, ${allErrors} console errors`);

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import dynamic from "next/dynamic";
 import { BASE_LAYERS, LAYER_BY_ID, LAYERS, type LayerId } from "@/core/appearance/layers";
 import { evidence } from "@/core/evidence/bus";
 import { getMesh } from "@/core/mesh/geodesic";
@@ -16,6 +16,8 @@ import { Button, Chip, Meter, Panel, Ped, Select, SyntheticBadge, Trend } from "
 import { useHistory, usePastFrame, yearsLabel } from "../session/hooks";
 import { LayerLegend } from "./stage";
 
+// The chart library is loaded only when the student opens the chart: it stays out of the first load of the game.
+const MiniPlot = dynamic(() => import("./MiniPlot"), { ssr: false, loading: () => <div style={{ height: 120 }} /> });
 const LAYER_ICON: Record<string, string> = { temperature: "thermometer", biome: "tree", population: "footprint", water: "water", precipitation: "storm", elevation: "mountain", fertility: "seed", biomass: "leaf", richness: "dna", habitat: "eye", o2: "oxygen", co2: "wind", mineral: "mountain", nitrogen: "cycle", organicMatter: "bone", disturbance: "alert", salinity: "water", ph: "ph" };
 
 function Segments({ value, label }: { value: number; label: string }) {
@@ -277,14 +279,7 @@ export function MiniChart() {
       </div>
       {open && (data.length < 2 ? <p className="ec-muted p-2 text-[length:var(--ec-text-sm)]">{t("chart.noData")}</p> : (
         <div role="img" aria-label={t("chart.summaryRange", { series: t(`series.${series}`), from: fmt(first.v, 1), to: fmt(last.v, 1), y0: fmt(first.year), y1: fmt(last.year) })}>
-          <ResponsiveContainer width="100%" height={120}>
-            <LineChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -18 }}>
-              <XAxis dataKey="year" tick={{ fontSize: 10, fill: "var(--ec-text-muted)" }} stroke="var(--ec-border)" />
-              <YAxis tick={{ fontSize: 10, fill: "var(--ec-text-muted)" }} stroke="var(--ec-border)" domain={["auto", "auto"]} />
-              <Tooltip contentStyle={{ background: "var(--ec-surface)", border: "1px solid var(--ec-border)", color: "var(--ec-text)" }} labelFormatter={(y) => t("hud.year", { year: y })} formatter={(v) => [fmt(Number(v), 1), t(`series.${series}`)]} />
-              <Line type="monotone" dataKey="v" stroke="var(--ec-primary)" strokeWidth={2} dot={false} isAnimationActive={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          <MiniPlot data={data} label={t(`series.${series}`)} />
         </div>
       ))}
     </Panel>
