@@ -15,7 +15,11 @@ float ring(vec3 n, vec3 c, float radius, float width){ float a = acos(clamp(dot(
 void main(){
   vec3 n = normalize(vDir);
   float n1 = fbm(n * 6.0 + uSeed);
+#if OCTAVES > 2
   float n2 = vnoise(n * 46.0 + uSeed);
+#else
+  float n2 = n1;
+#endif
   float n3 = uZoom > 0.01 ? fbm(n * 21.0 + uSeed * 2.0) : 0.5;
   float h = vA.x + (n1 - 0.5) * 0.016 + ((n3 - 0.5) * 0.014 + (n2 - 0.5) * 0.004) * uZoom - vD.x * 0.006;
   float land = smoothstep(-0.0012, 0.0012, h);
@@ -36,16 +40,18 @@ void main(){
   col = mix(col, col * vec3(0.62, 0.9, 0.62), clamp(vB.a, 0.0, 1.0) * uZoom * smoothstep(0.45, 0.75, n2) * 0.6);
   float gray = dot(col, vec3(0.3, 0.59, 0.11));
   col = mix(col, mix(vec3(gray), vec3(0.66, 0.54, 0.36), 0.4), clamp(vD.x, 0.0, 1.0) * 0.75);
-  float crack = smoothstep(0.05, 0.0, abs(vnoise(n * 110.0 + uSeed) - 0.5)) * vD.x * (0.35 + 0.65 * uZoom);
-  col *= 1.0 - 0.55 * crack;
+  if (vD.x > 0.02) col *= 1.0 - 0.55 * smoothstep(0.05, 0.0, abs(vnoise(n * 110.0 + uSeed) - 0.5)) * vD.x * (0.35 + 0.65 * uZoom);
   col = mix(col, vec3(0.10, 0.09, 0.085), clamp(vD.z, 0.0, 1.0) * 0.8);
   col = mix(col, vec3(0.93, 0.96, 1.0), iceN);
   float lavaAmt = max(vA.z, 0.0);
-  float cr = 1.0 - abs(fbm(n * 9.0 + uSeed + vec3(0.0, uTime * 0.006, 0.0)) * 2.0 - 1.0);
-  float cr2 = 1.0 - abs(vnoise(n * 31.0 + uSeed * 1.7) * 2.0 - 1.0);
-  cr = pow(cr, 7.0) + 0.5 * pow(cr2, 9.0);
-  float pool = smoothstep(0.55, 0.8, n1) * 0.5;
-  float glow = clamp(lavaAmt * (0.18 + 1.3 * cr) * step(0.02, lavaAmt) + uSurfaceHeat * (0.05 + 1.25 * cr + pool * lavaAmt), 0.0, 1.3);
+  float glow = 0.0;
+  if (lavaAmt > 0.02 || uSurfaceHeat > 0.01) {
+    float cr = 1.0 - abs(fbm(n * 9.0 + uSeed + vec3(0.0, uTime * 0.006, 0.0)) * 2.0 - 1.0);
+    float cr2 = 1.0 - abs(vnoise(n * 31.0 + uSeed * 1.7) * 2.0 - 1.0);
+    cr = pow(cr, 7.0) + 0.5 * pow(cr2, 9.0);
+    float pool = smoothstep(0.55, 0.8, n1) * 0.5;
+    glow = clamp(lavaAmt * (0.18 + 1.3 * cr) * step(0.02, lavaAmt) + uSurfaceHeat * (0.05 + 1.25 * cr + pool * lavaAmt), 0.0, 1.3);
+  }
   col = mix(col, vec3(0.09, 0.055, 0.045), clamp(uSurfaceHeat * 0.92 + lavaAmt * 0.55, 0.0, 1.0));
   vec3 emissive = vec3(1.0, 0.30, 0.04) * glow + vec3(1.0, 0.75, 0.3) * pow(glow, 3.0) * 0.3;
   float flick = 0.7 + 0.3 * sin(uTime * 1.7 + n2 * 31.0);
@@ -57,9 +63,15 @@ void main(){
   vec3 oc = mix(uOceanShallow, uOceanDeep, smoothstep(0.0, 1.0, depth));
   oc = mix(oc, vec3(0.22, 0.47, 0.15), clamp(vC.z, 0.0, 1.0) * 0.7 * smoothstep(0.3, 0.7, n1 + vC.z * 0.3));
   oc = mix(oc, vec3(0.05, 0.065, 0.05), clamp(vD.z, 0.0, 1.0) * 0.8);
-  vec3 wn = normalize(n + 0.014 * (vec3(vnoise(n * 130.0 + uTime * 0.16), vnoise(n * 130.0 + 31.0 + uTime * 0.13), vnoise(n * 130.0 + 57.0 - uTime * 0.11)) - 0.5));
-  float foam = smoothstep(-0.0035, -0.0004, h) * (1.0 - land) * smoothstep(0.45, 0.75, vnoise(n * 90.0 + uTime * 0.07));
-  oc = mix(oc, vec3(0.9, 0.95, 1.0), foam * (0.12 + 0.4 * uZoom));
+  vec3 wn = n;
+#if OCTAVES > 2
+  if (land < 0.99) {
+    // Animated wave normals and coastal foam: only on water pixels, and not in the lowest quality tier.
+    wn = normalize(n + 0.014 * (vec3(vnoise(n * 130.0 + uTime * 0.16), vnoise(n * 130.0 + 31.0 + uTime * 0.13), vnoise(n * 130.0 + 57.0 - uTime * 0.11)) - 0.5));
+    float foam = smoothstep(-0.0035, -0.0004, h) * (1.0 - land) * smoothstep(0.45, 0.75, vnoise(n * 90.0 + uTime * 0.07));
+    oc = mix(oc, vec3(0.9, 0.95, 1.0), foam * (0.12 + 0.4 * uZoom));
+  }
+#endif
   oc = mix(oc, uOceanShallow * 1.25 + 0.04, smoothstep(-0.02, 0.0, h) * 0.5);
   oc = mix(oc, vec3(0.9, 0.94, 0.98), iceN);
 

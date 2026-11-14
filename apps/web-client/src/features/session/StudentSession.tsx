@@ -5,6 +5,7 @@ import { useGameStore, syncReveal } from "@/store/gameStore";
 import { usePlanetStore } from "@/store/planetStore";
 import { useSettings } from "@/store/settingsStore";
 import { announce } from "@/ui/kit";
+import { feedback } from "@/render/PlanetBody";
 import { QUALITY } from "@/render/quality";
 import { getSource } from "@/store/planetStore";
 import { SyntheticSource } from "@/core/source/SyntheticSource";
@@ -23,6 +24,8 @@ export function StudentSession({ autoStart = true, passive = false }: { autoStar
     if (!hydrated || !settingsReady || booted.current) return;
     booted.current = true;
     const q = new URLSearchParams(window.location.search);
+    // Test hook, development flag only: lets the end-to-end scripts read and force states. Never present for students.
+    if (useSettings.getState().devMode) (window as unknown as Record<string, unknown>).__ecosfera = { planet: usePlanetStore, game: useGameStore, feedback };
     if (q.get("still") === "1") usePlanetStore.getState().set({ still: true, autoRotate: false, autoQuality: false });
     const scenario = q.get("cenario"), g = useGameStore.getState(), planet = usePlanetStore.getState();
     if (scenario || (!started && autoStart)) {

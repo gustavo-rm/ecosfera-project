@@ -22,10 +22,13 @@ void main(){
   float dusk = smoothstep(-0.35, -0.05, sun) * smoothstep(0.2, -0.05, sun);
   vec3 col = mix(uSkyColor, vec3(1.0, 0.5, 0.25), dusk * 0.45) * (0.04 + 0.96 * dayf) * uSunDim * 1.15;
   // Weak magnetic field: wisps of atmosphere leaking away from the star.
-  float tail = uErosion * smoothstep(0.1, -0.7, sun) * exp(-max(b - 1.0, 0.0) / (uScale * 5.0)) * step(1.0, b);
-  float wisp = fbm(pc * 5.0 + vec3(0.0, 0.0, uTime * 0.05));
-  a += tail * smoothstep(0.35, 0.75, wisp) * 0.5;
-  col = mix(col, uSkyColor * 0.8 + 0.15, clamp(tail, 0.0, 1.0));
+  if (uErosion > 0.01) {
+    float tail = uErosion * smoothstep(0.1, -0.7, sun) * exp(-max(b - 1.0, 0.0) / (uScale * 5.0)) * step(1.0, b);
+    float wisp = fbm(pc * 5.0 + vec3(0.0, 0.0, uTime * 0.05));
+    a += tail * smoothstep(0.35, 0.75, wisp) * 0.5;
+    col = mix(col, uSkyColor * 0.8 + 0.15, clamp(tail, 0.0, 1.0));
+  }
+  if (a < 0.003) discard;
   gl_FragColor = vec4(col, clamp(a, 0.0, 1.0));
 }`;
 
@@ -41,10 +44,15 @@ void main(){
 #if OCTAVES > 2
   q += 1.1 * vec3(vnoise(n * 3.5 + uTime * 0.008), vnoise(n * 3.5 + 7.3), vnoise(n * 3.5 + 13.1));
 #endif
-  float base = fbm(q);
-  float fine = vnoise(n * 34.0 + uSeed + uTime * 0.012);
-  float w = smoothstep(0.32, 0.70, base) * 0.8 + 0.2 * fine;
   float cover = clamp(vA.w, 0.0, 1.0);
+  if (cover < 0.02 && uStorms[0].w <= 0.0) discard;
+  float base = fbm(q);
+#if OCTAVES > 2
+  float fine = vnoise(n * 34.0 + uSeed + uTime * 0.012);
+#else
+  float fine = base;
+#endif
+  float w = smoothstep(0.32, 0.70, base) * 0.8 + 0.2 * fine;
   float edge = 1.05 - cover * 1.08;
   float a = smoothstep(edge, edge + 0.34, w) * (0.55 + 0.45 * fine) * (0.6 + 0.4 * smoothstep(0.4, 0.75, base));
   a = mix(a, 1.0, smoothstep(0.88, 1.0, cover));

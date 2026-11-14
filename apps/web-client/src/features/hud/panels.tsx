@@ -53,13 +53,13 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
         <span className="ec-display font-semibold">{t("hud.era", { n: g.era })} · {t(`era.${g.era}.name`)}</span>
         <span className="ec-muted ec-num text-[length:var(--ec-text-xs)]">{t("hud.year", { year: fmt(g.year) })}</span>
       </div>
-      <ul className="ec-scroll mx-auto flex min-w-0 max-w-full flex-1 gap-1.5 lg:justify-center" aria-label={t("hud.indicators")}>
+      <div className="ec-scroll mx-auto min-w-0 max-w-full flex-1" tabIndex={0} role="group" aria-label={t("hud.indicators")}><ul className="flex w-max gap-1.5 lg:mx-auto">
         <Indicator icon="thermometer" label={t("hud.temperature")} value={`${fmt(Math.min(g.meanTempC, 9999), 0)} °C`} delta={(g.meanTempC - p.meanTempC) / 20} word={tempWord} />
         <Indicator icon="oxygen" label="O₂" value={`${fmt(g.o2Pct, 1)} %`} delta={(g.o2Pct - p.o2Pct) / 5} />
         <Indicator icon="ph" label="pH" value={fmt(g.oceanPh, 1)} delta={(g.oceanPh - p.oceanPh) * 2} />
         <Indicator icon="leaf" label={t("hud.biodiversity")} delta={g.biodiversity - p.biodiversity}><Segments value={g.biodiversity} label={t("hud.biodiversity")} /></Indicator>
         <Indicator icon="spark" label={t("hud.prosperity")} delta={g.prosperity - p.prosperity}><Segments value={g.prosperity} label={t("hud.prosperity")} /></Indicator>
-      </ul>
+      </ul></div>
       <div className="flex flex-none items-center gap-1.5">
         <Chip tone={frame.meta.mode === "fast" ? "warning" : undefined} icon={frame.meta.mode === "fast" ? "forward" : "eye"}>{t(`hud.mode.${frame.meta.mode}`)}</Chip>
         {frame.meta.synthetic && <SyntheticBadge compact />}

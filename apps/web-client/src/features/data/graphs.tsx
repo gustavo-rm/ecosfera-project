@@ -27,7 +27,7 @@ export function FoodWebPanel({ bio }: { bio: BiosphereFrame }) {
   const maxFlux = Math.max(...trophic.map((l) => l.flux), 0.001);
   const summary = t("data.web.summary", { n: living.length, links: trophic.length, levels: bio.trophicLevels, connectance: fmt(bio.connectance, 2), cycles: cycles.length });
   return (
-    <ChartFrame title={t("data.web.title")} summary={summary}
+    <ChartFrame interactive title={t("data.web.title")} summary={summary}
       table={<DataTable caption={t("data.web.title")} rows={bio.links} rowKey={(l, i) => `${l.from}-${l.to}-${i}`} columns={[{ key: "f", header: t("data.web.from"), render: (l) => name(l.from) }, { key: "t", header: t("data.web.to"), render: (l) => name(l.to) }, { key: "k", header: t("data.web.kind"), render: (l) => t(`data.web.kind.${l.kind}`) }, { key: "x", header: t("data.web.flux"), numeric: true, render: (l) => fmt(l.flux, 3) }]} />}>
       <ul className="mb-2 flex flex-wrap gap-4 text-[length:var(--ec-text-sm)]" aria-label={t("legend.title")}>
         <li className="flex items-center gap-1.5"><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="30" y2="5" stroke={colors[0]} strokeWidth="3" /></svg>{t("data.web.kind.trophic")}</li>
@@ -73,7 +73,7 @@ export function PhylogenyPanel({ bio, h, tick }: { bio: BiosphereFrame; h: Serie
   const asexual = tree.filter((s) => s.asexual).length, extinct = tree.filter((s) => s.extinctTick !== null).length;
   const summary = t("data.phylo.summary", { n: tree.length, extinct, alive: tree.length - extinct, modes: (["allopatric", "parapatric", "sympatric"] as const).map((m) => `${t(`speciation.${m}`)}: ${tree.filter((s) => s.speciationMode === m).length}`).join("; ") });
   return (
-    <ChartFrame title={t("data.phylo.title")} summary={summary} actions={<div className="w-[200px]"><Slider label={t("data.phylo.zoom")} value={zoom} min={1} max={4} step={0.5} onChange={setZoom} format={(v) => `${fmt(v, 1)}×`} /></div>}
+    <ChartFrame interactive title={t("data.phylo.title")} summary={summary} actions={<div className="w-[200px]"><Slider label={t("data.phylo.zoom")} value={zoom} min={1} max={4} step={0.5} onChange={setZoom} format={(v) => `${fmt(v, 1)}×`} /></div>}
       table={<DataTable caption={t("data.phylo.title")} rows={tree} rowKey={(s) => s.id} columns={[{ key: "n", header: t("codex.name"), render: (s) => <Link className="ec-link" href={`/jogo/codex?especie=${s.id}`}>{s.name}</Link> }, { key: "p", header: t("data.phylo.parent"), render: (s) => (s.parentId ? bio.species.find((x) => x.id === s.parentId)?.name ?? "—" : "—") }, { key: "m", header: t("data.phylo.mode"), render: (s) => t(`speciation.${s.speciationMode}`) }, { key: "o", header: t("codex.origin"), numeric: true, render: (s) => fmt(year(s.originTick)) }, { key: "e", header: t("codex.extinction"), numeric: true, render: (s) => (s.extinctTick !== null ? fmt(year(s.extinctTick)) : "—") }]} />}>
       <ul className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[length:var(--ec-text-sm)]" aria-label={t("legend.title")}>
         {(["allopatric", "parapatric", "sympatric"] as const).map((m) => <li key={m}><span className="ec-kbd">{MODE_LETTER[m]}</span> {t(`speciation.${m}`)}</li>)}

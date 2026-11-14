@@ -42,7 +42,7 @@ function SpeciesSheet({ s, all }: { s: SpeciesRecord; all: SpeciesRecord[] }) {
       </header>
       <div className="grid gap-3 lg:grid-cols-2">
         <section className="ec-card" aria-labelledby="met"><h3 id="met" className="mb-2">{t("codex.metabolism")}</h3>
-          <ul className="grid grid-cols-2 gap-2">{METABOLIC_GENES.map((k) => { const on = !!s.phenotype[k]; return <li key={k} className="flex items-center gap-2" style={{ opacity: on ? 1 : 0.6 }}><Icon name={on ? MET_ICON[k] : "minus"} /><span>{GENE_BY_ID[k].labelPt}<span className="ec-muted text-[length:var(--ec-text-xs)]"> · {on ? t("codex.active") : t("codex.absent")}</span></span></li>; })}</ul>
+          <ul className="grid grid-cols-2 gap-2">{METABOLIC_GENES.map((k) => { const on = !!s.phenotype[k]; return <li key={k} className="flex items-center gap-2" data-capability={on ? "on" : "off"}><Icon name={on ? MET_ICON[k] : "minus"} /><span>{GENE_BY_ID[k].labelPt}<span className="ec-muted text-[length:var(--ec-text-xs)]"> · {on ? t("codex.active") : t("codex.absent")}</span></span></li>; })}</ul>
           <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 text-[length:var(--ec-text-sm)]">{["aerobic_respiration", "anaerobic_respiration", "metabolic_efficiency", "storage_capacity"].map((k) => <GeneRow key={k} s={s} id={k} />)}</dl>
         </section>
         <section className="ec-card" aria-labelledby="tol"><h3 id="tol" className="mb-2">{t("codex.tolerances")}</h3>

@@ -18,6 +18,7 @@ const PlanetView = dynamic(() => import("@/render/PlanetView"), { ssr: false });
 export default function PlanetBench() {
   const status = usePlanetStore((s) => s.status);
   const tick = usePlanetStore((s) => s.frame?.tick);
+  const quality = usePlanetStore((s) => s.quality);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     const preset = q.get("preset") ? ARCHETYPE_PRESETS[q.get("preset")!] : null;
@@ -44,7 +45,7 @@ export default function PlanetBench() {
   }, []);
   const palette = (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("paleta") : null) as PaletteSet | null;
   return (
-    <main style={{ position: "fixed", inset: 0, background: "#04060d" }} data-status={status} data-tick={tick ?? ""}>
+    <main id="conteudo" style={{ position: "fixed", inset: 0, background: "#04060d" }} data-status={status} data-tick={tick ?? ""} data-quality={quality}>
       <PlanetView paletteSet={palette ?? "default"} />
     </main>
   );

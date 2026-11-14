@@ -72,7 +72,7 @@ export function ClassScreen() {
               <div className="ec-scroll" tabIndex={0} role="region" aria-label={t("teacher.heatmap")}>
                 <table className="ec-table" data-heatmap><thead><tr><th scope="col">{t("teacher.student")}</th>{COMPETENCIES.map((k) => <th key={k} scope="col" className="!whitespace-normal text-[length:var(--ec-text-xs)]">{comp(k)}</th>)}</tr></thead>
                   <tbody>{shown.map((s) => <tr key={s.id}><th scope="row" className="whitespace-nowrap"><Link className="ec-link" href={`/professor/aluno?id=${s.id}`}>{s.nickname}</Link> <span className="ec-muted ec-num text-[length:var(--ec-text-xs)]">{s.code}</span></th>
-                    {COMPETENCIES.map((k) => { const v = s.scores[k], low = v < threshold, c = samplePalette(ramp, 0.15 + v * 0.8); return <td key={k} className="ec-num !p-1 text-center"><span className="block rounded-[4px] px-1 py-1.5 font-semibold" style={{ background: toHex(c), color: v > 0.55 ? "#0b0b0b" : "#ffffff", outline: low ? "2px dashed var(--ec-text)" : undefined, outlineOffset: -2 }}>{fmt(v * 100, 0)}{low && <span aria-hidden="true"> ▼</span>}<span className="ec-sr-only">{low ? `, ${t("teacher.below")}` : ""}</span></span></td>; })}</tr>)}</tbody></table>
+                    {COMPETENCIES.map((k) => { const v = s.scores[k], low = v < threshold, c = samplePalette(ramp, 0.15 + v * 0.8); return <td key={k} className="ec-num !p-1 text-center"><span className="block rounded-[4px] p-1" style={{ background: toHex(c), outline: low ? "2px dashed var(--ec-text)" : undefined, outlineOffset: -2 }}><span className="inline-block min-w-[2.6em] rounded-[3px] bg-ec-surface px-1 font-semibold text-ec-text">{fmt(v * 100, 0)}{low && <span aria-hidden="true"> ▼</span>}<span className="ec-sr-only">{low ? `, ${t("teacher.below")}` : ""}</span></span></span></td>; })}</tr>)}</tbody></table>
               </div>
               <p className="ec-muted mt-2 text-[length:var(--ec-text-xs)]">{t("teacher.heatmapLegend")}</p>
             </section>
@@ -271,7 +271,7 @@ export function PrivacyScreen() {
 export function CoordinationScreen() {
   const rows = useMemo(() => CLASSES.map((c) => ({ c, means: classMeans(c.id), cov: bnccCoverage(c.id), n: studentsOf(c.id).length, consent: studentsOf(c.id).filter(visible).length })), []);
   const palette = useSettings((s) => s.palette), ramp = palette === "gray" ? "gray" : palette === "cividis" ? "cividis" : "viridis";
-  const cell = (v: number) => <span className="ec-num block rounded-[4px] px-1 py-1.5 text-center font-semibold" style={{ background: toHex(samplePalette(ramp, 0.15 + v * 0.8)), color: v > 0.55 ? "#0b0b0b" : "#ffffff" }}>{fmt(v * 100, 0)}</span>;
+  const cell = (v: number) => <span className="ec-num block rounded-[4px] p-1 text-center" style={{ background: toHex(samplePalette(ramp, 0.15 + v * 0.8)) }}><span className="inline-block min-w-[2.6em] rounded-[3px] bg-ec-surface px-1 font-semibold text-ec-text">{fmt(v * 100, 0)}</span></span>;
   const csv = () => download("ecosfera-coordenacao.csv", toCsv([t("teacher.class"), t("teacher.trackLabel"), ...COMPETENCIES.map(comp)], rows.map((r) => [r.c.name, t(`teacher.track.${r.c.track}`), ...COMPETENCIES.map((k) => Math.round(r.means[k] * 100))])), "text/csv;charset=utf-8");
   return (
     <Shell titleKey="teacher.coordTitle" coordinator>

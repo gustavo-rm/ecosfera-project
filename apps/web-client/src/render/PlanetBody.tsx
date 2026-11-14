@@ -3,7 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, DataTexture, DoubleSide, DynamicDrawUsage, LinearFilter, Matrix4, RGBAFormat, ShaderMaterial,
-  Vector3, Vector4, type Group, type IUniform,
+  Vector3, Vector4, type Group, type IUniform, type Mesh,
 } from "three";
 import { computeAppearance, createAppearance, type PlanetUniforms } from "@/core/appearance/appearance";
 import { buildLut, DIVERGING, SEQUENTIAL, type PaletteSet } from "@/core/appearance/palettes";
@@ -25,7 +25,7 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
   const dataLevel = usePlanetStore((s) => s.frame?.level ?? 5);
   const showClouds = usePlanetStore((s) => s.showClouds && s.layer === null);
   const { camera, gl } = useThree();
-  const tilt = useRef<Group>(null);
+  const tilt = useRef<Group>(null), shell = useRef<Mesh>(null);
   const dataMesh = useMemo(() => getMesh(dataLevel), [dataLevel]);
   const renderMesh = useMemo(() => getMesh(Math.max(2, Math.min(6, dataLevel + renderOffset))), [dataLevel, renderOffset]);
 
@@ -159,6 +159,8 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
     damp(sh.uSunDim, t.sunDim); damp(sh.uAtmo, t.atmoDensity); damp(su.uHaze, t.haze); damp(su.uTermSoft, t.terminatorSoftness); damp(su.uStarInt, t.starIntensity * ecc);
     damp(su.uSurfaceHeat, t.surfaceHeat); damp(su.uDesat, t.desaturate); damp(cu.uCloudOpacity, t.cloudOpacity); damp(au.uErosion, t.erosion); damp(mats.aurora.uniforms.uAurora, t.aurora);
     au.uScale.value = 0.018 + 0.03 * sh.uAtmo.value;
+    // The shell is only as large as the glow needs: fewer shaded pixels. It grows when the atmosphere leaks (erosion tail).
+    if (shell.current) { shell.current.visible = sh.uAtmo.value > 0.005; shell.current.scale.setScalar(au.uErosion.value > 0.01 ? 1.5 : 1.06 + 5 * au.uScale.value); }
     su.uLayerMode.value = t.layerMode; su.uLut.value = t.layerKind === "diverging" ? luts.diverging : luts.sequential;
     damp(su.uLayerOpacity, t.layerMode ? 0.94 : 0);
     runtime.zoom = Math.min(1, Math.max(0, (3.6 - runtime.cameraDistance) / 1.9));
@@ -190,7 +192,7 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
       <group ref={planetRef}>
         <mesh geometry={gpu.geometry} material={mats.surface} frustumCulled={false} />
         <mesh geometry={gpu.geometry} material={mats.clouds} frustumCulled={false} renderOrder={2} visible={showClouds} />
-        <mesh material={mats.atmosphere} renderOrder={3} scale={1.5}><sphereGeometry args={[1, 48, 32]} /></mesh>
+        <mesh ref={shell} material={mats.atmosphere} renderOrder={3} scale={1.3}><sphereGeometry args={[1, 48, 32]} /></mesh>
         {[1, -1].map((sgn) => (
           <mesh key={sgn} material={mats.aurora} renderOrder={4} position={[0, sgn * 0.955, 0]} rotation={[sgn > 0 ? 0 : Math.PI, 0, 0]}>
             <cylinderGeometry args={[0.40, 0.33, 0.09, 64, 1, true]} />

@@ -24,6 +24,8 @@ export interface PlanetStore {
   revealed: Uint8Array | null;
   history: SeriesHistory | null; historyTick: number;
   bufferVersion: number;
+  /** Dynamic resolution scale chosen by the performance governor (1 = the quality tier's full resolution). */
+  resolutionScale: number;
   /** Latest moment reached in this session: the timeline only scrubs through what already happened. */
   maxTick: number;
   /** Still mode: no time-based animation, for tests, screenshots and reduced motion (principle 8). */
@@ -57,7 +59,7 @@ export const usePlanetStore = create<PlanetStore>((set, get) => ({
   status: "idle", errorDetail: null, info: null, config: null, frame: null, playing: false, speed: 12, mode: "normal",
   layer: null, compareTick: null, showClouds: true, exaggeration: 0.07, quality: "medium", autoQuality: true, autoRotate: true,
   selectedCell: null, hoveredCell: null, focusCell: null, focusSeq: 0, selectedSpecies: null, revealed: null,
-  history: null, historyTick: -1, bufferVersion: 0, maxTick: 0, still: false,
+  history: null, historyTick: -1, bufferVersion: 0, resolutionScale: 1, maxTick: 0, still: false,
 
   async init(config) {
     const src = getSource();

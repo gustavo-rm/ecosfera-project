@@ -180,7 +180,7 @@ export function DataTable<R>({ caption, columns, rows, rowKey, maxHeight = 320 }
 }
 
 /** Frame for every chart: title, text summary for screen readers, and an alternative table view (section 10). */
-export function ChartFrame({ title, summary, table, children, actions, why }: { title: string; summary: string; table?: ReactNode; children: ReactNode; actions?: ReactNode; why?: ReactNode }) {
+export function ChartFrame({ title, summary, table, children, actions, why, interactive }: { title: string; summary: string; table?: ReactNode; children: ReactNode; actions?: ReactNode; why?: ReactNode; /** The chart has focusable parts, so it is a group, not an image. */ interactive?: boolean }) {
   const [showTable, setShowTable] = useState(false);
   const id = useId();
   return (
@@ -190,7 +190,7 @@ export function ChartFrame({ title, summary, table, children, actions, why }: { 
         <div className="flex flex-wrap items-center gap-2">{actions}{table && <Button icon={showTable ? "chart" : "table"} aria-pressed={showTable} onClick={() => setShowTable(!showTable)}>{showTable ? t("chart.showChart") : t("chart.showTable")}</Button>}</div>
       </div>
       <p className="ec-muted mb-2 text-[length:var(--ec-text-sm)]" data-chart-summary>{summary}</p>
-      {showTable && table ? table : <div role="img" aria-label={`${title}. ${summary}`}>{children}</div>}
+      {showTable && table ? table : <div role={interactive ? "group" : "img"} aria-label={`${title}. ${summary}`}>{children}</div>}
       {why}
     </section>
   );

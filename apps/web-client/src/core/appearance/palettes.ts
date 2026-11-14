@@ -67,3 +67,6 @@ export function deltaE(a: RGB | string, b: RGB | string): number {
   return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
 }
 export { hex as hexToRgb };
+
+/** Black or white ink, whichever has more contrast on the fill (text over heat-map cells). */
+export const inkOn = (fill: RGB): string => (contrastRatio(fill, [0.043, 0.043, 0.043]) >= contrastRatio(fill, [1, 1, 1]) ? "#0b0b0b" : "#ffffff");

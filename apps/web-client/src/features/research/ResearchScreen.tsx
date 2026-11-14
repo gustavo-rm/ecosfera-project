@@ -43,7 +43,7 @@ export function ResearchScreen() {
         <Chip icon="flask">{t("research.points", { n: fmt(points) })}</Chip>
       </div>
       <p className="ec-muted mb-3 text-[length:var(--ec-text-sm)]">{t("research.masteryHint")}</p>
-      <div className="ec-scroll pb-2"><ul className="grid items-start gap-2 max-lg:!flex max-lg:flex-col" role="tabpanel" aria-label={t(`research.tree.${tree}`)} style={{ gridTemplateColumns: `repeat(${Math.max(...nodes.map((n) => n.column)) + 1}, minmax(210px, 1fr))` }}>{nodes.map((n) => <NodeCard key={n.id} node={n} />)}</ul></div>
+      <div className="ec-scroll pb-2" role="tabpanel" tabIndex={0} aria-label={t(`research.tree.${tree}`)}><ul className="grid items-start gap-2 max-lg:!flex max-lg:flex-col" style={{ gridTemplateColumns: `repeat(${Math.max(...nodes.map((n) => n.column)) + 1}, minmax(210px, 1fr))` }}>{nodes.map((n) => <NodeCard key={n.id} node={n} />)}</ul></div>
     </StudentShell>
   );
 }
