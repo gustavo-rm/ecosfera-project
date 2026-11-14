@@ -22,7 +22,7 @@ const val = (s: SpeciesRecord, k: string) => s.phenotype[k] as number;
 
 function GeneRow({ s, id }: { s: SpeciesRecord; id: string }) {
   const g = GENE_BY_ID[id], v = s.phenotype[id];
-  const shown = g.kind === "bool" ? (v ? t("common.yes") : t("common.no")) : g.kind === "cat" ? REPRODUCTIVE_MODES[v as number] : `${g.log ? fmtAuto(v as number) : fmt(v as number, g.kind === "int" ? 0 : 2)}${g.unit ? " " + g.unit : ""}`;
+  const shown = g.unit === "ticks" ? t("codex.years", { n: fmt((v as number) / 12, 1) }) : g.kind === "bool" ? (v ? t("common.yes") : t("common.no")) : g.kind === "cat" ? REPRODUCTIVE_MODES[v as number] : `${g.log ? fmtAuto(v as number) : fmt(v as number, g.kind === "int" ? 0 : 2)}${g.unit ? " " + g.unit : ""}`;
   return <><dt className="ec-muted">{g.labelPt}</dt><dd className="ec-num">{shown}</dd></>;
 }
 

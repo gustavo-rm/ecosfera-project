@@ -140,3 +140,19 @@ export function computeAppearance(frame: PlanetFrame, mesh: GeodesicMesh, view: 
   out.uniforms = computeUniforms(frame, view);
   return out;
 }
+
+/** Direction of the star in the scene (fixed), and the Euler angles (Y, Z; order YZX) of the tilted spin axis for a moment of the year. */
+export const SUN_DIRECTION: [number, number, number] = [0.93, 0.12, 0.34];
+/**
+ * yearPhase 0 is the northern summer in the data (engine: season = cos(2π·phase)), so at phase 0 the north pole must
+ * lean TOWARD the star. A rotation about Z by a negative angle leans +Y toward +X, where the star is.
+ */
+export function axisEuler(yearPhase: number, axialTiltDeg: number): { y: number; z: number } {
+  return { y: -2 * Math.PI * yearPhase, z: -(axialTiltDeg * Math.PI) / 180 };
+}
+/** North pole direction in scene space for a moment of the year (used by tests; mirrors Euler order YZX with x = 0). */
+export function northPole(yearPhase: number, axialTiltDeg: number): [number, number, number] {
+  const { y, z } = axisEuler(yearPhase, axialTiltDeg);
+  const px = -Math.sin(z), py = Math.cos(z);           // Rz applied to (0, 1, 0)
+  return [px * Math.cos(y), py, -px * Math.sin(y)];     // then Ry
+}

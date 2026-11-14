@@ -9,7 +9,7 @@ import { INTERVENTION_BY_ID, RESOURCES, type PredictVar } from "@/game/catalog";
 import { answerQuestion, QUICK_QUESTIONS, streamText, type QuestionId, type TutorAnswer } from "@/game/tutor";
 import { fmt, t } from "@/i18n";
 import { cameraApi } from "@/render/CameraRig";
-import { useGameStore, type Direction } from "@/store/gameStore";
+import { isViewingPast, useGameStore, type Direction } from "@/store/gameStore";
 import { snapshots, usePlanetStore } from "@/store/planetStore";
 import { Icon } from "@/ui/icons";
 import { Button, Chip, DataTable, Dialog, Ped, Select, SyntheticBadge } from "@/ui/kit";
@@ -50,7 +50,8 @@ export function InterventionDialog({ id, onClose }: { id: string | null; onClose
   const wait = (game.cooldowns[def.id] ?? 0) - frame.tick, affordable = game.canAfford(def.id);
   const telegraphed = frame.events.find((e) => e.phase !== "aftermath" && e.origin !== "background" && !e.suppressed);
   const needsTarget = def.needsCell && selected === null, noEvent = def.kind === "suppress" && !telegraphed;
-  const can = !locked && !early && wait <= 0 && affordable && !needsTarget && !noEvent;
+  const past = isViewingPast();
+  const can = !past && !locked && !early && wait <= 0 && affordable && !needsTarget && !noEvent;
   const confirm = () => {
     const prediction = variable && direction ? { variable, direction } : undefined;
     evidence.emit({ type: "decision_time", interventionId: def.id, seconds: Math.round((performance.now() - opened.current) / 1000), consulted: [...new Set(consulted.current)] });
@@ -59,6 +60,7 @@ export function InterventionDialog({ id, onClose }: { id: string | null; onClose
   return (
     <Dialog open onClose={onClose} title={t(`intervention.${def.id}.name`)} footer={<><Button onClick={onClose}>{t("common.cancel")}</Button><Button variant="primary" icon="check" disabled={!can} onClick={confirm} data-confirm>{t("intervention.confirm")}</Button></>}>
       <div className="flex flex-col gap-3" data-intervention-dialog={def.id}>
+        {past && <p className="ec-card flex items-center gap-2" role="alert" data-past><Icon name="clock" />{t("intervention.past")}</p>}
         {locked && <div className="ec-card flex items-start gap-2" role="note"><Icon name="lock" /><div><p className="font-semibold">{t("intervention.lockedTitle")}</p><p>{t("intervention.lockedBody", { concept: t(`research.${def.requires}.name`) })}</p><Link className="ec-link" href="/jogo/pesquisa">{t("intervention.goResearch")}</Link></div></div>}
         {early && !locked && <p className="ec-card" role="note">{t("intervention.needsEra", { era: def.minEra })}</p>}
         <div className="grid gap-3 sm:grid-cols-2">
@@ -130,6 +132,7 @@ export function TutorPanel({ open, onClose }: { open: boolean; onClose: () => vo
   const [index, setIndex] = useState(-1);
   const [text, setText] = useState("");
   const [reveal, setReveal] = useState(false);
+  const [spoken, setSpoken] = useState("");
   const current = index >= 0 ? log[index] : log[log.length - 1];
   const ask = (q: QuestionId) => {
     if (!frame) return;
@@ -143,7 +146,7 @@ export function TutorPanel({ open, onClose }: { open: boolean; onClose: () => vo
     let alive = true;
     const p = { ...current.dataParams }; if (typeof p.name === "string" && p.name.startsWith("event.")) p.name = t(p.name);
     const full = `${t(current.dataKey, p)} ${t(current.promptKey)}`;
-    void (async () => { for await (const part of streamText(full, reduced)) { if (!alive) return; setText(part); } })();
+    void (async () => { for await (const part of streamText(full, reduced)) { if (!alive) return; setText(part); } if (alive) setSpoken(full); })();
     return () => { alive = false; };
   }, [current, reduced]);
   if (!open) return null;
@@ -152,11 +155,12 @@ export function TutorPanel({ open, onClose }: { open: boolean; onClose: () => vo
     <aside className="ec-panel pointer-events-auto flex max-h-full w-[340px] max-w-full flex-col p-3" aria-label={t("tutor.title")} data-tutor-panel>
       <div className="mb-2 flex items-center justify-between gap-2"><h2 className="flex items-center gap-2 !text-[length:var(--ec-text-md)]"><Icon name="chat" />{t("tutor.title")}</h2><Button variant="ghost" iconOnly icon="close" onClick={onClose}>{t("common.close")}</Button></div>
       <div className="mb-2 flex flex-wrap gap-1">{QUICK_QUESTIONS.map((q) => <Button key={q} onClick={() => ask(q)} data-question={q}><Ped k={`ped.tutor.q.${q}`} /></Button>)}</div>
-      <div className="ec-scroll flex-1" aria-live="polite">
+      <p className="ec-sr-only" aria-live="polite">{spoken}</p>
+      <div className="ec-scroll flex-1">
         {!current ? <Ped as="p" k="ped.tutor.empty" className="ec-muted" /> : (
           <div className="flex flex-col gap-2" data-tutor-answer>
             <p className="ec-muted text-[length:var(--ec-text-xs)]">{t("tutor.asked", { year: fmt(yearsLabel(current.tick)) })} · <Ped k={`ped.tutor.q.${current.questionId}`} /></p>
-            <p className={frame && frame.meta.synthetic ? "ec-ped" : undefined} data-placeholder="pedagogical">{text}</p>
+            <p className={frame && frame.meta.synthetic ? "ec-ped" : undefined} data-placeholder="pedagogical" aria-hidden={text !== spoken}>{text}</p>
             {!reveal ? <Button icon="eye" onClick={() => setReveal(true)} data-reveal>{t("tutor.showExplanation")}</Button> : <><CausalChain steps={current.chain} /><p className="flex items-start gap-2"><Icon name="flat" /><Ped k={current.nextKey} /></p></>}
             <p><Chip icon="flask">{t(`tutor.source.${current.source}`)}</Chip></p>
           </div>

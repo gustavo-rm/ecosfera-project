@@ -21,7 +21,8 @@ export class SyntheticSource implements PlanetStateSource {
   private busy = false; private dirty = false; private seq = 0; private lastWall = 0;
   private cache: { elevation: Float32Array | null; isWater: Uint8Array | null } = { elevation: null, isWater: null };
   private pendingHistory = new Map<number, (h: SeriesHistory) => void>();
-  private startResolve: ((i: SourceInfo) => void) | null = null;
+  /** One resolver per start() call, answered in order: start() may be called again before the first answer arrives. */
+  private startResolvers: ((i: SourceInfo) => void)[] = [];
   private historyId = 0;
   /** Frames per second requested while playing. */
   frameRate = 5;
@@ -33,13 +34,16 @@ export class SyntheticSource implements PlanetStateSource {
     else this.inline?.handle(req);
   }
   private onResponse = (r: HostResponse) => {
-    if (r.op === "started") { this.info = r.info; this.startResolve?.(r.info); this.emit({ type: "ready", info: r.info }); }
+    if (r.op === "started") { this.info = r.info; this.startResolvers.shift()?.(r.info); this.emit({ type: "ready", info: r.info }); }
     else if (r.op === "frame") {
       const f = r.frame.fields as unknown as Record<string, unknown>;
       if (f.elevation) this.cache.elevation = f.elevation as Float32Array; else f.elevation = this.cache.elevation;
       if (f.isWater) this.cache.isWater = f.isWater as Uint8Array; else f.isWater = this.cache.isWater;
       this.busy = false;
-      if (r.seq === this.seq) this.emit({ type: "frame", frame: r.frame as PlanetFrame });
+      // A frame of a previous start() may arrive with its static arrays stripped and nothing to restore them from: drop it.
+      const complete = !!f.elevation && !!f.isWater;
+      if (!complete) this.dirty = true;
+      else if (r.seq === this.seq) this.emit({ type: "frame", frame: r.frame as PlanetFrame });
       if (this.dirty) { this.dirty = false; this.requestFrame(); }
     } else if (r.op === "history") { this.pendingHistory.get(r.id)?.(r.history); this.pendingHistory.delete(r.id); }
     else if (r.op === "error") { this.busy = false; this.emit({ type: "error", messageKey: "error.source", detail: r.detail }); }
@@ -60,7 +64,7 @@ export class SyntheticSource implements PlanetStateSource {
     this.cache = { elevation: null, isWater: null };
     this.busy = false; this.playing = false; this.until = null;
     return new Promise((resolve) => {
-      this.startResolve = (info) => { this.tick = config.startTick ?? info.startTick; this.requestFrame(); resolve(info); };
+      this.startResolvers.push((info) => { this.tick = config.startTick ?? info.startTick; this.requestFrame(); resolve(info); });
       this.send({ op: "start", config });
     });
   }

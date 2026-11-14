@@ -90,7 +90,7 @@ export function AppShell({ title, nav, children, wide, navLabel }: { title: stri
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-ec-border-subtle bg-ec-surface px-3 py-2">
-        <Link href="/" className="ec-display flex items-center gap-2 font-bold tracking-wide" aria-label={t("app.home")}><Icon name="globe" style={{ color: "var(--ec-primary)" }} />ECOSFERA</Link>
+        <Link href="/" className="ec-display flex min-h-[44px] items-center gap-2 font-bold tracking-wide" aria-label={t("app.home")}><Icon name="globe" style={{ color: "var(--ec-primary)" }} />ECOSFERA</Link>
         <nav aria-label={navLabel} className="ec-scroll flex flex-1 gap-1">{nav.map((n) => <Link key={n.href} href={n.href} aria-current={path === n.href ? "page" : undefined} className="ec-btn whitespace-nowrap"><Icon name={n.icon} /><span className="hidden lg:inline">{t(n.key)}</span><span className="ec-sr-only lg:hidden">{t(n.key)}</span></Link>)}</nav>
         <SyntheticBadge compact />
         {dev && <Link href="/lab" className="ec-btn" aria-label={t("nav.lab")}><Icon name="flask" /></Link>}

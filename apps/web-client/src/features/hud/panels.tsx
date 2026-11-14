@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { BASE_LAYERS, LAYER_BY_ID, LAYERS, type LayerId } from "@/core/appearance/layers";
 import { evidence } from "@/core/evidence/bus";
@@ -50,7 +50,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
   const tempWord = g.meanTempC < 0 ? t("hud.cold") : g.meanTempC > 45 ? t("hud.hot") : t("hud.mild");
   return (
     <header className="ec-panel pointer-events-auto flex flex-wrap items-center gap-2 !rounded-none !border-x-0 !border-t-0 px-3 py-1.5 lg:flex-nowrap">
-      <Link href="/" className="ec-display flex items-center gap-2 font-bold tracking-wide" aria-label={t("app.home")}><Icon name="globe" style={{ color: "var(--ec-primary)" }} /><span className="hidden lg:inline">ECOSFERA</span></Link>
+      <Link href="/" className="ec-display flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 font-bold tracking-wide" aria-label={t("app.home")}><Icon name="globe" style={{ color: "var(--ec-primary)" }} /><span className="hidden lg:inline">ECOSFERA</span></Link>
       <div className="flex flex-none flex-col leading-tight" data-era>
         <span className="ec-display font-semibold">{t("hud.era", { n: g.era })} · {t(`era.${g.era}.name`)}</span>
         <span className="ec-muted ec-num text-[length:var(--ec-text-xs)]">{t("hud.year", { year: fmt(g.year) })}</span>
@@ -165,6 +165,7 @@ export function TimeBar({ onTutor, onMissions }: { onTutor: () => void; onMissio
   const compareTick = usePlanetStore((s) => s.compareTick);
   const history = useHistory(120);
   const maxTick = usePlanetStore((s) => s.maxTick);
+  const scrubFrom = useRef<number | null>(null);
   const missionsDone = useGameStore((s) => s.missionsDone);
   const stats = useGameStore((s) => s.stats);
   const current = useMemo(() => {
@@ -176,7 +177,10 @@ export function TimeBar({ onTutor, onMissions }: { onTutor: () => void; onMissio
   if (!frame || !info) return null;
   const st = usePlanetStore.getState(), g = frame.globals, end = Math.max(maxTick, info.startTick + 1), span = end - info.startTick;
   const marks = (history?.marks ?? []).filter((m) => m.tick <= end && m.kind !== "speciation");
-  const seek = (v: number) => { if (playing) st.setClock(false); evidence.emit({ type: "timeline_scrubbed", fromTick: frame.tick, toTick: v }); st.seek(v); };
+  const seek = (v: number) => { if (playing) st.setClock(false); if (scrubFrom.current === null) scrubFrom.current = frame.tick; st.seek(v); };
+  // One evidence event per gesture (pointer release or key release), not one per step.
+  const commit = () => { if (scrubFrom.current !== null) { evidence.emit({ type: "timeline_scrubbed", fromTick: scrubFrom.current, toTick: usePlanetStore.getState().frame?.tick ?? frame.tick }); scrubFrom.current = null; } };
+  const step = Math.max(12, Math.round(span / 100 / 12) * 12);
   return (
     <footer className="ec-panel pointer-events-auto flex flex-wrap items-center gap-x-3 gap-y-1 !rounded-none !border-x-0 !border-b-0 px-3 py-2">
       <div className="flex items-center gap-1" role="group" aria-label={t("time.controls")}>
@@ -193,7 +197,7 @@ export function TimeBar({ onTutor, onMissions }: { onTutor: () => void; onMissio
           ))}
         </div>
         <label htmlFor="timeline" className="ec-sr-only">{t("time.timeline")}</label>
-        <input id="timeline" type="range" className="ec-range !h-7" min={info.startTick} max={end} step={12} value={Math.min(frame.tick, end)} onChange={(e) => seek(Number(e.target.value))}
+        <input id="timeline" type="range" className="ec-range" min={info.startTick} max={end} step={step} value={Math.min(frame.tick, end)} onChange={(e) => seek(Number(e.target.value))} onPointerUp={commit} onKeyUp={commit} onBlur={commit}
           aria-valuetext={t("time.position", { era: t(`era.${g.era}.name`), year: fmt(g.year) })} data-timeline />
         <ul className="ec-sr-only">{marks.map((m, i) => <li key={i}>{t(m.labelKey, m.labelParams)}, {t("hud.year", { year: yearsLabel(m.tick) })}</li>)}</ul>
       </div>

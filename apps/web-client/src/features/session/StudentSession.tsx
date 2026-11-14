@@ -33,22 +33,22 @@ export function StudentSession({ autoStart = true, passive = false }: { autoStar
         if (q.get("tick")) { usePlanetStore.getState().seek(Number(q.get("tick"))); useGameStore.getState().patch({ onboarding: -1 }); }
         if (q.get("camada")) usePlanetStore.getState().setLayer(q.get("camada") as never);
       });
-    } else if (started && (planet.status === "idle" || planet.config?.scenarioId !== g.scenarioId || planet.config?.level !== 5)) {
+    } else if (started && !passive && (planet.status === "idle" || planet.config?.scenarioId !== g.scenarioId || planet.config?.level !== 5)) {
       // Continue the planet saved in this browser: same scenario and seed, the same interventions replayed, same moment.
-      void planet.init({ scenarioId: g.scenarioId, level: 5, seed: g.seed, params: g.params }).then(() => {
+      void planet.init({ scenarioId: g.scenarioId, level: 5, seed: g.seed ?? undefined, params: g.params }).then(() => {
         const st = usePlanetStore.getState();
         for (const c of g.commands) { st.seek(c.tick); st.command(c.command); }
         st.seek(g.savedTick);
       });
     }
-  }, [hydrated, settingsReady, started, autoStart]);
+  }, [hydrated, settingsReady, started, autoStart, passive]);
   useEffect(() => {
     let last = 0;
     return usePlanetStore.subscribe((s, p) => {
       if (s.quality !== p.quality) { const src = getSource(); if (src instanceof SyntheticSource) src.frameRate = QUALITY[s.quality].frameRate; }
       if (s.layer !== p.layer) syncReveal();
       if (s.frame === p.frame || !s.frame) return;
-      if (!passive) useGameStore.getState().onFrame(s.frame, p.frame);
+      if (!passive) useGameStore.getState().onFrame(s.frame);
       const msg = describeChange(p.frame, s.frame);
       if (msg && performance.now() - last > 1500) { last = performance.now(); announce(msg); }
     });

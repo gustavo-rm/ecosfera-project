@@ -9,7 +9,7 @@ Estados: **FV** = feito e verificado (executado e visto, ou coberto por teste); 
 | ID | Requisito | Estado | Como foi verificado, ou motivo |
 |---|---|---|---|
 | RF-051 | Planeta 3D interativo no navegador | FV | Catálogo 01 e 09; e2e. Fluidez no hardware-alvo não verificada. |
-| RF-052 | Mudança dinâmica de atmosfera, oceanos, vegetação, espécies, relevo, clima, desastres | FV, exceto cidades | 21 testes da tabela "variável → efeito". Cidades: só ponto de extensão, por escopo. |
+| RF-052 | Mudança dinâmica de atmosfera, oceanos, vegetação, espécies, relevo, clima, desastres | FV em parte | Os testes cobrem o mapeamento de estado para canais e uniformes, não a imagem final; a imagem foi conferida a olho no catálogo. Ver a seção "Cobertura da tabela" abaixo. Cidades: só ponto de extensão. |
 | RF-053 | Câmera: orbitar, zoom, focar região | FV | e2e de teclado; gestos de toque implementados, **não testados em aparelho de toque**. |
 | RF-054 | Camadas de visualização | FV | 18 camadas; catálogo 03 a 05; sonda e painel regional. |
 | RF-055 | HUD com indicadores e painel de ações | FV | Catálogo 09; e2e. |
@@ -36,16 +36,16 @@ Estados: **FV** = feito e verificado (executado e visto, ou coberto por teste); 
 | RNF-001 | 30 FPS em Chromebook, fallback automático | FN | 34,8 FPS em WebGL por software com qualidade automática; **Chromebook real não disponível**. |
 | RNF-002 | Ação → feedback em até 1 s (p95) | FV em software | p95 de 268 ms (e2e). |
 | RNF-014 | WCAG 2.1 AA | P | axe-core: 0 violações em 43 combinações; falta auditoria manual e leitor de tela. |
-| RNF-015 | Daltonismo | FV | Testes com simulação; redundância de forma e rótulo. |
+| RNF-015 | Daltonismo | P | Paletas sequenciais, divergentes e de séries testadas com simulação. Exceção: a camada de biomas depende de cor no globo e suas 13 cores não foram testadas. |
 | RNF-016 | Baixa visão | FV | Escala de fonte, alto contraste. Zoom de 200% do navegador não testado. |
 | RNF-017 | Teclado | FV | 14 fluxos e2e. |
 | RNF-018 | Leitor de tela | P | Descrição gerada, regiões `aria-live`, modo texto; **não testado com leitor real**. |
 | RNF-019 | Legendas e transcrições | N/A hoje | Não há áudio. |
 | RNF-020 | Contraste | FV | Teste sobre os tokens nos 4 temas; axe-core. |
-| RNF-021 | Offline parcial | P | Service worker, IndexedDB, retomada local. Sem sincronização (ADR FE-0006). Instalação e uso offline **não testados**. |
+| RNF-021 | Offline parcial | P | Service worker, IndexedDB, retomada local (a revisão achou a semente errada na retomada fora do cenário Gênese; corrigido, sem teste automático). Sem sincronização. Instalação e uso offline **não testados**. |
 | RNF-022 | Adequação a crianças | NF | Exige teste com a faixa etária. Diretrizes de linguagem e controles grandes foram seguidas. |
 | RNF-023 | Portabilidade | P | Só Chromium exercitado. |
-| RNF-026 | i18n, pt-BR | FV | Teste: toda chave usada existe; nenhuma frase em português fixa em componente. |
+| RNF-026 | i18n, pt-BR | FV com ressalva | Teste: toda chave usada existe. A checagem de texto fixo só pega frases de três palavras ou mais em JSX. Restam símbolos de unidade no código (`mm/mês`, `°C`, `ppm`) e os rótulos do Apêndice A, por decisão (D-05). |
 
 ## Tarefas do backlog (épicos Frontend, Desenvolvimento Gráfico, Painel do Professor)
 
@@ -56,7 +56,7 @@ Estados: **FV** = feito e verificado (executado e visto, ou coberto por teste); 
 | TASK-0033 | Estado global (Zustand) | P | Stores tipadas. "Deltas por WebSocket": fora do escopo; a porta de dados é o ponto de entrada. |
 | TASK-0034 | Cena 3D (react-three-fiber) | FV em WebGL 2 | WebGPU não usado (ADR FE-0001). |
 | TASK-0035 | HUD de indicadores | FV | Alimentado pela porta de dados. |
-| TASK-0036 | Controles de tick e intervenção | FV | O estudante vê anos; sem tRPC. |
+| TASK-0036 | Controles de tick e intervenção | FV | O estudante vê anos (a ficha mostrava "ticks" na idade de maturidade; corrigido após a revisão). Sem tRPC. |
 | TASK-0037 | Painel de feedback causal | FV | Regras agora; a mesma forma serve ao LLM. |
 | TASK-0038 | Auditoria de acessibilidade | P | Parte automática feita; parte manual pendente. |
 | TASK-0039 | PWA e offline | P | Sem sincronização. |
@@ -85,3 +85,35 @@ Estados: **FV** = feito e verificado (executado e visto, ou coberto por teste); 
 | Modo Relojoeiro | NF, por escopo | Só a constante de extensão. |
 | Imagens de referência com tolerância | NF | O catálogo é determinístico, mas a comparação automática não foi montada. |
 | Correntes oceânicas, chuva em zoom | NF | Marcadas como opcionais ou de menor peso. |
+
+## Cobertura da tabela "variável do estado → efeito no planeta"
+
+Avaliação por linha depois da revisão independente. "Teste de mapeamento" quer dizer: o teste varia a variável e confere o canal ou uniforme que o shader lê. Nenhum teste automático confere pixels.
+
+| Linha | Implementação | Teste |
+|---|---|---|
+| `elevation`, `is_water` | Sim | Mapeamento |
+| Vulcanismo e tectônica | Sim | Mapeamento para lava; para tectônica, só o dado de elevação (com controle em tectônica 0) |
+| Composição da crosta | Sim | Mapeamento |
+| Água total, temperatura | Sim | Mapeamento |
+| `salinity`, `ph` | Sim | Mapeamento |
+| Pressão | Sim | Mapeamento (uniformes lidos pelo GLSL) |
+| O₂, CO₂, CH₄, aerossóis | Sim | Mapeamento |
+| `humidity`, `precipitation` | Sim | Umidade: mapeamento. Precipitação: só pelo evento de tempestade |
+| Campo magnético, atividade da estrela | Sim | Mapeamento (uniformes) |
+| `temperature` | Sim | Mapeamento |
+| `solar_flux` | **Parcial**: o campo existe e aparece na sonda de dados do laboratório; não alimenta aparência nem camada | Sem teste |
+| Inclinação axial | Sim | Orientação do eixo em relação à estrela (teste novo) e gelo sazonal |
+| Excentricidade, duração do dia | Sim no render (intensidade da luz no ano; ritmo de rotação); não afetam nenhum dado | Só repasse do parâmetro |
+| Tipo da estrela | Sim | Mapeamento de cor e intensidade |
+| Idade da estrela | Sim (entra na luminosidade) | **Sem teste** |
+| Tamanho aparente da estrela | Sim (a mesma fórmula no céu e no uniforme, após a revisão) | Uniforme; o céu em si não é testado |
+| Número de luas | Sim | Só repasse do parâmetro |
+| `soil_fertility` | Sim | Mapeamento |
+| Biomassa fototrófica, bioma | Sim | Mapeamento |
+| Biodiversidade, riqueza | Sim | Mapeamento |
+| Coortes por linhagem | Sim | Só os campos de linhagem dominante e o habitat; **a instanciação não tem teste**, só captura |
+| Matéria orgânica acumulada | Sim | Mapeamento |
+| Extinção em massa | Sim | Dessaturação e retorno a zero; a "volta da variedade" só nos testes de riqueza do motor |
+| Distúrbios | Sim | Mapeamento por tipo de evento |
+| Temperatura muito alta, Era 1 | Sim | Mapeamento |

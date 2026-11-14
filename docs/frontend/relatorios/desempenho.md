@@ -40,7 +40,7 @@ Leitura:
 ## O que foi feito para o orçamento
 
 - Aparência calculada só quando o estado muda; fusão entre estados feita na GPU; nenhum trabalho por quadro na CPU além de uniformes.
-- Nada é alocado dentro de `useFrame`.
+- O laço por quadro do planeta (`PlanetBody`) não aloca: usa valores pré-alocados e funções de módulo. A distribuição de organismos aloca estruturas pequenas, mas roda no máximo a cada 350 ms e só em zoom. Geometrias de organismos, efeitos e céu não são liberadas ao desmontar (pendência menor).
 - Geração de dados em Web Worker.
 - Atributos reenviados só quando o canal mudou.
 - Shaders pulam por ramificação lava, ondas, rachaduras e filetes de erosão onde não se aplicam; a casca da atmosfera tem só o tamanho que o brilho precisa.

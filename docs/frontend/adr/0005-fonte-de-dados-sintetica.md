@@ -10,7 +10,7 @@ Não há backend nem contrato. O planeta, o HUD e os dashboards precisam de dado
 ## Decisão
 
 1. **Uma única porta de dados**, `PlanetStateSource` (`core/source/port.ts`), marcada com `TODO(contract)`. Implementações: `SyntheticSource`, `FixtureSource` e o esboço não implementado `BackendSource`.
-2. **`frameAt(tick)` é função pura** de cenário, semente, parâmetros, variáveis forçadas e intervenções. Isso dá determinismo visual, rolagem do tempo exata e testes simples.
+2. **`frameAt(tick)` é função pura** de cenário, semente, parâmetros, variáveis forçadas e intervenções. Isso dá determinismo visual, rolagem do tempo exata e testes simples. A revisão independente achou duas quebras dessa pureza na memória interna de populações (não era limpa ao forçar variáveis; misturava resultados de profundidades diferentes). Ambas foram corrigidas e têm teste.
 3. **Roteiros, não simulação.** Linhagens têm origem, extinção, capacidade e ritmo escritos em `scenarios.ts`. As populações seguem curva logística, oscilação com defasagem de um quarto de ciclo em relação à presa e ruído errático de amplitude moderada. Clima e atmosfera usam fórmulas simples.
 4. **Tudo é placeholder científico.** Balanço de energia, classificação de biomas, zona habitável, luminosidade das estrelas e fluxos dos ciclos são aproximações marcadas no código. A autoridade de domínio decide o que vale.
 5. **Selo visível.** Toda tela mostra "Dados sintéticos". A fonte informa `meta.synthetic`.

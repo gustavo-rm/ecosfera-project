@@ -32,6 +32,8 @@ export interface EngineConfig { scenarioId: string; level: number; seed?: number
 const ZERO = new Map<number, Float32Array>();
 const zeros = (n: number) => { let z = ZERO.get(n); if (!z) { z = new Float32Array(n); ZERO.set(n, z); } return z; };
 const DEG = Math.PI / 180;
+/** What is left of an event the student suppressed: intensity, mortality and extinction pulse alike. */
+const SUPPRESSED = 0.15;
 const GENUS: Record<TrophicRole, string[]> = {
   phototroph: ["Viridia", "Lumina", "Phytara"], chemotroph: ["Thermia"], nitrogenFixer: ["Nitra"], decomposer: ["Saprea"],
   detritivore: ["Detrita"], herbivore: ["Pascua", "Herbira", "Foliax"], mixotroph: ["Mixta"], carnivore: ["Raptia", "Venara"],
@@ -67,7 +69,7 @@ export class SyntheticEngine {
   }
 
   setParams(p: Partial<PlanetParams>) { this.params = { ...this.params, ...p }; this.popMemo.clear(); }
-  setOverrides(o: StateOverrides) { this.overrides = o; }
+  setOverrides(o: StateOverrides) { this.overrides = o; this.popMemo.clear(); }
   addModifier(m: Modifier) { this.modifiers.push(m); this.rebuildLineages(); }
   removeModifiersAfter(tick: number) { this.modifiers = this.modifiers.filter((m) => m.tick <= tick); this.rebuildLineages(); }
 
@@ -75,9 +77,8 @@ export class SyntheticEngine {
     const extra: LineageScript[] = [];
     for (const m of this.modifiers) {
       if (m.kind === "introduce" && m.role) {
-        const land = m.cell !== undefined; // placed on the chosen cell
         extra.push({
-          id: `intro-${m.id}`, parent: null, origin: m.tick, mode: "introduced", role: m.role, realm: m.role === "phototroph" && land ? "both" : "both",
+          id: `intro-${m.id}`, parent: null, origin: m.tick, mode: "introduced", role: m.role, realm: "both", cell: m.cell, cellRadiusDeg: 38,
           level: ROLE_TROPHIC[m.role], tempOpt: 18, tempBreadth: 13, cap: m.role === "carnivore" ? 30 : m.role === "herbivore" ? 140 : 380,
           growth: 500, period: 200, amp: 0.2, phase: m.tick * 0.01, mass: m.role === "carnivore" ? 5 : m.role === "herbivore" ? 0.5 : 0.01,
           mobility: m.role === "phototroph" ? 0 : 0.6, founder: true,
@@ -86,7 +87,7 @@ export class SyntheticEngine {
       }
       if (m.kind === "barrier") {
         const parent = this.scenario.lineages.find((l) => l.role === "phototroph" && l.realm === "land") ?? this.scenario.lineages.find((l) => l.role === "phototroph");
-        if (parent) extra.push({ ...parent, id: `split-${m.id}`, parent: parent.id, origin: m.tick + 600, extinct: undefined, cause: undefined, mode: "allopatric", cap: parent.cap * 0.5, phase: parent.phase + 2, tempOpt: parent.tempOpt + 3, founder: true, factor: undefined });
+        if (parent) extra.push({ ...parent, id: `split-${m.id}`, parent: parent.id, origin: m.tick + 600, extinct: undefined, cause: undefined, mode: "allopatric", cap: parent.cap * 0.5, phase: parent.phase + 2, tempOpt: parent.tempOpt + 3, founder: true, factor: undefined, cell: m.cell, cellRadiusDeg: 30 });
       }
     }
     this.lineages = [...this.scenario.lineages, ...extra];
@@ -129,15 +130,17 @@ export class SyntheticEngine {
     return list;
   }
 
+  private suppressedAt(tick: number): Set<string | undefined> { return new Set(this.modifiers.filter((m) => m.kind === "suppress" && m.tick <= tick).map((m) => m.eventId)); }
+
   eventsAt(tick: number): PlanetEvent[] {
     const out: PlanetEvent[] = [];
-    const suppressed = new Set(this.modifiers.filter((m) => m.kind === "suppress" && m.tick <= tick).map((m) => m.eventId));
+    const suppressed = this.suppressedAt(tick);
     for (const s of this.eventScripts(tick)) {
       const def = EVENT_DEFS[s.type];
       const lead = s.noTelegraph || s.origin === "background" ? 0 : def.telegraph;
       const start = s.tick, end = s.tick + def.duration, after = end + def.duration * 0.6;
       if (tick < start - lead || tick > after) continue;
-      const base = (s.intensity ?? 1) * (suppressed.has(s.id) ? 0.15 : 1);
+      const base = (s.intensity ?? 1) * (suppressed.has(s.id) ? SUPPRESSED : 1);
       let phase: PlanetEvent["phase"], intensity: number;
       if (tick < start) { phase = "telegraph"; intensity = 0; }
       else if (tick <= end) { phase = "active"; intensity = base * Math.min(1, (tick - start + 1) / (def.duration * 0.15)); }
@@ -164,12 +167,14 @@ export class SyntheticEngine {
 
   /** Population (thousands of individuals, placeholder unit) of every lineage at a tick. */
   populations(tick: number, depth = 0): Float64Array {
-    const key = Math.round(tick);
+    // The result depends on the recursion depth (prey coupling and events are cut deeper down), so depth is part of the key.
+    const key = Math.round(tick) * 4 + depth;
     const memo = this.popMemo.get(key);
     if (memo) return memo;
     const ls = this.lineages, out = new Float64Array(ls.length);
     const stuck = this.stuckAt(tick);
     const events = depth === 0 || depth === 1 ? this.eventScripts(tick) : [];
+    const suppressed = this.suppressedAt(tick);
     const env = this.envFactor(tick);
     for (let i = 0; i < ls.length; i++) {
       const l = ls[i];
@@ -192,11 +197,11 @@ export class SyntheticEngine {
       if (l.level === 0 && l.role !== "decomposer") pop *= 1 - 0.93 * stuck;
       for (const e of events) {
         if (tick < e.tick) continue;
-        const dt = tick - e.tick;
-        if (e.type === "impact") pop *= 1 - (0.45 + 0.5 * (l.fragile ?? (l.mass > 1 ? 0.6 : 0.2))) * Math.exp(-dt / 500);
-        else if (e.type === "glaciation" && dt < 1500) pop *= 1 - 0.5 * clamp((l.tempOpt - 6) / 25) * Math.sin(Math.min(1, dt / 900) * Math.PI);
-        else if (e.type === "volcanism" && e.origin !== "background") pop *= 1 - 0.18 * Math.exp(-dt / 200);
-        else if (e.type === "pandemic" && l.level === 1) pop *= 1 - 0.5 * Math.exp(-dt / 150);
+        const dt = tick - e.tick, k = suppressed.has(e.id) ? SUPPRESSED : 1; // a suppressed event also kills less
+        if (e.type === "impact") pop *= 1 - k * (0.45 + 0.5 * (l.fragile ?? (l.mass > 1 ? 0.6 : 0.2))) * Math.exp(-dt / 500);
+        else if (e.type === "glaciation" && dt < 1500) pop *= 1 - k * 0.5 * clamp((l.tempOpt - 6) / 25) * Math.sin(Math.min(1, dt / 900) * Math.PI);
+        else if (e.type === "volcanism" && e.origin !== "background") pop *= 1 - k * 0.18 * Math.exp(-dt / 200);
+        else if (e.type === "pandemic" && l.level === 1) pop *= 1 - k * 0.5 * Math.exp(-dt / 150);
       }
       if (l.extinct !== undefined) pop *= clamp((l.extinct - tick) / 140);
       if (l.factor) pop *= keyframes(l.factor, tick);
@@ -243,7 +248,7 @@ export class SyntheticEngine {
     const ch4Ppm = o.ch4Ppm ?? p.ch4Ppm * (1 + 100 * primitive);
     const star = STAR_TABLE[p.starType];
     const starFlux = (star.luminosity * (0.72 + 0.28 * clamp(p.starAgeGyr / 4.6, 0, 1.6))) / (p.orbitAU * p.orbitAU) * (sc.primordial ? 1 - 0.2 * primitive : 1);
-    const teq = 278.5 * Math.pow(Math.max(0, starFlux * (1 - p.albedo)) / 0.7 * 0.7, 0.25) - 273.15;
+    const teq = 278.5 * Math.pow(Math.max(0, starFlux * (1 - p.albedo)), 0.25) - 273.15;
     const gh = Math.max(0, 33 * Math.min(1.7, Math.pow(pressureBar, 0.4)) * (1 + 0.15 * Math.log2(co2Ppm / 400))) + (pressureBar > 0 ? 4 * Math.log10(1 + ch4Ppm / 1.8) : 0);
     let meanTempC = teq + gh - 13 * aerosols - 18 * glaciation - cool + (o.tempOffset ?? 0);
     const waterParam = o.waterFraction ?? p.waterFraction;
@@ -523,7 +528,8 @@ export class SyntheticEngine {
       const l = ls[li], norm = pops[li] / l.cap;
       if (l.role === "nitrogenFixer") nfix = Math.max(nfix, norm);
       if (norm < 0.004 || l.role === "decomposer") continue;
-      const reg = l.regionIndex !== undefined ? this.regions[l.regionIndex] : undefined;
+      // Lineages the student introduced, or split with a barrier, live around the cell that was chosen.
+      const reg: Region | undefined = l.cell !== undefined && l.cell < n ? { x: c[l.cell * 3], y: c[l.cell * 3 + 1], z: c[l.cell * 3 + 2], radius: (l.cellRadiusDeg ?? 35) * DEG } : l.regionIndex !== undefined ? this.regions[l.regionIndex] : undefined;
       const group = l.level === 0 ? 0 : l.role === "carnivore" ? 2 : 1;
       const arr = group === 0 ? f.biomassPhoto : group === 1 ? f.biomassHerb : f.biomassCarn;
       const best = group === 0 ? bestP : group === 1 ? bestH : bestC, dom = group === 0 ? f.domProducer : group === 1 ? f.domHerb : f.domCarn;
@@ -586,7 +592,8 @@ export class SyntheticEngine {
   /** 0..1 pulse after a mass extinction: desaturation that fades as diversity comes back. */
   private bioPulse(tick: number) {
     let pulse = 0;
-    for (const e of this.eventScripts(tick)) if (e.type === "impact" && tick >= e.tick) pulse = Math.max(pulse, Math.exp(-(tick - e.tick) / 700));
+    const suppressed = this.suppressedAt(tick);
+    for (const e of this.eventScripts(tick)) if (e.type === "impact" && tick >= e.tick) pulse = Math.max(pulse, Math.exp(-(tick - e.tick) / 700) * (suppressed.has(e.id) ? SUPPRESSED : 1));
     return pulse;
   }
 

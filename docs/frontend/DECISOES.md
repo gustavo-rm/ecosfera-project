@@ -26,3 +26,9 @@ Cada item diz o que foi decidido e por quê. Decisões de arquitetura maiores es
 | D-20 | Fontes via pacotes `@fontsource-variable/*` (licença OFL), servidas pelo próprio app. | Nada de CDN em tempo de execução, e o build não depende de rede externa. |
 | D-21 | Telemetria do Next.js desligada em `next.config.ts`. | Regra do projeto: nenhuma telemetria de terceiros. |
 | D-22 | Paleta escura das séries usa cinco matizes e um cinza claro na sexta posição. | A simulação de daltonismo mostrou laranja e verde confundíveis; azul e violeta também. |
+| D-23 | As regras de jogo só avançam no tempo. Ao rolar a linha do tempo para o passado, nada é reposto, nenhum aviso se repete e não é possível agir. | A revisão independente mostrou que cruzar uma fronteira de era várias vezes repunha pontos de ação. Agir no passado reescreveria a história com previsões já registradas. |
+| D-24 | Um salto longo no tempo (retomada, ou link que abre um instante posterior) atualiza o estado de jogo sem recompensa de era e sem avisos acumulados. | Evita ganhos e ruído que não vieram de jogar. |
+| D-25 | Um evento suprimido perde 85% da intensidade, da mortalidade e do pulso de extinção. | Antes, a supressão só mudava a imagem. Valor provisório. |
+| D-26 | Linhagem introduzida e linhagem separada por barreira vivem em torno do ponto escolhido (raios de 38° e 30°). | A interface exige um alvo; o alvo precisa ter efeito. Valores provisórios. |
+| D-27 | O service worker guarda só a casca, os arquivos de build com hash e as fixtures; nunca respostas de dados. | Quando houver backend, respostas autenticadas não podem ficar em aparelho compartilhado da escola. |
+| D-28 | Os parâmetros de URL (`?dev=1`, `?papel=`, `?cenario=`, `?tick=`) funcionam para qualquer pessoa. | São atalhos de demonstração e de teste sem autenticação real. **Precisam sair ou ser protegidos antes de qualquer uso com alunos.** |

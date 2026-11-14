@@ -16,7 +16,7 @@ export const cameraApi = {
 };
 
 /** Orbit camera with inertia, wheel and pinch zoom, focus on a cell, auto-rotation at rest and full keyboard control (RF-053). */
-export function CameraRig({ planet, interactive = true }: { planet: React.RefObject<Group | null>; interactive?: boolean }) {
+export function CameraRig({ planet, interactive = true, reducedMotion = false }: { planet: React.RefObject<Group | null>; interactive?: boolean; reducedMotion?: boolean }) {
   const { camera, gl, raycaster } = useThree();
   const s = useRef({ theta: 0.6, phi: 1.25, radius: CAMERA_LIMITS.home, tTheta: 0.6, tPhi: 1.25, tRadius: CAMERA_LIMITS.home, vTheta: 0, vPhi: 0 });
   const tmp = useMemo(() => ({ v: new Vector3(), ndc: new Vector2(), o: new Vector3(), d: new Vector3() }), []);
@@ -98,7 +98,7 @@ export function CameraRig({ planet, interactive = true }: { planet: React.RefObj
     const idle = performance.now() - runtime.lastInput > 6000;
     if (!store.still) {
       if (Math.abs(st.vTheta) > 1e-4) { st.tTheta += st.vTheta * d; st.vTheta *= Math.exp(-d * 4); }
-      if (idle && store.autoRotate && interactive) st.tTheta += d * 0.035;
+      if (idle && store.autoRotate && interactive && !reducedMotion) st.tTheta += d * 0.035;
     }
     st.theta += (st.tTheta - st.theta) * k; st.phi += (st.tPhi - st.phi) * k; st.radius += (st.tRadius - st.radius) * k;
     const sp = Math.sin(st.phi);

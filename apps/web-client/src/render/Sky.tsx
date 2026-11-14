@@ -33,8 +33,8 @@ export function Sky({ stars }: { stars: number }) {
     const star = STAR_TABLE[starType], [x, y, z] = runtime.sunWorld;
     if (sun.current) {
       sun.current.position.set(x * 60, y * 60, z * 60); sun.current.lookAt(state.camera.position);
-      const size = Math.min(22, Math.max(4, (star.size / Math.max(0.15, orbitAU)) * 7));
-      sun.current.scale.setScalar(size);
+      // Same apparent size the state -> appearance mapping reports (uniform starSize), in scene units.
+      sun.current.scale.setScalar(Math.min(3.5, Math.max(0.25, (star.size / Math.max(0.1, orbitAU)) * 0.9)) * 7.5);
       (sunMat.uniforms.uStarColor.value as Vector3).set(star.color[0], star.color[1], star.color[2]);
     }
     light.current?.position.set(x * 10, y * 10, z * 10);

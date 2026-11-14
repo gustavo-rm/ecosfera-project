@@ -8,6 +8,8 @@ export interface LineageScript {
   cap: number; growth: number; period: number; amp: number; phase: number;
   mass: number; mobility: number; asexual?: boolean; founder?: boolean; bottleneck?: number;
   prey?: string[]; cycle?: string[]; regionIndex?: number; latBand?: [number, number];
+  /** Center cell and radius of the range, for lineages placed by the student. */
+  cell?: number; cellRadiusDeg?: number;
   factor?: [number, number][];
   /** Extra vulnerability to global catastrophes, 0..1. */
   fragile?: number;

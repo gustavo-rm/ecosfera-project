@@ -18,7 +18,7 @@ Um frontend completo e navegável em `apps/web-client`, que roda sem backend sob
 
 | Verificação | Resultado |
 |---|---|
-| Testes unitários (Vitest) | 50 testes passam. Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
+| Testes unitários (Vitest) | 60 testes passam. Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
 | Tipos e lint | `tsc` sem erros; ESLint sem erros (avisos menores). |
 | Build de produção | 22 rotas estáticas. |
 | Ponta a ponta (Playwright) | 68 checagens passam: axe-core com 0 violações em 43 combinações de tela e tema; 14 fluxos só com teclado; estados carregando, vazio, erro, sem vida e fim de era; 0 erros de console. Relatório legível em `relatorios/e2e.md`. |
@@ -28,6 +28,27 @@ Um frontend completo e navegável em `apps/web-client`, que roda sem backend sob
 
 A verificação automática encontrou defeitos reais, que foram corrigidos: contraste insuficiente em três lugares, regiões roláveis sem foco, papéis ARIA incorretos, uma paleta de séries confundível em daltonismo, a resolução dinâmica que era desfeita a cada atualização e uma corrida na retomada de sessão.
 
+## 2.1 Revisão independente
+
+Um agente que não viu o trabalho revisou o diff, os princípios, a tabela "variável → efeito" e os relatórios. Ele confirmou: o escopo do diff (só `apps/web-client`, `docs/frontend` e o lockfile), os 57 rótulos do Apêndice A idênticos ao briefing, a ausência de URL externa ou chamada de rede, o catálogo de intervenções só sobre o ambiente, o barramento de evidências sem dados pessoais e a estrutura do PDF.
+
+Ele também achou defeitos que eu não tinha visto. **Corrigidos:**
+
+1. As estações estavam invertidas na imagem em relação aos dados (o hemisfério em verão ficava na noite polar).
+2. A retomada do jogo salvo reconstruía outro planeta fora do cenário Gênese (semente errada).
+3. Rolar a linha do tempo repunha pontos de ação e repetia avisos; era possível agir no passado.
+4. Suprimir um evento só mudava a imagem, não a mortalidade.
+5. No console de laboratório, forçar variáveis de vida não agia com o tempo parado; e o resultado das populações dependia da ordem de consulta.
+6. Corrida ao abrir o Gênese com jogo salvo (duas inicializações).
+7. O service worker guardava respostas com erro e qualquer GET.
+8. A ficha mostrava "ticks" ao estudante.
+9. Movimento reduzido deixava ondas, nuvens e a rotação automática da câmera.
+10. Linhagem introduzida ignorava o ponto escolhido; no nível baixo de qualidade não havia organismos; a linha do tempo era inviável por teclado; o tutor reanunciava cada fragmento ao leitor de tela; o CSV não neutralizava fórmulas; o PDF trocava "₂" por "?".
+
+**Apontados e não corrigidos** (registrados nos relatórios): o planeta captura Espaço e Esc quando focado; ordem de foco do jogo; grupos de opção sem navegação por setas; geometrias de organismos, efeitos e céu não liberadas; o campo `solar_flux` não alimenta aparência; a camada de biomas depende de cor no globo; os atalhos de URL funcionam para qualquer pessoa.
+
+A revisão também mostrou afirmações minhas que não se sustentavam ("nada é alocado por quadro", "todo controle tem 44 px", "movimento reduzido respeitado", cobertura da tabela descrita como total). Os relatórios e a matriz foram corrigidos; a matriz ganhou uma avaliação linha a linha.
+
 ## 3. O que NÃO foi verificado, e por quê
 
 1. **Chromebook real (RNF-001).** Não tenho o hardware. WebGL por software é um piso pessimista e não representa o alvo.
@@ -36,7 +57,9 @@ A verificação automática encontrou defeitos reais, que foram corrigidos: cont
 4. **Firefox e Safari (RNF-023).** Só Chromium.
 5. **Fidelidade à Especificação do Evolution Engine.** O documento não está no repositório. Trabalhei pelo briefing; não pude conferir o briefing contra o original, nem a ordem das células da malha.
 6. **Instalação como PWA e uso offline.** Só a estrutura.
-7. **O PDF exportado aberto em um leitor.** A estrutura do arquivo é testada, não a exibição.
+7. **O PDF exportado em um leitor com interface.** A estrutura é testada, e o revisor abriu o arquivo com duas bibliotecas de leitura; não foi visto em tela.
+9. **Regras de jogo ao rolar o tempo e retomada de sessão** foram corrigidas após a revisão, mas não têm teste automático próprio.
+10. **A imagem final** não tem teste automático: os testes cobrem o mapeamento de estado para canais e uniformes; a imagem foi conferida a olho nas folhas de contato.
 8. **Ciência e pedagogia.** Todas as fórmulas da fonte sintética e todos os textos pedagógicos são provisórios e estão marcados.
 
 ## 4. Mudanças de comportamento em algo que já existia
@@ -57,6 +80,7 @@ O pacote tinha só o esqueleto do `create-next-app`.
 4. **Decisão de shaders** diverge da leitura literal do Dossiê (WebGPU). Está em ADR, com o custo de voltar atrás.
 5. **Dados sintéticos convincentes** podem ser confundidos com ciência. Há selo em toda tela; a fonte nunca deve ir a produção.
 6. **Balanceamento e regras de jogo** vivem no cliente por enquanto.
+7. **Atalhos de URL** (`?dev=1`, `?papel=`) dão acesso ao console e ao seletor de papel a qualquer pessoa. São para demonstração e precisam sair antes de uso com alunos.
 
 ## 6. Decisões em aberto (precisam de você ou da equipe)
 

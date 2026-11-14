@@ -5,7 +5,7 @@ import {
   AdditiveBlending, BufferAttribute, BufferGeometry, DataTexture, DoubleSide, DynamicDrawUsage, LinearFilter, Matrix4, RGBAFormat, ShaderMaterial,
   Vector3, Vector4, type Group, type IUniform, type Mesh,
 } from "three";
-import { computeAppearance, createAppearance, type PlanetUniforms } from "@/core/appearance/appearance";
+import { axisEuler, computeAppearance, createAppearance, type PlanetUniforms } from "@/core/appearance/appearance";
 import { buildLut, DIVERGING, SEQUENTIAL, type PaletteSet } from "@/core/appearance/palettes";
 import { expandToRenderLevel, getMesh } from "@/core/mesh/geodesic";
 import { usePlanetStore } from "@/store/planetStore";
@@ -15,6 +15,9 @@ import { SURFACE_FRAGMENT } from "./shaders/surface";
 import { perfStats, runtime } from "./quality";
 
 const CHANNELS = ["A", "B", "C", "D"] as const;
+// Module-level helpers: nothing is created inside the render loop.
+const lerp3 = (u: IUniform, c: [number, number, number], k: number) => { const v = u.value as Vector3; v.x += (c[0] - v.x) * k; v.y += (c[1] - v.y) * k; v.z += (c[2] - v.z) * k; };
+const damp = (u: IUniform, v: number, k: number) => { u.value += (v - u.value) * k; };
 const BLEND_SECONDS = 0.9, ERA_FADE_SECONDS = 1.6;
 type U = Record<string, IUniform>;
 
@@ -131,15 +134,16 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
     const st = usePlanetStore.getState(), t = gpu.target, group = planetRef.current;
     if (!t || !group || !tilt.current) return;
     const still = st.still, d = Math.min(dt, 0.1), k = still ? 1 : 1 - Math.exp(-d / 0.6);
-    const time = still ? 0 : state.clock.elapsedTime;
+    // Reduced motion: shader time stands still (no waves, drifting clouds, lava flicker or aurora ribbons).
+    const time = still || reducedMotion ? 0 : state.clock.elapsedTime;
     runtime.time = time;
     const sh = mats.shared, su = mats.surface.uniforms, cu = mats.clouds.uniforms, au = mats.atmosphere.uniforms;
     // Orbit and rotation (stylized pacing: one planet day takes a minute at 24 h; see the legend).
     // The star stays fixed in the scene and the tilted axis turns around it through the year, so seasons are
     // physically oriented while the lit side keeps facing the default camera.
-    const orbit = -2 * Math.PI * t.yearPhase;
-    tmp.orbit += Math.atan2(Math.sin(orbit - tmp.orbit), Math.cos(orbit - tmp.orbit)) * k;
-    tilt.current.rotation.set(0, tmp.orbit, (t.axialTiltDeg * Math.PI) / 180, "YZX");
+    const axis = axisEuler(t.yearPhase, t.axialTiltDeg);
+    tmp.orbit += Math.atan2(Math.sin(axis.y - tmp.orbit), Math.cos(axis.y - tmp.orbit)) * k;
+    tilt.current.rotation.set(0, tmp.orbit, axis.z, "YZX");
     if (!still && !reducedMotion && st.playing) tmp.spin += (d * 2 * Math.PI) / (60 * Math.max(0.25, t.dayHours / 24));
     group.rotation.y = tmp.spin;
     group.updateWorldMatrix(true, false);
@@ -152,17 +156,15 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
     sh.uTime.value = time; sh.uSeed.value = (t.seed % 97) * 1.37;
     sh.uExag.value += (st.exaggeration - sh.uExag.value) * k;
     cu.uShell.value = sh.uExag.value * 0.62 + 0.012;
-    const lerp3 = (u: IUniform, c: [number, number, number]) => { const v = u.value as Vector3; v.x += (c[0] - v.x) * k; v.y += (c[1] - v.y) * k; v.z += (c[2] - v.z) * k; };
     const ecc = 1 + 2 * t.eccentricity * Math.cos(2 * Math.PI * t.yearPhase);
-    lerp3(sh.uSkyColor, t.skyColor); lerp3(sh.uStarColor, t.starColor); lerp3(su.uOceanShallow, t.oceanShallow); lerp3(su.uOceanDeep, t.oceanDeep); lerp3(cu.uCloudColor, t.cloudColor);
-    const damp = (u: IUniform, v: number) => { u.value += (v - u.value) * k; };
-    damp(sh.uSunDim, t.sunDim); damp(sh.uAtmo, t.atmoDensity); damp(su.uHaze, t.haze); damp(su.uTermSoft, t.terminatorSoftness); damp(su.uStarInt, t.starIntensity * ecc);
-    damp(su.uSurfaceHeat, t.surfaceHeat); damp(su.uDesat, t.desaturate); damp(cu.uCloudOpacity, t.cloudOpacity); damp(au.uErosion, t.erosion); damp(mats.aurora.uniforms.uAurora, t.aurora);
+    lerp3(sh.uSkyColor, t.skyColor, k); lerp3(sh.uStarColor, t.starColor, k); lerp3(su.uOceanShallow, t.oceanShallow, k); lerp3(su.uOceanDeep, t.oceanDeep, k); lerp3(cu.uCloudColor, t.cloudColor, k);
+    damp(sh.uSunDim, t.sunDim, k); damp(sh.uAtmo, t.atmoDensity, k); damp(su.uHaze, t.haze, k); damp(su.uTermSoft, t.terminatorSoftness, k); damp(su.uStarInt, t.starIntensity * ecc, k);
+    damp(su.uSurfaceHeat, t.surfaceHeat, k); damp(su.uDesat, t.desaturate, k); damp(cu.uCloudOpacity, t.cloudOpacity, k); damp(au.uErosion, t.erosion, k); damp(mats.aurora.uniforms.uAurora, t.aurora, k);
     au.uScale.value = 0.018 + 0.03 * sh.uAtmo.value;
     // The shell is only as large as the glow needs: fewer shaded pixels. It grows when the atmosphere leaks (erosion tail).
     if (shell.current) { shell.current.visible = sh.uAtmo.value > 0.005; shell.current.scale.setScalar(au.uErosion.value > 0.01 ? 1.5 : 1.06 + 5 * au.uScale.value); }
     su.uLayerMode.value = t.layerMode; su.uLut.value = t.layerKind === "diverging" ? luts.diverging : luts.sequential;
-    damp(su.uLayerOpacity, t.layerMode ? 0.94 : 0);
+    damp(su.uLayerOpacity, t.layerMode ? 0.94 : 0, k);
     runtime.zoom = Math.min(1, Math.max(0, (3.6 - runtime.cameraDistance) / 1.9));
     su.uZoom.value = runtime.zoom;
     su.uHighlightPulse.value = still || reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(time * 2.2);

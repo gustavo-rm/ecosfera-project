@@ -37,7 +37,7 @@ function Scene({ quality, paletteSet, reducedMotion, interactive }: { quality: Q
   return (
     <>
       <PerfGovernor />
-      <CameraRig planet={planet} interactive={interactive} />
+      <CameraRig planet={planet} interactive={interactive} reducedMotion={reducedMotion} />
       <Sky stars={q.stars} />
       <PlanetBody planetRef={planet} renderOffset={q.renderOffset} octaves={q.octaves} paletteSet={paletteSet} reducedMotion={reducedMotion}>
         <Organisms budget={q.organisms} />

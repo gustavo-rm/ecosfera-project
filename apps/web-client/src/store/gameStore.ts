@@ -17,7 +17,9 @@ export interface Notice { id: string; key: string; params?: Record<string, strin
 export interface DiaryEntry { tick: number; era: number; key: string; params?: Record<string, string | number> }
 
 export interface GameStore {
-  hydrated: boolean; started: boolean; scenarioId: string; seed: number; params: Partial<PlanetParams>;
+  hydrated: boolean; started: boolean; scenarioId: string;
+  /** Null = the scenario's own seed. Saved as chosen so that resume rebuilds the same planet. */
+  seed: number | null; params: Partial<PlanetParams>;
   resources: Record<ResourceId, number>; cooldowns: Record<string, number>;
   unlocked: string[]; stats: Stats; achievements: string[]; missionsDone: string[];
   codex: string[]; known: string[]; diary: DiaryEntry[]; scans: number[]; revealAll: boolean;
@@ -35,7 +37,7 @@ export interface GameStore {
   inspect(lineageId: string): void;
   notify(n: Omit<Notice, "id" | "tick">): void;
   dismiss(id: string): void;
-  onFrame(frame: PlanetFrame, prev: PlanetFrame | null): void;
+  onFrame(frame: PlanetFrame): void;
   patch(p: Partial<GameStore>): void;
 }
 
@@ -43,6 +45,10 @@ const START_RES: Record<ResourceId, number> = { actionPoints: 5, energy: 100, bu
 export const MAX_AP = 5;
 const KEY = "game.v1";
 let noticeSeq = 0;
+/** Last frame the game rules ran on. Rules only move forward in time: looking at the past never changes the game. */
+let lastProcessed: PlanetFrame | null = null;
+/** True while the planet on screen is a moment before the latest one reached (timeline scrubbing). */
+export const isViewingPast = (): boolean => { const p = usePlanetStore.getState(); return !!p.frame && p.frame.tick < p.maxTick - 6; };
 const directionOf = (before: number, after: number): Direction => { const d = (after - before) / Math.max(1e-6, Math.abs(before)); return d > 0.02 ? "up" : d < -0.02 ? "down" : "same"; };
 
 export function readVariable(frame: PlanetFrame, v: PredictVar, cell: number | null): number {
@@ -73,7 +79,7 @@ export function syncReveal() {
 export const useGameStore = create<GameStore>((set, get) => {
   const save = () => { const { hydrated: _h, notices: _n, ...s } = get(); void idbSet(KEY, JSON.parse(JSON.stringify(s))); };
   return {
-    hydrated: false, started: false, scenarioId: "genesis", seed: 7, params: {},
+    hydrated: false, started: false, scenarioId: "genesis", seed: null, params: {},
     resources: { ...START_RES }, cooldowns: {}, unlocked: ["sci.habitableZone", "tech.scanner"], stats: { ...EMPTY_STATS }, achievements: [], missionsDone: [],
     codex: [], known: [], diary: [], scans: [], revealAll: false, predictions: [], notices: [], tutorLog: [], savedTick: 0, commands: [],
     onboarding: 0, attempts: 0, lastActionTick: 0, reportEra: null, collapsed: false, playerLevel: 0,
@@ -81,11 +87,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     async start(scenarioId, params = {}, seed) {
       const attempts = get().attempts + 1, wasCollapsed = get().collapsed;
       set({
-        started: true, scenarioId, params, seed: seed ?? params.seed ?? 7, resources: { ...START_RES }, cooldowns: {}, predictions: [], notices: [], diary: [], scans: [], known: [], savedTick: 0, commands: [],
+        started: true, scenarioId, params, seed: seed ?? params.seed ?? null, resources: { ...START_RES }, cooldowns: {}, predictions: [], notices: [], diary: [], scans: [], known: [], savedTick: 0, commands: [],
         attempts, lastActionTick: 0, reportEra: null, collapsed: false, stats: { ...get().stats, collapses: get().stats.collapses },
       });
       if (wasCollapsed) set({ stats: { ...get().stats, recoveries: get().stats.recoveries } });
-      await usePlanetStore.getState().init({ scenarioId, level: 5, seed, params });
+      lastProcessed = null;
+      await usePlanetStore.getState().init({ scenarioId, level: 5, seed: seed ?? params.seed, params });
       save();
     },
     async resume() {
@@ -99,7 +106,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
     apply(id, opts) {
       const def = INTERVENTION_BY_ID[id], frame = usePlanetStore.getState().frame, g = get();
-      if (!def || !frame || !g.canAfford(id) || (g.cooldowns[id] ?? 0) > frame.tick) return false;
+      if (!def || !frame || isViewingPast() || !g.canAfford(id) || (g.cooldowns[id] ?? 0) > frame.tick) return false;
       if (def.requires && !g.unlocked.includes(def.requires)) return false;
       const resources = { ...g.resources };
       for (const [k, v] of Object.entries(def.cost)) resources[k as ResourceId] -= v ?? 0;
@@ -141,10 +148,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     patch(p) { set(p); save(); },
 
     /** Game rules that react to the observed state. Read-only with respect to the world (principle 2). */
-    onFrame(frame, prev) {
+    onFrame(frame) {
       const g = get(), gl = frame.globals;
       if (!g.started) return;
       evidence.setContext(frame.tick, gl.era);
+      // Scrubbing the timeline shows the past; it must not refill resources, repeat notices or rewrite the diary.
+      if (lastProcessed && frame.tick <= lastProcessed.tick) return;
+      // A long jump (resume, or a link that opens a later moment) is treated like a first frame: state is caught up,
+      // but no era reward and no backlog of notices.
+      const prev = lastProcessed && frame.tick - lastProcessed.tick <= 1200 ? lastProcessed : null;
+      lastProcessed = frame;
       const stats = { ...g.stats }, patch: Partial<GameStore> = {};
       const dt = prev ? Math.max(0, frame.tick - prev.tick) : 0;
       const resources = { ...g.resources, energy: Math.min(100, g.resources.energy + dt * 0.12), budget: Math.min(100, g.resources.budget + dt * 0.03 * (0.4 + gl.prosperity)) };

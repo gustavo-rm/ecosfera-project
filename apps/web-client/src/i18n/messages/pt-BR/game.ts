@@ -23,7 +23,7 @@ export const game = {
     confirm: "Confirmar ação", gain: "O que você ganha", sideCost: "O que isso custa ao planeta", cost: "Custo", have: "você tem {n}", cooldown: "Recarga", cooldownYears: "{years} anos até poder repetir", cooldownLeft: "faltam {years} anos",
     synergy: "Combina com", conflict: "Compete com", short: "insuficiente", needsConcept: "Aprenda: {concept}", needsEra: "Disponível a partir da era {era}", lockedTitle: "Você só pode fazer o que entende",
     lockedBody: "Para usar esta ação, primeiro domine o conceito “{concept}”.", goResearch: "Ir para a pesquisa", pickTarget: "Toque em um ponto do planeta para escolher onde agir.", useCenter: "Usar o centro da tela", target: "Alvo: {lat}°, {lon}°",
-    cannotAfford: "Faltam recursos para esta ação.", suppressTarget: "Evento alvo: {name}.", suppressNone: "Não há evento previsto para suprimir agora.",
+    cannotAfford: "Faltam recursos para esta ação.", past: "Você está vendo o passado. Leve a linha do tempo até o fim para agir.", suppressTarget: "Evento alvo: {name}.", suppressNone: "Não há evento previsto para suprimir agora.",
   },
   predict: { title: "Sua previsão (opcional)", variable: "O que você acha que vai mudar?", skip: "Não quero prever agora", direction: "Para onde vai?", up: "Sobe", same: "Fica igual", down: "Desce",
     var: { temperature: "Temperatura", o2: "O₂", co2: "CO₂", biomass: "Biomassa", richness: "Número de linhagens", water: "Água na região" } },
@@ -49,7 +49,7 @@ export const game = {
     tags: "Marcadores", lifeCycle: "Ciclo de vida", morphology: "Corpo", relations: "Relações tróficas", eats: "Come", eatenBy: "É comida por", cycle: "Relação cíclica com", nothing: "nada registrado", distribution: "Distribuição no planeta",
     showOnGlobe: "Destacar no planeta", hideOnGlobe: "Parar de destacar", history: "História", origin: "Origem", originText: "{mode}, no ano {year}, perto de {lat}°, {lon}°.", extinction: "Extinção", extinctionText: "No ano {year}. Causa provável: {cause}.",
     geneticDistance: "Distância genética do ancestral", founder: "Efeito fundador", active: "ativa", absent: "ausente", optimum: "ótimo {value}", performance: "Desempenho", diaryEmpty: "O diário ainda está vazio.", capability: "Capacidade", present: "Presente",
-    radarSummary: "Maiores prioridades: {top}.", curveSummary: "{label}: melhor em {opt}, tolera cerca de ±{breadth}.", offspring: "Descendentes por vez", investment: "Investimento por descendente", back: "Voltar à lista",
+    radarSummary: "Maiores prioridades: {top}.", curveSummary: "{label}: melhor em {opt}, tolera cerca de ±{breadth}.", years: "{n} anos", offspring: "Descendentes por vez", investment: "Investimento por descendente", back: "Voltar à lista",
   },
   research: {
     title: "Pesquisa", tree: { science: "Árvore científica (compreensão)", tech: "Árvore tecnológica (capacidades)" }, unlock: "Desbloquear", unlocked: "Dominado", locked: "Bloqueado", cost: "Custo: {n} pontos de pesquisa", points: "Pontos de pesquisa: {n}",

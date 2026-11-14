@@ -1,6 +1,7 @@
 /** Client-side exports (RF-066): CSV and a minimal PDF writer. Nothing leaves the browser. */
 export function toCsv(header: string[], rows: (string | number)[][]): string {
-  const esc = (v: string | number) => { const s = typeof v === "number" ? String(v).replace(".", ",") : v; return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  // Text that starts like a formula is prefixed with an apostrophe, so a spreadsheet never executes it.
+  const esc = (v: string | number) => { const s = typeof v === "number" ? String(v).replace(".", ",") : /^[=+\-@]/.test(v) ? "'" + v : v; return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   // Semicolon separator and BOM: opens correctly in spreadsheet programs configured for pt-BR.
   return "﻿" + [header, ...rows].map((r) => r.map(esc).join(";")).join("\r\n");
 }
@@ -9,7 +10,7 @@ export function download(filename: string, content: BlobPart, type: string) {
   a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-const WIN1252: Record<string, number> = { "–": 0x96, "—": 0x97, "“": 0x93, "”": 0x94, "’": 0x92, "•": 0x95, "…": 0x85, "€": 0x80 };
+const WIN1252: Record<string, number> = { "–": 0x96, "—": 0x97, "“": 0x93, "”": 0x94, "’": 0x92, "•": 0x95, "…": 0x85, "€": 0x80, "₂": 0x32, "₄": 0x34, "≥": 0x3e, "→": 0x3e, "⊕": 0x2b };
 function encode(s: string): string {
   let out = "";
   for (const ch of s) { const c = ch.charCodeAt(0); const b = c < 256 ? c : WIN1252[ch] ?? 63; out += b === 40 || b === 41 || b === 92 ? "\\" + String.fromCharCode(b) : String.fromCharCode(b); }

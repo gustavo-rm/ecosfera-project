@@ -18,7 +18,7 @@ Três níveis, definidos em `render/quality.ts`:
 | Oitavas de ruído | 2 | 3 | 5 |
 | Ondas, espuma e ruído fino | não | sim | sim |
 | Antisserrilhamento | não | sim | sim |
-| Organismos instanciados | 0 | 500 | 1 400 |
+| Organismos instanciados | 160 | 500 | 1 400 |
 | Quadros de estado por segundo | 3 | 5 | 8 |
 
 Governador automático (`PerfGovernor` em `render/PlanetView.tsx`):
@@ -31,7 +31,7 @@ Governador automático (`PerfGovernor` em `render/PlanetView.tsx`):
 
 A escala de resolução passa pela propriedade `dpr` do `Canvas`, porque o React Three Fiber reaplica essa propriedade a cada render.
 
-Disciplina de render: nada é alocado dentro de `useFrame`; a aparência é calculada só quando o estado muda; a geração de dados roda em Web Worker; os shaders pulam por ramificação o que não se aplica ao pixel.
+Disciplina de render: o laço por quadro do planeta não aloca; a aparência é calculada só quando o estado muda; a geração de dados roda em Web Worker; os shaders pulam por ramificação o que não se aplica ao pixel.
 
 ## Consequências
 
