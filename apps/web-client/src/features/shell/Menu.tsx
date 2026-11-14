@@ -12,7 +12,7 @@ export const STUDENT_NAV = [
   { href: "/jogo/pesquisa", icon: "flask", key: "nav.research" }, { href: "/jogo/missoes", icon: "target", key: "nav.missions" }, { href: "/jogo/dados", icon: "chart", key: "nav.data" },
 ];
 export const TEACHER_NAV = [
-  { href: "/professor", icon: "grid", key: "nav.class" }, { href: "/professor/aluno", icon: "user", key: "nav.student" }, { href: "/professor/bncc", icon: "table", key: "nav.bncc" },
+  { href: "/professor", icon: "grid", key: "nav.class" }, { href: "/professor/aluno", icon: "user", key: "nav.studentView" }, { href: "/professor/bncc", icon: "table", key: "nav.bncc" },
   { href: "/professor/gestao", icon: "users", key: "nav.manage" }, { href: "/professor/desafios", icon: "flag", key: "nav.challenges" }, { href: "/professor/comparar", icon: "compare", key: "nav.comparePlanets" },
   { href: "/professor/exportar", icon: "download", key: "nav.export" }, { href: "/professor/mensagens", icon: "send", key: "nav.messages" }, { href: "/professor/privacidade", icon: "shield", key: "nav.privacy" },
 ];
@@ -53,7 +53,7 @@ export function RoleSelector() {
   const role = useSettings((s) => s.role), update = useSettings((s) => s.update);
   return (
     <div role="radiogroup" aria-label={t("role.select")} className="flex flex-wrap gap-2" data-role-selector>
-      {ROLES.map((r) => <Link key={r} href={ROLE_HOME[r]} role="radio" aria-checked={role === r} aria-pressed={role === r} className="ec-btn" onClick={() => update({ role: r })}><Icon name={ROLE_ICON[r]} />{t(`role.${r}`)}</Link>)}
+      {ROLES.map((r) => <Link key={r} href={ROLE_HOME[r]} role="radio" aria-checked={role === r} className="ec-btn" onClick={() => update({ role: r })}><Icon name={ROLE_ICON[r]} />{t(`role.${r}`)}</Link>)}
     </div>
   );
 }

@@ -179,7 +179,10 @@ export class SyntheticEngine {
       const seedN = hashString(l.id) % 1000;
       const erratic = noise3(tick / (l.period * 0.41), seedN, 0.5, this.params.seed) * 2 - 1;
       const slow = noise3(tick / (l.period * 2.7), seedN, 7.5, this.params.seed) * 2 - 1;
-      let pop = l.cap * grow * Math.max(0.05, 1 + l.amp * Math.sin((2 * Math.PI * tick) / l.period + l.phase) + l.amp * 0.9 * erratic + l.amp * 0.6 * slow);
+      // Consumers follow their first prey a quarter of a cycle behind (out-of-phase predator-prey oscillation, §21.1).
+      const lead = l.prey ? ls[this.lineageIndex.get(l.prey[0]) ?? i] : l;
+      const wave = Math.sin((2 * Math.PI * tick) / lead.period + lead.phase - (l.prey ? Math.PI / 2 : 0));
+      let pop = l.cap * grow * Math.max(0.05, 1 + l.amp * wave + l.amp * 0.5 * erratic + l.amp * 0.6 * slow);
       if (l.prey && depth < 2) {
         const prev = this.populations(tick - l.period / 4, depth + 1);
         let f = 0, cnt = 0;

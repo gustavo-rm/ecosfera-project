@@ -17,7 +17,7 @@ export function ProgressPanel() {
   const rows: [string, number, string][] = [["progress.predictions", stats.predictions, "target"], ["progress.confirmed", stats.correctPredictions, "check"], ["progress.charts", stats.chartsOpened, "chart"], ["progress.scans", stats.scans, "search"], ["progress.species", stats.speciesInspected.length, "dna"], ["progress.questions", stats.tutorQuestions, "chat"], ["progress.recoveries", stats.recoveries, "reset"]];
   return (
     <div className="grid gap-3 lg:grid-cols-2" data-progress>
-      <section className="ec-card" aria-labelledby="nivel"><h2 id="nivel" className="mb-2">{t("level._")}</h2>
+      <section className="ec-card" aria-labelledby="nivel"><h2 id="nivel" className="mb-2">{t("level")}</h2>
         <ol className="flex flex-wrap gap-2">{PLAYER_LEVELS.map((l, i) => <li key={l}><Chip tone={i === level ? "success" : undefined} icon={i < level ? "check" : i === level ? "star" : "lock"}>{t(`level.${l}`)}{i === level && <span className="ec-sr-only"> (atual)</span>}</Chip></li>)}</ol>
         <p className="mt-2">{level < 3 ? t("progress.nextLevel", { level: t(`level.${PLAYER_LEVELS[level + 1]}`) }) : t("progress.top")}</p><p className="ec-muted mt-1 text-[length:var(--ec-text-sm)]">{t("level.note")}</p>
       </section>

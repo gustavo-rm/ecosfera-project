@@ -36,14 +36,13 @@ export function InterventionDialog({ id, onClose }: { id: string | null; onClose
   const frame = usePlanetStore((s) => s.frame);
   const selected = usePlanetStore((s) => s.selectedCell);
   const game = useGameStore();
-  const [option, setOption] = useState<string>("");
+  const [option, setOption] = useState<string>(() => (id ? INTERVENTION_BY_ID[id]?.options?.[0]?.id ?? "" : ""));
   const [variable, setVariable] = useState<PredictVar | "">("");
   const [direction, setDirection] = useState<Direction | "">("");
   const opened = useRef(0), consulted = useRef<string[]>([]);
   useEffect(() => {
     if (!id) return;
     opened.current = performance.now(); consulted.current = [];
-    setOption(INTERVENTION_BY_ID[id].options?.[0]?.id ?? ""); setVariable(""); setDirection("");
     return evidence.subscribe((r) => { if (r.type === "chart_opened") consulted.current.push(r.chart); if (r.type === "layer_viewed") consulted.current.push(r.layer); });
   }, [id]);
   if (!def || !frame) return null;
@@ -90,7 +89,7 @@ export function InterventionDialog({ id, onClose }: { id: string | null; onClose
               <Select label={t("predict.variable")} value={variable} onChange={(v) => setVariable(v as PredictVar | "")} options={[{ value: "", label: t("predict.skip") }, ...def.predict.map((v) => ({ value: v, label: t(`predict.var.${v}`) }))]} />
               <div role="radiogroup" aria-label={t("predict.direction")}>
                 <span className="ec-label">{t("predict.direction")}</span>
-                <div className="flex gap-1">{(["up", "same", "down"] as const).map((d) => <button key={d} type="button" role="radio" aria-checked={direction === d} aria-pressed={direction === d} disabled={!variable} className="ec-btn flex-1" onClick={() => setDirection(d)}><Icon name={d === "same" ? "flat" : d} />{t(`predict.${d}`)}</button>)}</div>
+                <div className="flex gap-1">{(["up", "same", "down"] as const).map((d) => <button key={d} type="button" role="radio" aria-checked={direction === d} disabled={!variable} className="ec-btn flex-1" onClick={() => setDirection(d)}><Icon name={d === "same" ? "flat" : d} />{t(`predict.${d}`)}</button>)}</div>
               </div>
             </div>
           </fieldset>

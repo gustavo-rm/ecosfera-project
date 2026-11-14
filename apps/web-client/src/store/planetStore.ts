@@ -24,6 +24,8 @@ export interface PlanetStore {
   revealed: Uint8Array | null;
   history: SeriesHistory | null; historyTick: number;
   bufferVersion: number;
+  /** Latest moment reached in this session: the timeline only scrubs through what already happened. */
+  maxTick: number;
   /** Still mode: no time-based animation, for tests, screenshots and reduced motion (principle 8). */
   still: boolean;
   init(config: SourceConfig): Promise<void>;
@@ -55,17 +57,17 @@ export const usePlanetStore = create<PlanetStore>((set, get) => ({
   status: "idle", errorDetail: null, info: null, config: null, frame: null, playing: false, speed: 12, mode: "normal",
   layer: null, compareTick: null, showClouds: true, exaggeration: 0.07, quality: "medium", autoQuality: true, autoRotate: true,
   selectedCell: null, hoveredCell: null, focusCell: null, focusSeq: 0, selectedSpecies: null, revealed: null,
-  history: null, historyTick: -1, bufferVersion: 0, still: false,
+  history: null, historyTick: -1, bufferVersion: 0, maxTick: 0, still: false,
 
   async init(config) {
     const src = getSource();
-    set({ status: "loading", errorDetail: null, config, frame: null, history: null, historyTick: -1, selectedCell: null, selectedSpecies: null, compareTick: null });
+    set({ status: "loading", errorDetail: null, config, frame: null, maxTick: 0, history: null, historyTick: -1, selectedCell: null, selectedSpecies: null, compareTick: null });
     snapshots.clear();
     unsubscribe?.();
     unsubscribe = src.subscribe((m) => {
       if (m.type === "frame") {
         if (snapshots.push(m.frame)) set({ bufferVersion: get().bufferVersion + 1 });
-        set({ frame: m.frame, status: "ready" });
+        set({ frame: m.frame, status: "ready", maxTick: Math.max(get().maxTick, m.frame.tick) });
       } else if (m.type === "clock") set({ playing: m.playing, speed: m.speed, mode: m.mode });
       else if (m.type === "error") set({ status: "error", errorDetail: m.detail ?? null });
     });

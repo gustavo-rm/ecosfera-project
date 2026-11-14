@@ -162,11 +162,9 @@ export function TimeBar({ onTutor, onMissions }: { onTutor: () => void; onMissio
   const speed = usePlanetStore((s) => s.speed);
   const compareTick = usePlanetStore((s) => s.compareTick);
   const history = useHistory(120);
-  const [maxTick, setMaxTick] = useState(0);
+  const maxTick = usePlanetStore((s) => s.maxTick);
   const missionsDone = useGameStore((s) => s.missionsDone);
   const stats = useGameStore((s) => s.stats);
-  useEffect(() => { if (frame && frame.tick > maxTick) setMaxTick(frame.tick); }, [frame, maxTick]);
-  useEffect(() => { setMaxTick(0); }, [info?.scenarioId]);
   const current = useMemo(() => {
     if (!frame) return null;
     const open = MISSIONS.filter((x) => !missionsDone.includes(x.id));

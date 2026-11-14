@@ -66,7 +66,7 @@ export function GameScreen() {
         </div>
         <TimeBar onTutor={() => setTutor(!tutor)} onMissions={() => router.push("/jogo/missoes")} />
       </div>
-      <InterventionDialog id={intervention} onClose={() => setIntervention(null)} />
+      <InterventionDialog key={intervention ?? "none"} id={intervention} onClose={() => setIntervention(null)} />
       <WhyDialog open={why.open} eventId={why.eventId} onClose={() => setWhy({ open: false, eventId: null })} />
       <RegionDialog cell={region} onClose={() => setRegion(null)} />
       <EraReportDialog era={report} onClose={() => { setReport(null); useGameStore.getState().patch({ reportEra: null }); }} />

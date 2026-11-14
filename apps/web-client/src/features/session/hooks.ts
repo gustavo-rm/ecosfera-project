@@ -23,7 +23,8 @@ export function useHistory(samples = 160) {
 export function usePastFrame(ticksAgo = 240): PlanetFrame | null {
   const tick = usePlanetStore((s) => s.frame?.tick ?? 0);
   const version = usePlanetStore((s) => s.bufferVersion);
+  const bucket = Math.floor(tick / 30);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => snapshots.bracket(tick - ticksAgo).before ?? snapshots.bracket(tick - 1).before, [Math.floor(tick / 30), version, ticksAgo]);
+  return useMemo(() => snapshots.bracket(tick - ticksAgo).before ?? snapshots.bracket(tick - 1).before, [bucket, version, ticksAgo]);
 }
 export const yearsLabel = (ticks: number) => Math.floor(ticks / 12);

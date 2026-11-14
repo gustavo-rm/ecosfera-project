@@ -31,7 +31,7 @@ export function buildLut(name: string): Uint8Array {
 /** Okabe-Ito categorical colors for chart series. Always paired with a marker shape and a label (never color alone). */
 export const SERIES_COLORS = ["#0072b2", "#e69f00", "#009e73", "#d55e00", "#cc79a7", "#56b4e9", "#f0e442", "#000000"];
 /** Dark-surface steps, validated with the dataviz palette validator (lightness band, chroma, CVD and normal-vision separation). */
-export const SERIES_COLORS_DARK = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#c3c2b7"];
+export const SERIES_COLORS_DARK = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#c3c2b7", "#9085e9", "#0ca30c"];
 export const SERIES_SHAPES = ["circle", "square", "triangle", "diamond", "cross", "star", "wye", "circle"] as const;
 
 const lin = (v: number) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
