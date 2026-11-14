@@ -3,9 +3,9 @@
 ## Resumo
 
 - **Não foi possível medir em um Chromebook real.** Todas as medidas são em Chromium headless com WebGL por software (SwiftShader), em uma máquina de 4 núcleos sem GPU. Isso é um **piso pessimista**: mede o pior caso de preenchimento de pixels na CPU. Não representa um Chromebook, que tem GPU integrada.
-- Com a **qualidade automática**, em 1366×768, o planeta estabiliza em **34,8 FPS** (p95 de 33 ms por quadro). Com a CPU limitada em 4×, fica em **28,2 FPS** (p95 de 50 ms). Para isso o governador desce ao nível baixo e reduz a resolução interna para 699×393.
+- Com a **qualidade automática**, em 1366×768, o planeta estabiliza em **30,9 FPS** (p95 de 50 ms por quadro). Com a CPU limitada em 4×, fica em **28,8 FPS** (p95 de 50 ms). Para isso o governador desce ao nível baixo e reduz a resolução interna para 699×393.
 - Sem a queda automática, em resolução cheia, o WebGL por software fica entre 5 e 20 FPS conforme o nível e a vista.
-- Latência da ação ao feedback (RNF-002): a ondulação no ponto é disparada no mesmo instante do gesto (0,5 ms) e aparece na tela em **268 ms no p95**, no mesmo ambiente.
+- Latência da ação ao feedback (RNF-002): a ondulação no ponto é disparada no mesmo instante do gesto (0,5 ms) e aparece na tela em **192 ms no p95**, no mesmo ambiente.
 - **Confiança:** alta de que o piso é este; baixa sobre o número em hardware real. A meta de 30 FPS em Chromebook continua **não verificada**.
 
 ## Método
@@ -22,8 +22,8 @@ A tabela completa, gerada pelo script, está em `desempenho-medidas.md`. Extrato
 
 | Qualidade | CPU | Vista | Quadro médio | FPS | p95 |
 |---|---|---|---|---|---|
-| automática (chega a baixa, buffer 699×393) | 1× | planeta inteiro | 28,7 ms | 34,8 | 33 ms |
-| automática (chega a baixa, buffer 699×393) | 4× | planeta inteiro | 35,5 ms | 28,2 | 50 ms |
+| automática (chega a baixa, buffer 699×393) | 1× | planeta inteiro | 32,3 ms | 30,9 | 50 ms |
+| automática (chega a baixa, buffer 699×393) | 4× | planeta inteiro | 34,8 ms | 28,8 | 50 ms |
 | baixa, resolução cheia | 1× | planeta inteiro | 66 ms | 15 | 83 ms |
 | baixa, resolução cheia | 1× | camada de temperatura | 52 ms | 19 | 83 ms |
 | baixa, resolução cheia | 4× | planeta inteiro | 83 ms | 12 | 100 ms |
@@ -35,7 +35,8 @@ Leitura:
 
 1. **O custo está nos pixels.** Dividir os pixels por quatro triplica o FPS no nível baixo. Por isso o primeiro passo do governador é a resolução.
 2. **Níveis médio e alto têm picos** (p95 muito acima da mediana). Eles coincidem com a chegada de um estado novo: o worker de dados e o rasterizador por software disputam os mesmos núcleos. Em GPU real o rasterizador não usa a CPU; a expectativa é que os picos caiam, mas isso não foi medido.
-3. **Zoom com organismos** custa mais (mais ruído por pixel e instâncias). No nível baixo não há organismos.
+3. **Zoom com organismos** custa mais (mais ruído por pixel e instâncias). O nível baixo tem um orçamento pequeno de organismos (160).
+4. As demais linhas da tabela são da medição anterior à inclusão de organismos no nível baixo; a tabela gerada em `desempenho-medidas.md` é a mais recente.
 
 ## O que foi feito para o orçamento
 

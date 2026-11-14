@@ -22,7 +22,7 @@ Um frontend completo e navegável em `apps/web-client`, que roda sem backend sob
 | Tipos e lint | `tsc` sem erros; ESLint sem erros (avisos menores). |
 | Build de produção | 22 rotas estáticas. |
 | Ponta a ponta (Playwright) | 68 checagens passam: axe-core com 0 violações em 43 combinações de tela e tema; 14 fluxos só com teclado; estados carregando, vazio, erro, sem vida e fim de era; 0 erros de console. Relatório legível em `relatorios/e2e.md`. |
-| Desempenho | Medido em WebGL por software: 34,8 FPS com qualidade automática em 1366×768 (28,2 FPS com CPU limitada em 4×). Latência da ação ao feedback: p95 de 268 ms. |
+| Desempenho | Medido em WebGL por software: 30,9 FPS com qualidade automática em 1366×768 (28,8 FPS com CPU limitada em 4×). Latência da ação ao feedback: p95 de 192 ms. |
 | Tamanho do pacote | Dentro dos limites definidos: jogo com 469 KiB comprimidos de JS e CSS. |
 | Catálogo visual | 17 folhas de contato, olhadas e criticadas ao longo do trabalho; várias rodadas de correção no planeta. |
 

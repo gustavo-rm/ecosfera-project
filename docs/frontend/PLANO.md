@@ -22,3 +22,5 @@ Estado em 2026-11-14, ao fim da primeira entrega.
 5. Implementar `BackendSource` quando o contrato existir; depois autenticação real e sincronização (ADR FE-0006).
 6. Lacunas conhecidas de interface: vegetação e fauna sem animação; chuva em zoom e correntes oceânicas não feitas; comparação lado a lado em 3D; mensagens do professor ainda não aparecem para o aluno; imagens de referência com tolerância ainda não entram no CI.
 7. Testar Firefox e Safari.
+8. Pendências menores da revisão independente: ordem de foco do jogo, navegação por setas nos grupos de opção, liberação de geometrias, uso do campo `solar_flux`, teste das cores de biomas sob daltonismo, remoção dos atalhos de URL antes de uso com alunos.
+9. Artefato visual: anel fino e escuro na borda da casca da atmosfera, visível contra o fundo.

@@ -33,8 +33,8 @@ Estados: **FV** = feito e verificado (executado e visto, ou coberto por teste); 
 
 | ID | Requisito | Estado | Como foi verificado, ou motivo |
 |---|---|---|---|
-| RNF-001 | 30 FPS em Chromebook, fallback automático | FN | 34,8 FPS em WebGL por software com qualidade automática; **Chromebook real não disponível**. |
-| RNF-002 | Ação → feedback em até 1 s (p95) | FV em software | p95 de 268 ms (e2e). |
+| RNF-001 | 30 FPS em Chromebook, fallback automático | FN | 30,9 FPS em WebGL por software com qualidade automática; **Chromebook real não disponível**. |
+| RNF-002 | Ação → feedback em até 1 s (p95) | FV em software | p95 de 192 ms (e2e). |
 | RNF-014 | WCAG 2.1 AA | P | axe-core: 0 violações em 43 combinações; falta auditoria manual e leitor de tela. |
 | RNF-015 | Daltonismo | P | Paletas sequenciais, divergentes e de séries testadas com simulação. Exceção: a camada de biomas depende de cor no globo e suas 13 cores não foram testadas. |
 | RNF-016 | Baixa visão | FV | Escala de fonte, alto contraste. Zoom de 200% do navegador não testado. |
