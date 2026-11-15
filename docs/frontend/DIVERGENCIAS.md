@@ -2,7 +2,7 @@
 
 | # | Divergência | Leitura adotada |
 |---|---|---|
-| V-01 | **A Especificação do Evolution Engine não está no repositório** em nenhuma branch, nem no Drive consultado. Só existem o briefing, uma auditoria de conformidade e o Dossiê (este na branch `feature/AI-simulation-service-development`). | Tudo que cita `§` vem do briefing. Não foi possível conferir o briefing contra o original. A ordem das células (§6.2) é hipótese (D-01). |
+| V-01 | **A Especificação do Evolution Engine não está no repositório** em nenhuma branch. Foi fornecida como anexo da conversa em 2026-11-15 e consultada só nos trechos da malha geodésica (§6.2). O Dossiê está só na branch `feature/AI-simulation-service-development`. | A malha foi conferida (D-29): estrutura igual, ordem dos vértices não definida pela Especificação. O restante do briefing **não** foi conferido contra o original. |
 | V-02 | Pandemia e tempestade solar aparecem no Dossiê; o catálogo de eventos do motor (§20.2) não as tem e §26 diz que epidemias não são representáveis. | Pandemia e espécie invasora são eventos abstratos de interface, marcados como tal no "Por quê?". Tempestade solar não foi feita como evento; a atividade da estrela aparece nas auroras e na erosão da atmosfera. |
 | V-03 | A Especificação não define rótulos em português para causas de morte e estágios de vida. | Rótulos provisórios em `planet.ts` (`cause.*`, `stage.*`), marcados para revisão. |
 | V-04 | Dossiê e TASK-0034/0066 pedem WebGPU com fallback; TASK-0067/0068/0069 pedem GLSL. O `WebGPURenderer` não aceita GLSL. | ADR FE-0001: GLSL em `WebGLRenderer`. |

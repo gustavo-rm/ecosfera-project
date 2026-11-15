@@ -1,9 +1,12 @@
 /**
  * Cell ordering of the geodesic mesh. THIS IS THE ONLY MODULE THAT DEFINES THE ORDER OF CELLS.
  *
- * TODO(contract): the order of cells will be part of the future data contract with the engine
- * (Evolution Engine spec §6.2, DEC-04). The spec file is not in the repository, so the exact vertex
- * order of the server mesh could not be confirmed. If the server uses a different order, change only
+ * TODO(contract): the order of cells will be part of the future data contract with the engine.
+ * Checked against the Evolution Engine spec §6.2 (DEC-04) on 2026-11-15: the spec fixes the STRUCTURE of the mesh
+ * (subdivided icosahedron, 10 242 cells at level 5, `centers`, `neighbors` with -1 on the 12 pentagonal cells,
+ * `n_neighbors`, `area_km2`, `latitude`, `parent` = index in the previous level) and this module matches it.
+ * The spec does NOT define the order of the vertices nor the exact rule for `parent`. So the order below is the
+ * frontend's convention, frozen by core/__tests__/cellOrder.test.ts. If the engine uses another order, change only
  * this module (or add a permutation table here). Nothing else in the client may assume an order.
  *
  * Convention used here (deterministic):

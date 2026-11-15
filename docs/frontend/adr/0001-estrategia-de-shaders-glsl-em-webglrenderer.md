@@ -1,7 +1,7 @@
 # FE-0001 — Estratégia de shaders: GLSL em `WebGLRenderer` (WebGL 2), com WebGPU como evolução
 
-- Status: Aceito para o frontend. **Propõe ajustar a decisão RT-003 do Dossiê** (ver "Relação com decisões existentes").
-- Data: 2026-11-14
+- Status: **Aceito.** Aprovado por Gustavo (dono do projeto) em 2026-11-15. Ajusta a leitura da decisão RT-003 do Dossiê (ver "Relação com decisões existentes").
+- Data: proposto em 2026-11-14; aceito em 2026-11-15
 - Série: ADRs do frontend (`docs/frontend/adr/`), no mesmo formato de `docs/adr/`.
 
 ## Contexto
@@ -35,7 +35,7 @@ Para manter a porta aberta para a opção (a):
 ## Relação com decisões existentes
 
 - RF-057 ("sem WebGPU, cai para WebGL 2 sem quebrar") fica atendido de forma trivial: o cliente sempre roda em WebGL 2.
-- RT-003 fala em WebGPU como caminho principal. Este ADR **não o revoga**; propõe que a equipe o leia como "WebGL 2 agora, WebGPU quando houver ganho medido". Se a equipe mantiver RT-003 ao pé da letra, o trabalho é o porte dos cinco shaders para TSL.
+- RT-003 fala em WebGPU como caminho principal. Com a aceitação deste ADR, a leitura vigente é "WebGL 2 agora, WebGPU quando houver ganho medido". O caminho de volta, se um dia for preciso, é o porte dos cinco shaders para TSL.
 
 ## Consequências
 
