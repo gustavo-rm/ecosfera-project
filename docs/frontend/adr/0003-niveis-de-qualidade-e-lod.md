@@ -35,6 +35,6 @@ Disciplina de render: o laço por quadro do planeta não aloca; a aparência é 
 
 ## Consequências
 
-- Em WebGL por software e 1366×768, o governador chega ao nível baixo com escala 0,51 e fica em 30,9 FPS (28,8 FPS com CPU limitada em 4×). Detalhes em `relatorios/desempenho.md`.
+- Em WebGL por software e 1366×768, o governador chega ao nível baixo com escala 0,51 e fica perto de 30 FPS (30,9 a 34,8 em três execuções; 28,2 a 32,2 com CPU limitada em 4×). Detalhes em `relatorios/desempenho.md`.
 - No avanço rápido (nível agregado do motor, §22.5) a fauna por organismo é ocultada e a fonte envia menos quadros.
 - Não há pós-processamento em nenhum nível.

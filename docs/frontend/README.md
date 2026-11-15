@@ -20,7 +20,6 @@ Abra `http://localhost:3000`. No modo de desenvolvimento a página inicial mostr
 
 Observações:
 
-- Se `pnpm install` terminar com `ERR_PNPM_IGNORED_BUILDS` por causa do `esbuild`, veja o pedido P-01 em `PEDIDOS_A_OUTRAS_FRENTES.md`. As dependências ficam instaladas mesmo assim. Nesse caso, rode os binários direto: `./node_modules/.bin/next dev` dentro de `apps/web-client`.
 - No Windows com Git Bash, mantenha o store do pnpm no mesmo drive do projeto (por exemplo `pnpm config set store-dir /f/.pnpm-store`) para evitar falha de hardlink.
 
 ## Rotas
@@ -93,4 +92,4 @@ scripts/          verificação, medição e catálogo
 
 ## Documentos desta pasta
 
-`BRIEFING.md` (extrato dos documentos de origem), `PLANO.md`, `adr/`, `DECISOES.md`, `DIVERGENCIAS.md`, `PEDIDOS_A_OUTRAS_FRENTES.md`, `DESIGN_TOKENS.md`, `NECESSIDADES_DE_DADOS.md`, `ATIVOS.md`, `MATRIZ_DE_COBERTURA.md`, `relatorios/`, `catalogo/`, `RELATORIO_FINAL.md`.
+`BRIEFING.md` (extrato dos documentos de origem), `PLANO.md`, `adr/`, `DECISOES.md`, `DIVERGENCIAS.md`, `PEDIDOS_A_OUTRAS_FRENTES.md`, `DESIGN_TOKENS.md`, `NECESSIDADES_DE_DADOS.md`, `REVISOES_PENDENTES_V2.md`, `ATIVOS.md`, `MATRIZ_DE_COBERTURA.md`, `relatorios/`, `catalogo/`, `RELATORIO_FINAL.md`.

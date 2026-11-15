@@ -1,6 +1,6 @@
 # Relatório final — frontend do ECOSFERA
 
-Data: 2026-11-14. Branch: `feature/frontend-planet-and-dashboards`, criada a partir da `develop`. Commits locais; nada foi enviado ao remoto.
+Data: 2026-11-14, atualizado em 2026-11-15. Branch: `feature/frontend-planet-and-dashboards`, criada a partir da `develop`. Commits locais; nada foi enviado ao remoto.
 
 ## 1. O que foi feito
 
@@ -18,11 +18,11 @@ Um frontend completo e navegável em `apps/web-client`, que roda sem backend sob
 
 | Verificação | Resultado |
 |---|---|
-| Testes unitários (Vitest) | 60 testes passam. Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
+| Testes unitários (Vitest) | 66 testes passam. Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
 | Tipos e lint | `tsc` sem erros; ESLint sem erros (avisos menores). |
 | Build de produção | 22 rotas estáticas. |
 | Ponta a ponta (Playwright) | 68 checagens passam: axe-core com 0 violações em 43 combinações de tela e tema; 14 fluxos só com teclado; estados carregando, vazio, erro, sem vida e fim de era; 0 erros de console. Relatório legível em `relatorios/e2e.md`. |
-| Desempenho | Medido em WebGL por software: 30,9 FPS com qualidade automática em 1366×768 (28,8 FPS com CPU limitada em 4×). Latência da ação ao feedback: p95 de 192 ms. |
+| Desempenho | Medido em WebGL por software: entre 30,9 e 34,8 FPS com qualidade automática em 1366×768, em três execuções (28,2 a 32,2 FPS com CPU limitada em 4×). Latência da ação ao feedback: p95 de cerca de 200 ms. |
 | Tamanho do pacote | Dentro dos limites definidos: jogo com 469 KiB comprimidos de JS e CSS. |
 | Catálogo visual | 17 folhas de contato, olhadas e criticadas ao longo do trabalho; várias rodadas de correção no planeta. |
 
@@ -55,7 +55,7 @@ A revisão também mostrou afirmações minhas que não se sustentavam ("nada é
 2. **Leitor de tela real e usuários reais (RNF-018, RNF-022).** Só verificação automática e por código.
 3. **Aparelhos de toque.** Gestos de pinça e arrasto foram implementados, mas só exercitados por emulação de viewport.
 4. **Firefox e Safari (RNF-023).** Só Chromium.
-5. **Fidelidade à Especificação do Evolution Engine.** O documento não está no repositório. Trabalhei pelo briefing; não pude conferir o briefing contra o original, nem a ordem das células da malha.
+5. **Fidelidade à Especificação do Evolution Engine.** O documento não está no repositório; foi fornecido como anexo e consultado só na seção da malha (§6.2), que confere. O restante do briefing não foi conferido contra o original.
 6. **Instalação como PWA e uso offline.** Só a estrutura.
 7. **O PDF exportado em um leitor com interface.** A estrutura é testada, e o revisor abriu o arquivo com duas bibliotecas de leitura; não foi visto em tela.
 9. **Regras de jogo ao rolar o tempo e retomada de sessão** foram corrigidas após a revisão, mas não têm teste automático próprio.
@@ -70,26 +70,29 @@ O pacote tinha só o esqueleto do `create-next-app`.
 - As fontes Geist (baixadas do Google no build) foram trocadas por Space Grotesk, Inter e JetBrains Mono locais.
 - `globals.css`, `layout.tsx`, `next.config.ts`, `eslint.config.mjs`, `tsconfig.json` (alvo ES2022), `.gitignore` e `package.json` (scripts e dependências) foram reescritos.
 - `pnpm-lock.yaml` mudou por causa das dependências.
-- Não apaguei `src/app/Login.tsx` (vazio) nem os SVGs de exemplo em `public/`: não são meus. Estão sem uso (pedido P-10).
+- `src/app/Login.tsx` (vazio) e os cinco SVGs de exemplo em `public/` foram removidos em commit separado, com aprovação (2026-11-15).
+- `pnpm-workspace.yaml` da raiz ganhou uma linha (`esbuild: true`), com aprovação.
 
 ## 5. Riscos
 
-1. **CI:** `pnpm install` sai com erro enquanto `esbuild` não for declarado em `allowBuilds` na raiz (pedido P-01). Isso deve quebrar o CI desta branch.
+1. **CI:** resolvido em 2026-11-15. `esbuild` foi declarado em `allowBuilds` (aprovado) e o lockfile foi sincronizado; `pnpm install --frozen-lockfile` e `pnpm turbo run lint build test --filter=web-client` passam em instalação limpa. O CI em si só roda depois do push.
 2. **Desempenho no hardware-alvo é desconhecido.** Se o nível baixo não bastar em Chromebooks antigos, o próximo passo é simplificar o fragment shader da superfície.
-3. **Ordem das células** é hipótese. Se for outra, os campos aparecem embaralhados até ajustar um módulo.
+3. **Ordem das células:** a Especificação (§6.2) não a define. A convenção do frontend está travada por teste; o contrato com o motor precisa fixá-la (D-29).
 4. **Decisão de shaders** diverge da leitura literal do Dossiê (WebGPU). Está em ADR, com o custo de voltar atrás.
 5. **Dados sintéticos convincentes** podem ser confundidos com ciência. Há selo em toda tela; a fonte nunca deve ir a produção.
 6. **Balanceamento e regras de jogo** vivem no cliente por enquanto.
 7. **Atalhos de URL** (`?dev=1`, `?papel=`) dão acesso ao console e ao seletor de papel a qualquer pessoa. São para demonstração e precisam sair antes de uso com alunos.
 
-## 6. Decisões em aberto (precisam de você ou da equipe)
+## 6. Decisões tomadas em 2026-11-15 e o que continua aberto
 
-1. Aceitar ou não o ADR FE-0001 (GLSL em WebGL 2 em vez de WebGPU agora).
-2. Declarar `esbuild` em `allowBuilds` (P-01).
-3. Onde fica a Especificação do Evolution Engine, e a confirmação da ordem das células.
-4. Revisões da biologista, da equipe pedagógica e do designer.
-5. Autorizar push e abertura de PR; autorizar a remoção dos arquivos sem uso.
-6. Se os tokens sobem para `packages/ui`.
+Aprovado pelo dono do projeto e feito: `esbuild` em `allowBuilds` (commit separado); ADR FE-0001 aceito; remoção dos arquivos sem uso (commit separado); push e PR contra a `develop` após nova revisão independente. Conferido: a malha contra a Especificação §6.2 (D-29).
+
+Continua aberto:
+
+1. Revisões da biologista, da equipe pedagógica e do designer: **adiadas para a v2**, listadas em `REVISOES_PENDENTES_V2.md`. Nada foi revisado por eles.
+2. A ordem dos vértices e a regra de `parent` precisam entrar no contrato com o motor.
+3. Se os tokens sobem para `packages/ui`.
+4. O merge do PR, que é do dono do projeto.
 
 ## 7. O que o backend precisa fornecer para substituir a fonte sintética
 
