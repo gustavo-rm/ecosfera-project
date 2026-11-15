@@ -36,14 +36,15 @@ export class SyntheticSource implements PlanetStateSource {
   private onResponse = (r: HostResponse) => {
     if (r.op === "started") { this.info = r.info; this.startResolvers.shift()?.(r.info); this.emit({ type: "ready", info: r.info }); }
     else if (r.op === "frame") {
-      const f = r.frame.fields as unknown as Record<string, unknown>;
-      if (f.elevation) this.cache.elevation = f.elevation as Float32Array; else f.elevation = this.cache.elevation;
-      if (f.isWater) this.cache.isWater = f.isWater as Uint8Array; else f.isWater = this.cache.isWater;
       this.busy = false;
-      // A frame of a previous start() may arrive with its static arrays stripped and nothing to restore them from: drop it.
-      const complete = !!f.elevation && !!f.isWater;
-      if (!complete) this.dirty = true;
-      else if (r.seq === this.seq) this.emit({ type: "frame", frame: r.frame as PlanetFrame });
+      // Only the answer to the latest request counts. A frame asked before a new start() belongs to the previous
+      // planet: it is ignored entirely (no cache update, no emission) and the pending request goes out with the new tick.
+      if (r.seq === this.seq) {
+        const f = r.frame.fields as unknown as Record<string, unknown>;
+        if (f.elevation) this.cache.elevation = f.elevation as Float32Array; else f.elevation = this.cache.elevation;
+        if (f.isWater) this.cache.isWater = f.isWater as Uint8Array; else f.isWater = this.cache.isWater;
+        if (f.elevation && f.isWater) this.emit({ type: "frame", frame: r.frame as PlanetFrame }); else this.dirty = true;
+      }
       if (this.dirty) { this.dirty = false; this.requestFrame(); }
     } else if (r.op === "history") { this.pendingHistory.get(r.id)?.(r.history); this.pendingHistory.delete(r.id); }
     else if (r.op === "error") { this.busy = false; this.emit({ type: "error", messageKey: "error.source", detail: r.detail }); }
@@ -56,13 +57,17 @@ export class SyntheticSource implements PlanetStateSource {
         try {
           this.worker = new Worker(new URL("./synthetic/synthetic.worker.ts", import.meta.url), { type: "module" });
           this.worker.onmessage = (ev: MessageEvent<HostResponse>) => this.onResponse(ev.data);
-          this.worker.onerror = (ev) => this.emit({ type: "error", messageKey: "error.source", detail: ev.message });
+          this.worker.onerror = (ev) => { this.busy = false; this.emit({ type: "error", messageKey: "error.source", detail: ev.message }); };
         } catch { this.worker = null; }
       }
       if (!this.worker) this.inline = new SyntheticHost((r) => queueMicrotask(() => this.onResponse(r)), false);
     }
     this.cache = { elevation: null, isWater: null };
-    this.busy = false; this.playing = false; this.until = null;
+    // Invalidate whatever is in flight and stop the clock of the previous planet, telling the interface about it.
+    this.seq++; this.dirty = false; this.until = null;
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    if (this.playing) { this.playing = false; this.emit({ type: "clock", playing: false, speed: this.speed, mode: "normal" }); }
+    this.mode = "normal";
     return new Promise((resolve) => {
       this.startResolvers.push((info) => { this.tick = config.startTick ?? info.startTick; this.requestFrame(); resolve(info); });
       this.send({ op: "start", config });

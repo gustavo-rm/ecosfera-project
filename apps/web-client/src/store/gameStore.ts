@@ -47,9 +47,18 @@ const KEY = "game.v1";
 let noticeSeq = 0;
 /** Last frame the game rules ran on. Rules only move forward in time: looking at the past never changes the game. */
 let lastProcessed: PlanetFrame | null = null;
+/** For tests: forget the last processed frame, as a page reload does. */
+export const resetGameRules = () => { lastProcessed = null; };
 /** True while the planet on screen is a moment before the latest one reached (timeline scrubbing). */
 export const isViewingPast = (): boolean => { const p = usePlanetStore.getState(); return !!p.frame && p.frame.tick < p.maxTick - 6; };
-const directionOf = (before: number, after: number): Direction => { const d = (after - before) / Math.max(1e-6, Math.abs(before)); return d > 0.02 ? "up" : d < -0.02 ? "down" : "same"; };
+/**
+ * Did the variable go up, down or stay? Temperature is read in kelvin, so a relative threshold would hide real changes:
+ * it uses an absolute one (0.5 K). The others use 2% of the starting value. PLACEHOLDER thresholds.
+ */
+export function directionOf(variable: PredictVar, before: number, after: number): Direction {
+  const d = variable === "temperature" ? (after - before) / 0.5 * 0.02 : (after - before) / Math.max(1e-6, Math.abs(before));
+  return d > 0.02 ? "up" : d < -0.02 ? "down" : "same";
+}
 
 export function readVariable(frame: PlanetFrame, v: PredictVar, cell: number | null): number {
   const g = frame.globals;
@@ -85,12 +94,11 @@ export const useGameStore = create<GameStore>((set, get) => {
     onboarding: 0, attempts: 0, lastActionTick: 0, reportEra: null, collapsed: false, playerLevel: 0,
 
     async start(scenarioId, params = {}, seed) {
-      const attempts = get().attempts + 1, wasCollapsed = get().collapsed;
+      const attempts = get().attempts + 1;
       set({
         started: true, scenarioId, params, seed: seed ?? params.seed ?? null, resources: { ...START_RES }, cooldowns: {}, predictions: [], notices: [], diary: [], scans: [], known: [], savedTick: 0, commands: [],
-        attempts, lastActionTick: 0, reportEra: null, collapsed: false, stats: { ...get().stats, collapses: get().stats.collapses },
+        attempts, lastActionTick: 0, reportEra: null, collapsed: false,
       });
-      if (wasCollapsed) set({ stats: { ...get().stats, recoveries: get().stats.recoveries } });
       lastProcessed = null;
       await usePlanetStore.getState().init({ scenarioId, level: 5, seed: seed ?? params.seed, params });
       save();
@@ -192,7 +200,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Predictions come due: compare what was expected with what happened.
       const predictions = g.predictions.map((p) => {
         if (p.result || frame.tick < p.dueTick) return p;
-        const value = readVariable(frame, p.variable, p.cell), observed = directionOf(p.baseline, value), match = observed === p.direction;
+        const value = readVariable(frame, p.variable, p.cell), observed = directionOf(p.variable, p.baseline, value), match = observed === p.direction;
         evidence.emit({ type: "prediction_compared", interventionId: p.interventionId, variable: p.variable, predicted: p.direction, observed, match });
         if (match) stats.correctPredictions++;
         g.notify({ key: match ? "notice.predictionMatch" : "notice.predictionDiffer", params: { variable: p.variable }, tone: match ? "success" : "info", icon: "target", action: { type: "prediction", ref: p.id } });

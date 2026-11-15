@@ -18,7 +18,7 @@ Um frontend completo e navegável em `apps/web-client`, que roda sem backend sob
 
 | Verificação | Resultado |
 |---|---|
-| Testes unitários (Vitest) | 66 testes passam. Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
+| Testes unitários (Vitest) | 76 testes passam. Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
 | Tipos e lint | `tsc` sem erros; ESLint sem erros (avisos menores). |
 | Build de produção | 22 rotas estáticas. |
 | Ponta a ponta (Playwright) | 68 checagens passam: axe-core com 0 violações em 43 combinações de tela e tema; 14 fluxos só com teclado; estados carregando, vazio, erro, sem vida e fim de era; 0 erros de console. Relatório legível em `relatorios/e2e.md`. |
@@ -30,7 +30,7 @@ A verificação automática encontrou defeitos reais, que foram corrigidos: cont
 
 ## 2.1 Revisão independente
 
-Um agente que não viu o trabalho revisou o diff, os princípios, a tabela "variável → efeito" e os relatórios. Ele confirmou: o escopo do diff (só `apps/web-client`, `docs/frontend` e o lockfile), os 57 rótulos do Apêndice A idênticos ao briefing, a ausência de URL externa ou chamada de rede, o catálogo de intervenções só sobre o ambiente, o barramento de evidências sem dados pessoais e a estrutura do PDF.
+Um agente que não viu o trabalho revisou o diff, os princípios, a tabela "variável → efeito" e os relatórios. Ele confirmou: o escopo do diff naquele momento (só `apps/web-client`, `docs/frontend` e o lockfile; depois entrou uma linha aprovada em `pnpm-workspace.yaml`), os 57 rótulos do Apêndice A idênticos ao briefing, a ausência de URL externa ou chamada de rede, o catálogo de intervenções só sobre o ambiente, o barramento de evidências sem dados pessoais e a estrutura do PDF.
 
 Ele também achou defeitos que eu não tinha visto. **Corrigidos:**
 
@@ -49,6 +49,27 @@ Ele também achou defeitos que eu não tinha visto. **Corrigidos:**
 
 A revisão também mostrou afirmações minhas que não se sustentavam ("nada é alocado por quadro", "todo controle tem 44 px", "movimento reduzido respeitado", cobertura da tabela descrita como total). Os relatórios e a matriz foram corrigidos; a matriz ganhou uma avaliação linha a linha.
 
+## 2.2 Segunda revisão independente (2026-11-15, sobre o diff final)
+
+Feita por outro agente que não viu o trabalho, antes do push. Veredito: "pode enviar após corrigir os bloqueadores".
+
+**Bloqueador, corrigido:** o cache do Turborepo (`.turbo/`, com um arquivo de 617 MB) tinha entrado em um commit local quando rodei o comando do CI. O GitHub recusaria o push. Os commits locais foram reescritos para tirar o cache do histórico (o repositório local caiu de 599 MB para menos de 10 MB) e o pacote passou a ignorar `.turbo/`. A raiz ainda não ignora (pedido P-12).
+
+**Apontado como possível bloqueador, mantido por decisão de configuração:** os commits têm os rodapés `Co-Authored-By` e `Claude-Session`. Eles são exigidos pela configuração de atribuição desta sessão. Os títulos e corpos das mensagens estão em inglês e não citam modelo. Se o projeto não quiser esses rodapés, é uma reescrita simples das mensagens antes do merge.
+
+**Importantes, corrigidos e cobertos por teste:**
+
+1. Iniciar o jogo logo depois de mexer na prévia do Gênese deixava o estudante preso "no passado", sem poder agir (um quadro do planeta anterior chegava depois do início).
+2. Recarregar a página nos primeiros 100 anos repunha energia e orçamento.
+3. A previsão de temperatura quase nunca se confirmava (limiar relativo sobre kelvin); "aquecer" quase não tinha efeito em eras de CO₂ alto.
+4. Trocar de planeta com o tempo correndo deixava a interface mostrando o relógio ligado.
+
+**Menores, corrigidos:** solstício deslocado em relação à fase zero; service worker guardava qualquer navegação; atribuições sem efeito; comentário enganoso sobre o gancho de teste.
+
+**Testes reforçados por indicação do revisor:** os 57 rótulos de genes agora são comparados com o briefing; a trava de ordem das células cobre os níveis 0 a 5 e o `-1` das células pentagonais; regras de jogo, retomada, previsão e a corrida da fonte de dados ganharam testes (antes não havia nenhum nessa área).
+
+**Continua sem teste automático:** os componentes React das telas (cobertos só por ponta a ponta) e a imagem final.
+
 ## 3. O que NÃO foi verificado, e por quê
 
 1. **Chromebook real (RNF-001).** Não tenho o hardware. WebGL por software é um piso pessimista e não representa o alvo.
@@ -58,7 +79,7 @@ A revisão também mostrou afirmações minhas que não se sustentavam ("nada é
 5. **Fidelidade à Especificação do Evolution Engine.** O documento não está no repositório; foi fornecido como anexo e consultado só na seção da malha (§6.2), que confere. O restante do briefing não foi conferido contra o original.
 6. **Instalação como PWA e uso offline.** Só a estrutura.
 7. **O PDF exportado em um leitor com interface.** A estrutura é testada, e o revisor abriu o arquivo com duas bibliotecas de leitura; não foi visto em tela.
-9. **Regras de jogo ao rolar o tempo e retomada de sessão** foram corrigidas após a revisão, mas não têm teste automático próprio.
+9. **Retomada de sessão no navegador:** as regras de jogo e a fonte de dados têm teste unitário, mas o fluxo completo (salvar no IndexedDB, recarregar a página, continuar) não tem teste de ponta a ponta.
 10. **A imagem final** não tem teste automático: os testes cobrem o mapeamento de estado para canais e uniformes; a imagem foi conferida a olho nas folhas de contato.
 8. **Ciência e pedagogia.** Todas as fórmulas da fonte sintética e todos os textos pedagógicos são provisórios e estão marcados.
 

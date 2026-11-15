@@ -185,7 +185,7 @@ export function PlanetBody({ planetRef, renderOffset, octaves, paletteSet, reduc
     const stormy = (cu.uStorms.value as Vector4[])[0].w > 0.2;
     cu.uFlash.value = stormy && !still && !reducedMotion ? Math.max(0, Math.sin((time % 0.8) / 0.8 * Math.PI)) * (Math.floor(time / 0.8) % 3 === 0 ? 0.55 : 0) : 0;
 
-    perfStats.uploadsPerSecond = gpu.uploads; perfStats.drawCalls = gl.info.render.calls; perfStats.triangles = gl.info.render.triangles;
+    perfStats.uploadsPerSecond = gpu.uploads; // running total of attribute uploads (the lab panel labels it as a total) perfStats.drawCalls = gl.info.render.calls; perfStats.triangles = gl.info.render.triangles;
     perfStats.geometries = gl.info.memory.geometries; perfStats.textures = gl.info.memory.textures; perfStats.programs = gl.info.programs?.length ?? 0;
   });
 

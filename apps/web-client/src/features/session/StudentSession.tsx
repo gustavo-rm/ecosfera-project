@@ -24,7 +24,8 @@ export function StudentSession({ autoStart = true, passive = false }: { autoStar
     if (!hydrated || !settingsReady || booted.current) return;
     booted.current = true;
     const q = new URLSearchParams(window.location.search);
-    // Test hook, development flag only: lets the end-to-end scripts read and force states. Never present for students.
+    // Test hook behind the development flag: lets the end-to-end scripts read and force states. The flag can be turned on
+    // by URL today (DECISOES.md, D-28), so this must go away, with the flag, before any use with students.
     if (useSettings.getState().devMode) (window as unknown as Record<string, unknown>).__ecosfera = { planet: usePlanetStore, game: useGameStore, feedback };
     if (q.get("still") === "1") usePlanetStore.getState().set({ still: true, autoRotate: false, autoQuality: false });
     const scenario = q.get("cenario"), g = useGameStore.getState(), planet = usePlanetStore.getState();
@@ -35,7 +36,8 @@ export function StudentSession({ autoStart = true, passive = false }: { autoStar
       });
     } else if (started && !passive && (planet.status === "idle" || planet.config?.scenarioId !== g.scenarioId || planet.config?.level !== 5)) {
       // Continue the planet saved in this browser: same scenario and seed, the same interventions replayed, same moment.
-      void planet.init({ scenarioId: g.scenarioId, level: 5, seed: g.seed ?? undefined, params: g.params }).then(() => {
+      // Start directly at the saved moment: the game rules must not see a jump from the beginning as time played.
+      void planet.init({ scenarioId: g.scenarioId, level: 5, seed: g.seed ?? undefined, params: g.params, startTick: g.savedTick }).then(() => {
         const st = usePlanetStore.getState();
         for (const c of g.commands) { st.seek(c.tick); st.command(c.command); }
         st.seek(g.savedTick);

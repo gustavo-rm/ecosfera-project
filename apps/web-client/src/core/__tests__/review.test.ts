@@ -12,6 +12,10 @@ describe("seasons: the picture agrees with the data", () => {
     expect(dot(northPole(0, 23.5), SUN_DIRECTION)).toBeGreaterThan(dot([0, 1, 0], SUN_DIRECTION) + 0.2);
     expect(dot(northPole(0.5, 23.5), SUN_DIRECTION)).toBeLessThan(dot([0, 1, 0], SUN_DIRECTION) - 0.2);
     expect(axisEuler(0.25, 40).z).toBeCloseTo((-40 * Math.PI) / 180);
+    // The solstice is exactly at phase 0 and the equinoxes (yearly mean) lean neither way.
+    const lean = (phase: number) => dot(northPole(phase, 23.5), SUN_DIRECTION) - dot([0, Math.cos((23.5 * Math.PI) / 180), 0], SUN_DIRECTION);
+    for (const phase of [0.05, 0.1, 0.2, 0.9]) expect(lean(phase)).toBeLessThan(lean(0));
+    expect(lean(0.25)).toBeCloseTo(0, 6); expect(lean(0.75)).toBeCloseTo(0, 6); expect(lean(0.5)).toBeCloseTo(-lean(0), 6);
   });
   it("the data has less northern ice at yearPhase 0 than at 0.5 (same convention as the picture)", () => {
     const mesh = getMesh(3), ice = (phase: number) => { const e = new SyntheticEngine({ scenarioId: "genesis", level: 3, params: { axialTiltDeg: 40 } }); e.setOverrides({ yearPhase: phase }); const f = e.frameAt(12900); let s = 0; for (let i = 0; i < mesh.count; i++) if (mesh.latitude[i] > 45) s += f.fields.ice[i]; return s; };
@@ -40,6 +44,8 @@ describe("synthetic engine: purity", () => {
   it("tectonics 0 keeps the relief; tectonics 1 changes it between eras", () => {
     const still = new SyntheticEngine({ scenarioId: "genesis", level: 3, params: { tectonics: 0 } });
     expect(Array.from(still.frameAt(100).fields.elevation)).toEqual(Array.from(still.frameAt(19000).fields.elevation));
+    const moving = new SyntheticEngine({ scenarioId: "genesis", level: 3, params: { tectonics: 1 } });
+    expect(Array.from(moving.frameAt(100).fields.elevation)).not.toEqual(Array.from(moving.frameAt(19000).fields.elevation));
   });
 });
 

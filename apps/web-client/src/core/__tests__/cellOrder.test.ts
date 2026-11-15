@@ -14,7 +14,7 @@ function fingerprint(level: number): string {
   for (let i = 0; i < c.length; i++) { h ^= Math.round(c[i] * 1e5) + 200000; h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-const FINGERPRINTS: Record<number, string> = { 0: "d800a305", 1: "1d331d5d", 2: "3fe7a3e5", 3: "8cdb6bb9", 5: "8eb3ac53" };
+const FINGERPRINTS: Record<number, string> = { 0: "d800a305", 1: "1d331d5d", 2: "3fe7a3e5", 3: "8cdb6bb9", 4: "2e206465", 5: "8eb3ac53" };
 
 describe("cell order (spec §6.2, DEC-04)", () => {
   it("matches the structure the spec describes: GeodesicGrid fields and sizes", () => {
@@ -28,7 +28,14 @@ describe("cell order (spec §6.2, DEC-04)", () => {
     expect(mean).toBeGreaterThan(49000); expect(mean).toBeLessThan(51000); // "about 50 000 km² each"
   });
   it("the 12 pentagonal cells are the first 12 indices, at every level", () => {
-    for (const level of [1, 3, 5]) { const m = getMesh(level); for (let i = 0; i < m.count; i++) expect(m.nNeighbors[i]).toBe(i < 12 ? 5 : 6); }
+    for (const level of [1, 2, 3, 4, 5]) {
+      const m = getMesh(level);
+      for (let i = 0; i < m.count; i++) {
+        expect(m.nNeighbors[i]).toBe(i < 12 ? 5 : 6);
+        expect(m.neighbors[i * 6 + 5] === -1).toBe(i < 12); // -1 pads the sixth slot of the pentagonal cells only
+        for (let k = 0; k < m.nNeighbors[i]; k++) expect(m.neighbors[i * 6 + k]).toBeGreaterThanOrEqual(0);
+      }
+    }
   });
   it("level 0 starts with the documented icosahedron vertices", () => {
     const c = buildOrderedIcosphere(0).centers, t = (1 + Math.sqrt(5)) / 2, l = Math.hypot(1, t);

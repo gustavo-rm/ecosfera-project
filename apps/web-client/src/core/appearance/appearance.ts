@@ -148,7 +148,9 @@ export const SUN_DIRECTION: [number, number, number] = [0.93, 0.12, 0.34];
  * lean TOWARD the star. A rotation about Z by a negative angle leans +Y toward +X, where the star is.
  */
 export function axisEuler(yearPhase: number, axialTiltDeg: number): { y: number; z: number } {
-  return { y: -2 * Math.PI * yearPhase, z: -(axialTiltDeg * Math.PI) / 180 };
+  // The star is not exactly on +X: turn the axis by the star's own heading, so the solstice falls exactly on phase 0
+  // and the yearly mean (phase 0.25) leans neither toward nor away from the star.
+  return { y: -2 * Math.PI * yearPhase - Math.atan2(SUN_DIRECTION[2], SUN_DIRECTION[0]), z: -(axialTiltDeg * Math.PI) / 180 };
 }
 /** North pole direction in scene space for a moment of the year (used by tests; mirrors Euler order YZX with x = 0). */
 export function northPole(yearPhase: number, axialTiltDeg: number): [number, number, number] {

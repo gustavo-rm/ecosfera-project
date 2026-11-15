@@ -232,19 +232,20 @@ export class SyntheticEngine {
         if (e.type === "glaciation") glaciation = Math.max(glaciation, e.phase === "active" ? e.intensity : e.intensity * 1.5);
       }
     }
-    let cool = 0, co2Extra = 0;
+    let cool = 0, co2Extra = 0, co2Factor = 1;
     for (const m of this.modifiers) {
       const dt = tick - m.tick;
       if (dt < 0) continue;
       if (m.kind === "cool") { cool += 2.5 * Math.exp(-dt / 500); aerosols += 0.08 * Math.exp(-dt / 500); }
-      if (m.kind === "warm") co2Extra += 180 * Math.exp(-dt / 3000);
+      // Proportional to the planet's own CO2, so that the action is felt in any era (PLACEHOLDER magnitude).
+      if (m.kind === "warm") co2Factor += 0.45 * Math.exp(-dt / 3000);
       if (m.kind === "reforest") co2Extra -= 12 * (1 - Math.exp(-dt / 400));
     }
     aerosols = clamp(aerosols);
     const erosion = clamp((0.25 - (o.magneticField ?? p.magneticField)) / 0.25) * (o.starActivity ?? p.starActivity) * 0.75 * clamp(tick / 6000 + (sc.primordial ? 0 : 1));
     const pressureBar = o.pressureBar ?? p.pressureBar * (sc.primordial ? 0.4 + 0.6 * smoothstep(0, e2, tick) : 1) * (1 - erosion);
     const o2Pct = o.o2Pct ?? p.o2Pct * (1 - primitive) * (0.2 + 0.8 * clamp(producersNorm));
-    const co2Ppm = Math.max(1, o.co2Ppm ?? p.co2Ppm * (1 + 30 * primitive) + co2Extra);
+    const co2Ppm = Math.max(1, o.co2Ppm ?? p.co2Ppm * (1 + 30 * primitive) * co2Factor + co2Extra);
     const ch4Ppm = o.ch4Ppm ?? p.ch4Ppm * (1 + 100 * primitive);
     const star = STAR_TABLE[p.starType];
     const starFlux = (star.luminosity * (0.72 + 0.28 * clamp(p.starAgeGyr / 4.6, 0, 1.6))) / (p.orbitAU * p.orbitAU) * (sc.primordial ? 1 - 0.2 * primitive : 1);

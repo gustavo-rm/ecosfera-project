@@ -31,7 +31,7 @@ Observação: no Gênese a interface precisa de uma **prévia** do planeta para 
 
 ## B. Campos por célula
 
-Malha: nível (3 a 5 hoje; 5 no MVP), número de células (10·4^L+2) e **ordem das células**. A ordem precisa ser fixa e conhecida; hoje é a de `core/mesh/cellOrder.ts` (hipótese D-01). A interface também usa `parent` para LOD, mas consegue derivá-lo.
+Malha: nível (3 a 5 hoje; 5 no MVP), número de células (10·4^L+2) e **ordem das células**. A ordem precisa ser fixa e conhecida. A Especificação (§6.2) não a define; hoje vale a convenção de `core/mesh/cellOrder.ts`, travada por teste (D-29). O contrato precisa fixá-la, junto com a regra de `parent`. A interface também usa `parent` para LOD, mas consegue derivá-lo.
 
 | Campo | Tipo | Unidade | Freq. | Onde é usado | Crit. |
 |---|---|---|---|---|---|
