@@ -57,14 +57,14 @@ Feita por outro agente que não viu o trabalho, antes do push. Veredito: "pode e
 
 **Apontado como possível bloqueador, mantido por decisão de configuração:** os commits têm os rodapés `Co-Authored-By` e `Claude-Session`. Eles são exigidos pela configuração de atribuição desta sessão. Os títulos e corpos das mensagens estão em inglês e não citam modelo. Se o projeto não quiser esses rodapés, é uma reescrita simples das mensagens antes do merge.
 
-**Importantes, corrigidos e cobertos por teste:**
+**Importantes, corrigidos.** O revisor repetiu os experimentos dele e confirmou as quatro correções. Os itens 3 e 4 têm teste efetivo. Os itens 1 e 2 têm cobertura parcial: o teste da fonte de dados roda sem Web Worker (o defeito real aparecia com worker), e o teste de retomada exercita as regras de jogo, não o componente que passa o instante salvo à fonte.
 
 1. Iniciar o jogo logo depois de mexer na prévia do Gênese deixava o estudante preso "no passado", sem poder agir (um quadro do planeta anterior chegava depois do início).
 2. Recarregar a página nos primeiros 100 anos repunha energia e orçamento.
 3. A previsão de temperatura quase nunca se confirmava (limiar relativo sobre kelvin); "aquecer" quase não tinha efeito em eras de CO₂ alto.
 4. Trocar de planeta com o tempo correndo deixava a interface mostrando o relógio ligado.
 
-**Menores, corrigidos:** solstício deslocado em relação à fase zero; service worker guardava qualquer navegação; atribuições sem efeito; comentário enganoso sobre o gancho de teste.
+**Menores, corrigidos:** duas medidas do painel de desempenho do laboratório que um comentário mal colocado tinha desativado (regressão minha, achada na confirmação); solstício deslocado em relação à fase zero; service worker guardava qualquer navegação; atribuições sem efeito; comentário enganoso sobre o gancho de teste.
 
 **Testes reforçados por indicação do revisor:** os 57 rótulos de genes agora são comparados com o briefing; a trava de ordem das células cobre os níveis 0 a 5 e o `-1` das células pentagonais; regras de jogo, retomada, previsão e a corrida da fonte de dados ganharam testes (antes não havia nenhum nessa área).
 

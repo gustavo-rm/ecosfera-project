@@ -75,11 +75,11 @@ describe("synthetic source: start() while a frame is in flight", () => {
     await new Promise((r) => setTimeout(r, 20));
     src.setClock(true, 12, "normal");
     src.seek(16000);                                                    // a frame of the old planet is now in flight
+    const mark = ticks.length;                                          // everything from here on belongs to the new planet
     const info = await src.start({ scenarioId: "genesis", level: 3 }); // the game starts
     await new Promise((r) => setTimeout(r, 60));
     expect(info.startTick).toBe(0);
-    expect(ticks[ticks.length - 1]).toBe(0);
-    expect(ticks.filter((t, i) => i > ticks.lastIndexOf(17000) && t !== 16000 && t !== 0)).toEqual([]);
+    expect(ticks.slice(mark)).toEqual([0]);                             // no frame of the previous planet, at any tick
     expect(clock[clock.length - 1]).toBe(false);                       // the interface was told the clock stopped
     src.dispose();
   });
