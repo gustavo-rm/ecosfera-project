@@ -23,15 +23,22 @@ export interface FatosDoPlaneta {
  * Posse do planeta: o aluno só acessa o próprio; o professor, os dos alunos das suas turmas
  * (só leitura); coordenação/admin da escola, leitura. Outra escola → inexistente (404).
  */
-export function decidirAcessoAoPlaneta(ator: AtorUsuario, f: FatosDoPlaneta, intencao: 'ler' | 'agir'): ResultadoDePosse {
+export function decidirAcessoAoPlaneta(
+  ator: AtorUsuario,
+  f: FatosDoPlaneta,
+  intencao: 'ler' | 'agir',
+): ResultadoDePosse {
   if (!f.existe) return 'inexistente';
   if (ator.papel === 'student') {
     if (f.donoId === ator.usuarioId) return 'permitido';
     return 'inexistente';
   }
-  if (ator.escolaId === null || f.escolaId !== ator.escolaId) return 'inexistente';
+  if (ator.escolaId === null || f.escolaId !== ator.escolaId)
+    return 'inexistente';
   if (intencao === 'agir') return 'negado';
-  if (ator.papel === 'teacher') return f.professorDoDono ? 'permitido' : 'negado';
-  if (ator.papel === 'coordinator' || ator.papel === 'admin') return 'permitido';
+  if (ator.papel === 'teacher')
+    return f.professorDoDono ? 'permitido' : 'negado';
+  if (ator.papel === 'coordinator' || ator.papel === 'admin')
+    return 'permitido';
   return 'negado';
 }

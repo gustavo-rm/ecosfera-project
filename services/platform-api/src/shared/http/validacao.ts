@@ -16,17 +16,27 @@ import { type DefinicaoDeEndpoint, META_CONTRATO } from './contrato';
 z.config(z.locales.ptBR());
 
 /** Converte issues do Zod em detalhes de campo, sem ecoar valores enviados. */
-export function errosDoZod(origem: string, erro: z.ZodError): { campo: string; mensagem: string }[] {
+export function errosDoZod(
+  origem: string,
+  erro: z.ZodError,
+): { campo: string; mensagem: string }[] {
   return erro.issues.map((i) => ({
     campo: [origem, ...i.path.map(String)].join('.'),
     mensagem: i.message,
   }));
 }
 
-export function validar<T extends z.ZodType>(esquema: T, valor: unknown, origem: string): z.infer<T> {
+export function validar<T extends z.ZodType>(
+  esquema: T,
+  valor: unknown,
+  origem: string,
+): z.infer<T> {
   const r = esquema.safeParse(valor);
   if (!r.success) {
-    throw new ErroDeValidacao('Os dados enviados não passaram na validação', errosDoZod(origem, r.error));
+    throw new ErroDeValidacao(
+      'Os dados enviados não passaram na validação',
+      errosDoZod(origem, r.error),
+    );
   }
   return r.data;
 }
@@ -42,12 +52,22 @@ export class InterceptadorDeValidacao implements NestInterceptor {
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (ctx.getType() !== 'http') return next.handle();
-    const def = this.reflector.get<DefinicaoDeEndpoint | undefined>(META_CONTRATO, ctx.getHandler());
+    const def = this.reflector.get<DefinicaoDeEndpoint | undefined>(
+      META_CONTRATO,
+      ctx.getHandler(),
+    );
     if (def) {
-      const req = ctx.switchToHttp().getRequest<Request & { consultaValidada?: unknown }>();
-      if (def.parametros) req.params = validar(def.parametros, req.params, 'params') as Record<string, string>;
-      if (def.consulta) req.consultaValidada = validar(def.consulta, req.query, 'query');
-      if (def.corpo) req.body = validar(def.corpo, req.body ?? {}, 'body') as unknown;
+      const req = ctx
+        .switchToHttp()
+        .getRequest<Request & { consultaValidada?: unknown }>();
+      if (def.parametros)
+        req.params = validar(def.parametros, req.params, 'params') as Record<
+          string,
+          string
+        >;
+      if (def.consulta)
+        req.consultaValidada = validar(def.consulta, req.query, 'query');
+      if (def.corpo) req.body = validar(def.corpo, req.body ?? {}, 'body');
     }
     return next.handle();
   }

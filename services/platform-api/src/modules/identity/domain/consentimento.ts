@@ -20,7 +20,16 @@ export class Consentimento {
   ) {}
 
   static pendente(alunoId: string, finalidade: Finalidade): Consentimento {
-    return new Consentimento(alunoId, finalidade, 'pending', null, null, null, null, null);
+    return new Consentimento(
+      alunoId,
+      finalidade,
+      'pending',
+      null,
+      null,
+      null,
+      null,
+      null,
+    );
   }
 
   valido(): boolean {
@@ -37,7 +46,10 @@ export class Consentimento {
   }
 
   revogar(por: string, agora: Date): void {
-    if (this.estado !== 'granted') throw new ErroDeConflito(`Não há consentimento ativo para "${this.finalidade}"`);
+    if (this.estado !== 'granted')
+      throw new ErroDeConflito(
+        `Não há consentimento ativo para "${this.finalidade}"`,
+      );
     this.estado = 'revoked';
     this.revogadoEm = agora;
     this.revogadoPor = por;
@@ -45,7 +57,10 @@ export class Consentimento {
 }
 
 /** Regra central: maior de idade não depende de consentimento do responsável. */
-export function permiteTratamento(menor: boolean, c: Consentimento | undefined): boolean {
+export function permiteTratamento(
+  menor: boolean,
+  c: Consentimento | undefined,
+): boolean {
   if (!menor) return true;
   return c?.valido() ?? false;
 }

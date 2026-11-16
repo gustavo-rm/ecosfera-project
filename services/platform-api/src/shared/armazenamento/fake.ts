@@ -23,34 +23,69 @@ export class ArmazenamentoFalso implements ObjectStorage {
     return p;
   }
 
-  async gravar(bucket: string, chave: string, corpo: Buffer, tipo: string): Promise<void> {
+  async gravar(
+    bucket: string,
+    chave: string,
+    corpo: Buffer,
+    tipo: string,
+  ): Promise<void> {
     const p = this.caminho(bucket, chave);
     await mkdir(dirname(p), { recursive: true });
     await writeFile(p, corpo);
     await writeFile(`${p}.tipo`, tipo);
   }
 
-  private assinatura(bucket: string, chave: string, exp: number, nome: string): string {
-    return createHmac('sha256', this.segredo).update(`${bucket}\n${chave}\n${exp}\n${nome}`).digest('base64url');
+  private assinatura(
+    bucket: string,
+    chave: string,
+    exp: number,
+    nome: string,
+  ): string {
+    return createHmac('sha256', this.segredo)
+      .update(`${bucket}\n${chave}\n${exp}\n${nome}`)
+      .digest('base64url');
   }
 
-  urlAssinada(bucket: string, chave: string, ttl: number, nome: string): Promise<string> {
+  urlAssinada(
+    bucket: string,
+    chave: string,
+    ttl: number,
+    nome: string,
+  ): Promise<string> {
     const exp = Math.floor(this.agora() / 1000) + ttl;
-    const q = new URLSearchParams({ b: bucket, k: chave, exp: String(exp), n: nome, sig: this.assinatura(bucket, chave, exp, nome) });
-    return Promise.resolve(`${this.baseUrl.replace(/\/$/, '')}/platform/api/v1/files?${q.toString()}`);
+    const q = new URLSearchParams({
+      b: bucket,
+      k: chave,
+      exp: String(exp),
+      n: nome,
+      sig: this.assinatura(bucket, chave, exp, nome),
+    });
+    return Promise.resolve(
+      `${this.baseUrl.replace(/\/$/, '')}/platform/api/v1/files?${q.toString()}`,
+    );
   }
 
   /** Valida a URL e devolve o arquivo; null se inválida ou expirada. */
-  async abrir(q: Record<string, string | undefined>): Promise<{ corpo: Buffer; tipo: string; nome: string } | null> {
+  async abrir(
+    q: Record<string, string | undefined>,
+  ): Promise<{ corpo: Buffer; tipo: string; nome: string } | null> {
     const { b, k, exp, n, sig } = q;
     if (!b || !k || !exp || !n || !sig) return null;
     const esperado = Buffer.from(this.assinatura(b, k, Number(exp), n));
     const recebido = Buffer.from(sig);
-    if (esperado.length !== recebido.length || !timingSafeEqual(esperado, recebido)) return null;
+    if (
+      esperado.length !== recebido.length ||
+      !timingSafeEqual(esperado, recebido)
+    )
+      return null;
     if (Number(exp) < Math.floor(this.agora() / 1000)) return null;
     try {
       const p = this.caminho(b, k);
-      return { corpo: await readFile(p), tipo: await readFile(`${p}.tipo`, 'utf8'), nome: n };
+      return {
+        corpo: await readFile(p),
+        tipo: await readFile(`${p}.tipo`, 'utf8'),
+        nome: n,
+      };
     } catch {
       return null;
     }

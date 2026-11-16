@@ -20,7 +20,14 @@ import {
   type EsquemaTrilhaDaTurma,
 } from './contratos';
 
-const paraTurma = (t: Turma) => ({ id: t.id, schoolId: t.escolaId, teacherUserId: t.professorId, name: t.nome, year: t.ano, trackLevel: t.nivel });
+const paraTurma = (t: Turma) => ({
+  id: t.id,
+  schoolId: t.escolaId,
+  teacherUserId: t.professorId,
+  name: t.nome,
+  year: t.ano,
+  trackLevel: t.nivel,
+});
 const paraMissao = (m: Missao) => ({
   id: m.id,
   schoolId: m.escolaId,
@@ -43,13 +50,21 @@ export class EducacaoController {
 
   @Endpoint(C.criarEscola)
   @Autorizacao({ papeis: ['platform_admin'] })
-  async criarEscola(@UsuarioAtual() ator: AtorUsuario, @Body() b: z.infer<typeof EsquemaNovaEscola>) {
+  async criarEscola(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Body() b: z.infer<typeof EsquemaNovaEscola>,
+  ) {
     const r = await this.edu.criarEscola(ator, b.name, b.admin);
-    return { school: { id: r.escola.id, name: r.escola.nome }, admin: paraPerfil(r.admin) };
+    return {
+      school: { id: r.escola.id, name: r.escola.nome },
+      admin: paraPerfil(r.admin),
+    };
   }
 
   @Endpoint(C.escola)
-  @Autorizacao({ papeis: ['admin', 'coordinator', 'teacher', 'platform_admin'] })
+  @Autorizacao({
+    papeis: ['admin', 'coordinator', 'teacher', 'platform_admin'],
+  })
   async escola(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string) {
     const e = await this.edu.escola(ator, id);
     return { id: e.id, name: e.nome };
@@ -57,7 +72,10 @@ export class EducacaoController {
 
   @Endpoint(C.criarTurma)
   @Autorizacao({ papeis: EQUIPE })
-  async criarTurma(@UsuarioAtual() ator: AtorUsuario, @Body() b: z.infer<typeof EsquemaNovaTurma>) {
+  async criarTurma(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Body() b: z.infer<typeof EsquemaNovaTurma>,
+  ) {
     return paraTurma(await this.edu.criarTurma(ator, b));
   }
 
@@ -68,14 +86,21 @@ export class EducacaoController {
   }
 
   @Endpoint(C.turma)
-  @Autorizacao({ papeis: ['student', ...EQUIPE], posse: { regra: 'turma:ler' } })
+  @Autorizacao({
+    papeis: ['student', ...EQUIPE],
+    posse: { regra: 'turma:ler' },
+  })
   async turma(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string) {
     return paraTurma(await this.edu.exigirTurma(ator, id, 'ler'));
   }
 
   @Endpoint(C.matricular)
   @Autorizacao({ papeis: EQUIPE, posse: { regra: 'turma:gerir' } })
-  async matricular(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string, @Body() b: z.infer<typeof EsquemaMatricula>) {
+  async matricular(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Param('id') id: string,
+    @Body() b: z.infer<typeof EsquemaMatricula>,
+  ) {
     const r = await this.edu.matricular(ator, id, b.studentIds);
     return { enrolled: r.novos, alreadyEnrolled: r.jaMatriculados };
   }
@@ -83,18 +108,32 @@ export class EducacaoController {
   @Endpoint(C.alunos)
   @Autorizacao({ papeis: EQUIPE, posse: { regra: 'turma:gerir' } })
   async alunos(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string) {
-    return { items: (await this.edu.alunos(ator, id)).map((a) => ({ id: a.id, name: a.nome, isMinor: a.menor })) };
+    return {
+      items: (await this.edu.alunos(ator, id)).map((a) => ({
+        id: a.id,
+        name: a.nome,
+        isMinor: a.menor,
+      })),
+    };
   }
 
   @Endpoint(C.desmatricular)
   @Autorizacao({ papeis: EQUIPE, posse: { regra: 'turma:gerir' } })
-  async desmatricular(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string, @Param('studentId') alunoId: string) {
+  async desmatricular(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Param('id') id: string,
+    @Param('studentId') alunoId: string,
+  ) {
     await this.edu.desmatricular(ator, id, alunoId);
   }
 
   @Endpoint(C.trilha)
   @Autorizacao({ papeis: EQUIPE, posse: { regra: 'turma:gerir' } })
-  async trilha(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string, @Body() b: z.infer<typeof EsquemaTrilhaDaTurma>) {
+  async trilha(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Param('id') id: string,
+    @Body() b: z.infer<typeof EsquemaTrilhaDaTurma>,
+  ) {
     return paraTurma(await this.edu.definirTrilha(ator, id, b.level));
   }
 
@@ -112,25 +151,43 @@ export class EducacaoController {
 
   @Endpoint(C.criarMissao)
   @Autorizacao({ papeis: EQUIPE })
-  async criarMissao(@UsuarioAtual() ator: AtorUsuario, @Body() b: z.infer<typeof EsquemaNovaMissao>) {
+  async criarMissao(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Body() b: z.infer<typeof EsquemaNovaMissao>,
+  ) {
     return paraMissao(await this.edu.criarMissao(ator, b));
   }
 
   @Endpoint(C.missoes)
-  @Autorizacao({ papeis: ['student', ...EQUIPE], posse: { regra: 'turma:ler', parametro: 'classId', origem: 'query' } })
-  async missoes(@UsuarioAtual() ator: AtorUsuario, @Consulta() q: { classId: string }) {
-    return { items: (await this.edu.missoesDaTurma(ator, q.classId)).map(paraMissao) };
+  @Autorizacao({
+    papeis: ['student', ...EQUIPE],
+    posse: { regra: 'turma:ler', parametro: 'classId', origem: 'query' },
+  })
+  async missoes(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Consulta() q: { classId: string },
+  ) {
+    return {
+      items: (await this.edu.missoesDaTurma(ator, q.classId)).map(paraMissao),
+    };
   }
 
   @Endpoint(C.missao)
-  @Autorizacao({ papeis: ['student', ...EQUIPE], posse: { regra: 'missao:ler' } })
+  @Autorizacao({
+    papeis: ['student', ...EQUIPE],
+    posse: { regra: 'missao:ler' },
+  })
   async missao(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string) {
     return paraMissao(await this.edu.exigirMissao(ator, id, 'ler'));
   }
 
   @Endpoint(C.publicar)
   @Autorizacao({ papeis: EQUIPE, posse: { regra: 'missao:gerir' } })
-  async publicar(@UsuarioAtual() ator: AtorUsuario, @Param('id') id: string, @Body() b: z.infer<typeof EsquemaPublicacao>) {
+  async publicar(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Param('id') id: string,
+    @Body() b: z.infer<typeof EsquemaPublicacao>,
+  ) {
     return paraMissao(await this.edu.publicar(ator, id, b.classIds));
   }
 
@@ -143,18 +200,30 @@ export class EducacaoController {
   @Endpoint(C.habilidades)
   @Autorizacao({ papeis: [...EQUIPE, 'researcher', 'platform_admin'] })
   async habilidades(@Consulta() q: { stage?: string; competency?: string }) {
-    return { items: await this.edu.habilidades({ stage: q.stage, competencyCode: q.competency }) };
+    return {
+      items: await this.edu.habilidades({
+        stage: q.stage,
+        competencyCode: q.competency,
+      }),
+    };
   }
 
   @Endpoint(C.criarHabilidade)
   @Autorizacao({ papeis: ['platform_admin'] })
-  async criarHabilidade(@UsuarioAtual() ator: AtorUsuario, @Body() b: z.infer<typeof EsquemaNovaHabilidade>) {
+  async criarHabilidade(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Body() b: z.infer<typeof EsquemaNovaHabilidade>,
+  ) {
     return this.edu.revisarHabilidade(ator, b.code, b, true);
   }
 
   @Endpoint(C.revisarHabilidade)
   @Autorizacao({ papeis: ['platform_admin'] })
-  async revisarHabilidade(@UsuarioAtual() ator: AtorUsuario, @Param('code') code: string, @Body() b: z.infer<typeof EsquemaRevisaoHabilidade>) {
+  async revisarHabilidade(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Param('code') code: string,
+    @Body() b: z.infer<typeof EsquemaRevisaoHabilidade>,
+  ) {
     return this.edu.revisarHabilidade(ator, code, b, false);
   }
 }

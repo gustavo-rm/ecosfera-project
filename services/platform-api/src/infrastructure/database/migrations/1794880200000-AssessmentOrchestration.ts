@@ -23,8 +23,12 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
           REFERENCES platform.school(id) ON DELETE CASCADE,
         ADD CONSTRAINT planet_meta_status_check CHECK (status IN ('active', 'archived'))
     `);
-    await q.query(`CREATE INDEX planet_meta_owner_idx ON platform.planet_meta (owner_user_id)`);
-    await q.query(`CREATE INDEX planet_meta_school_idx ON platform.planet_meta (school_id)`);
+    await q.query(
+      `CREATE INDEX planet_meta_owner_idx ON platform.planet_meta (owner_user_id)`,
+    );
+    await q.query(
+      `CREATE INDEX planet_meta_school_idx ON platform.planet_meta (school_id)`,
+    );
 
     await q.query(`
       ALTER TABLE platform.evidence
@@ -46,7 +50,9 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
     await q.query(
       `CREATE INDEX evidence_student_competency_idx ON platform.evidence (student_user_id, competency_id, occurred_at)`,
     );
-    await q.query(`CREATE INDEX evidence_school_idx ON platform.evidence (school_id, occurred_at)`);
+    await q.query(
+      `CREATE INDEX evidence_school_idx ON platform.evidence (school_id, occurred_at)`,
+    );
 
     await q.query(`
       ALTER TABLE platform.cognitive_profile
@@ -54,7 +60,9 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
         ADD CONSTRAINT cognitive_profile_school_id_fkey FOREIGN KEY (school_id)
           REFERENCES platform.school(id) ON DELETE CASCADE
     `);
-    await q.query(`CREATE INDEX cognitive_profile_school_idx ON platform.cognitive_profile (school_id)`);
+    await q.query(
+      `CREATE INDEX cognitive_profile_school_idx ON platform.cognitive_profile (school_id)`,
+    );
 
     await q.query(`
       ALTER TABLE platform.competency_estimate
@@ -80,9 +88,13 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
           REFERENCES platform.app_user(id) ON DELETE SET NULL,
         ADD CONSTRAINT assessment_kind_check CHECK (kind IN ('pre_test', 'post_test', 'rubric'))
     `);
-    await q.query(`CREATE INDEX assessment_student_idx ON platform.assessment (student_user_id)`);
+    await q.query(
+      `CREATE INDEX assessment_student_idx ON platform.assessment (student_user_id)`,
+    );
 
-    await q.query(`ALTER TABLE platform.feedback ALTER COLUMN assessment_id DROP NOT NULL`);
+    await q.query(
+      `ALTER TABLE platform.feedback ALTER COLUMN assessment_id DROP NOT NULL`,
+    );
     await q.query(`
       ALTER TABLE platform.feedback
         ADD COLUMN student_user_id uuid,
@@ -96,7 +108,9 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
         ADD CONSTRAINT feedback_school_id_fkey FOREIGN KEY (school_id)
           REFERENCES platform.school(id) ON DELETE CASCADE
     `);
-    await q.query(`CREATE INDEX feedback_student_idx ON platform.feedback (student_user_id, created_at)`);
+    await q.query(
+      `CREATE INDEX feedback_student_idx ON platform.feedback (student_user_id, created_at)`,
+    );
 
     await q.query(`
       CREATE TABLE platform.alert_config (
@@ -139,7 +153,9 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
         CONSTRAINT outbox_event_pkey PRIMARY KEY (id)
       )
     `);
-    await q.query(`CREATE INDEX outbox_event_pending_idx ON platform.outbox_event (published_at, occurred_at)`);
+    await q.query(
+      `CREATE INDEX outbox_event_pending_idx ON platform.outbox_event (published_at, occurred_at)`,
+    );
 
     await q.query(`
       CREATE TABLE platform.idempotency_record (
@@ -174,7 +190,9 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
         CONSTRAINT export_record_format_check CHECK (format IN ('pdf', 'csv', 'json'))
       )
     `);
-    await q.query(`CREATE INDEX export_record_created_idx ON platform.export_record (created_at)`);
+    await q.query(
+      `CREATE INDEX export_record_created_idx ON platform.export_record (created_at)`,
+    );
   }
 
   public async down(q: QueryRunner): Promise<void> {
@@ -222,7 +240,9 @@ export class AssessmentOrchestration1794880200000 implements MigrationInterface 
         DROP CONSTRAINT IF EXISTS cognitive_profile_school_id_fkey, DROP COLUMN IF EXISTS school_id
     `);
     await q.query(`DROP INDEX IF EXISTS platform.evidence_school_idx`);
-    await q.query(`DROP INDEX IF EXISTS platform.evidence_student_competency_idx`);
+    await q.query(
+      `DROP INDEX IF EXISTS platform.evidence_student_competency_idx`,
+    );
     await q.query(`
       ALTER TABLE platform.evidence
         DROP CONSTRAINT IF EXISTS evidence_bncc_skill_id_fkey,

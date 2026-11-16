@@ -10,7 +10,10 @@ import { FederacaoController } from '../../modules/identity/interface/federacao.
 import { UsuariosController } from '../../modules/identity/interface/usuarios.controller';
 import { IaController } from '../../modules/orchestration/interface/ia.controller';
 import { PlanetasController } from '../../modules/orchestration/interface/planetas.controller';
-import { type DeclaracaoDeAutorizacao, META_AUTORIZACAO } from '../autorizacao/autorizacao.decorator';
+import {
+  type DeclaracaoDeAutorizacao,
+  META_AUTORIZACAO,
+} from '../autorizacao/autorizacao.decorator';
 import { SaudeController } from '../saude/saude.controller';
 import { type DefinicaoDeEndpoint, META_CONTRATO } from './contrato';
 
@@ -37,7 +40,9 @@ export interface RotaDeclarada {
   autorizacao: DeclaracaoDeAutorizacao | undefined;
 }
 
-export function rotasDeclaradas(controladores: Type[] = CONTROLADORES): RotaDeclarada[] {
+export function rotasDeclaradas(
+  controladores: Type[] = CONTROLADORES,
+): RotaDeclarada[] {
   const rotas: RotaDeclarada[] = [];
   for (const c of controladores) {
     const proto = c.prototype as Record<string, unknown>;
@@ -45,16 +50,21 @@ export function rotasDeclaradas(controladores: Type[] = CONTROLADORES): RotaDecl
       if (nome === 'constructor') continue;
       const fn = proto[nome];
       if (typeof fn !== 'function') continue;
-      const caminho = Reflect.getMetadata(PATH_METADATA, fn) as string | undefined;
-      const verbo = Reflect.getMetadata(METHOD_METADATA, fn) as number | undefined;
+      const caminho = Reflect.getMetadata(PATH_METADATA, fn) as
+        string | undefined;
+      const verbo = Reflect.getMetadata(METHOD_METADATA, fn) as
+        number | undefined;
       if (caminho === undefined && verbo === undefined) continue; // não é rota
       rotas.push({
         controlador: c.name,
         metodoDaClasse: nome,
         caminhoNest: caminho,
         verboNest: verbo,
-        contrato: Reflect.getMetadata(META_CONTRATO, fn) as DefinicaoDeEndpoint | undefined,
-        autorizacao: (Reflect.getMetadata(META_AUTORIZACAO, fn) ?? Reflect.getMetadata(META_AUTORIZACAO, c)) as DeclaracaoDeAutorizacao | undefined,
+        contrato: Reflect.getMetadata(META_CONTRATO, fn) as
+          DefinicaoDeEndpoint | undefined,
+        autorizacao: (Reflect.getMetadata(META_AUTORIZACAO, fn) ??
+          Reflect.getMetadata(META_AUTORIZACAO, c)) as
+          DeclaracaoDeAutorizacao | undefined,
       });
     }
   }

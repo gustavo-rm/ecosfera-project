@@ -8,7 +8,8 @@ export class Cifrador {
   private readonly chave: Buffer;
   constructor(chaveBase64: string) {
     this.chave = Buffer.from(chaveBase64, 'base64');
-    if (this.chave.length !== 32) throw new Error('Chave de cifra precisa de 32 bytes');
+    if (this.chave.length !== 32)
+      throw new Error('Chave de cifra precisa de 32 bytes');
   }
 
   cifrar(texto: string): string {
@@ -19,10 +20,17 @@ export class Cifrador {
   }
 
   decifrar(valor: string): string {
-    if (!valor.startsWith('v1:')) throw new Error('Formato de cifra desconhecido');
+    if (!valor.startsWith('v1:'))
+      throw new Error('Formato de cifra desconhecido');
     const bruto = Buffer.from(valor.slice(3), 'base64');
-    const d = createDecipheriv('aes-256-gcm', this.chave, bruto.subarray(0, 12));
+    const d = createDecipheriv(
+      'aes-256-gcm',
+      this.chave,
+      bruto.subarray(0, 12),
+    );
     d.setAuthTag(bruto.subarray(12, 28));
-    return Buffer.concat([d.update(bruto.subarray(28)), d.final()]).toString('utf8');
+    return Buffer.concat([d.update(bruto.subarray(28)), d.final()]).toString(
+      'utf8',
+    );
   }
 }

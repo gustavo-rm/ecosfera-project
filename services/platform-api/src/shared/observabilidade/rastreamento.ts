@@ -35,14 +35,21 @@ export function iniciarRastreamento(): void {
   if (endpoint) {
     processadores.push(
       new BatchSpanProcessor({
-        exporter: new OTLPTraceExporter({ url: `${endpoint.replace(/\/$/, '')}/v1/traces` }),
+        exporter: new OTLPTraceExporter({
+          url: `${endpoint.replace(/\/$/, '')}/v1/traces`,
+        }),
       }),
     );
   }
-  context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
+  context.setGlobalContextManager(
+    new AsyncLocalStorageContextManager().enable(),
+  );
   propagation.setGlobalPropagator(
     new CompositePropagator({
-      propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
+      propagators: [
+        new W3CTraceContextPropagator(),
+        new W3CBaggagePropagator(),
+      ],
     }),
   );
   provedor = new TracerProvider({

@@ -19,20 +19,41 @@ export class ServicoDeIdempotencia {
     private readonly chaves: ChavesRedis,
   ) {}
 
-  async executar<T>(escopo: string, chave: string, usuarioId: string, fn: () => Promise<T>): Promise<{ resultado: T; repetido: boolean }> {
+  async executar<T>(
+    escopo: string,
+    chave: string,
+    usuarioId: string,
+    fn: () => Promise<T>,
+  ): Promise<{ resultado: T; repetido: boolean }> {
     const repo = this.ds.getRepository(RegistroDeIdempotenciaEntity);
     const existente = await repo.findOneBy({ scope: escopo, key: chave });
     if (existente) {
-      if (existente.userId !== usuarioId) throw new ErroDeConflito('Chave de idempotência já usada por outro usuário');
+      if (existente.userId !== usuarioId)
+        throw new ErroDeConflito(
+          'Chave de idempotência já usada por outro usuário',
+        );
       return { resultado: existente.response as T, repetido: true };
     }
     const trava = this.chaves.idempotenciaEmAndamento(escopo, chave);
     if ((await this.redis.set(trava, usuarioId, 'EX', 30, 'NX')) !== 'OK') {
-      throw new ErroDeConflito('Pedido com esta chave de idempotência ainda em processamento');
+      throw new ErroDeConflito(
+        'Pedido com esta chave de idempotência ainda em processamento',
+      );
     }
     try {
       const resultado = await fn();
-      await repo.createQueryBuilder().insert().values({ scope: escopo, key: chave, userId: usuarioId, statusCode: 200, response: resultado as object }).orIgnore().execute();
+      await repo
+        .createQueryBuilder()
+        .insert()
+        .values({
+          scope: escopo,
+          key: chave,
+          userId: usuarioId,
+          statusCode: 200,
+          response: resultado as object,
+        })
+        .orIgnore()
+        .execute();
       return { resultado, repetido: false };
     } finally {
       await this.redis.del(trava);

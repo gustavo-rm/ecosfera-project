@@ -1,4 +1,9 @@
-import { Inject, Injectable, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  type OnApplicationBootstrap,
+  type OnApplicationShutdown,
+} from '@nestjs/common';
 import type { Logger } from 'pino';
 import { DataSource, IsNull } from 'typeorm';
 
@@ -14,7 +19,9 @@ import { EVENT_PUBLISHER, type EventPublisher } from './portas';
  * com FOR UPDATE SKIP LOCKED. Entrega "pelo menos uma vez": o consumidor deduplica por eventId.
  */
 @Injectable()
-export class RelayDoOutbox implements OnApplicationBootstrap, OnApplicationShutdown {
+export class RelayDoOutbox
+  implements OnApplicationBootstrap, OnApplicationShutdown
+{
   private timer?: NodeJS.Timeout;
   private rodando = false;
 
@@ -61,18 +68,37 @@ export class RelayDoOutbox implements OnApplicationBootstrap, OnApplicationShutd
             data: ev.payload,
           };
           try {
-            await this.publicador.publicar(this.config.EVENTS_STREAM_PLATFORM, envelope);
-            await em.update(EventoDeSaidaEntity, { id: ev.id }, { publishedAt: new Date(), attempts: ev.attempts + 1 });
+            await this.publicador.publicar(
+              this.config.EVENTS_STREAM_PLATFORM,
+              envelope,
+            );
+            await em.update(
+              EventoDeSaidaEntity,
+              { id: ev.id },
+              { publishedAt: new Date(), attempts: ev.attempts + 1 },
+            );
           } catch (e) {
-            await em.update(EventoDeSaidaEntity, { id: ev.id }, { attempts: ev.attempts + 1, lastError: (e as Error).message.slice(0, 500) });
+            await em.update(
+              EventoDeSaidaEntity,
+              { id: ev.id },
+              {
+                attempts: ev.attempts + 1,
+                lastError: (e as Error).message.slice(0, 500),
+              },
+            );
           }
         }
-        const pendentes = await em.getRepository(EventoDeSaidaEntity).countBy({ publishedAt: IsNull() });
+        const pendentes = await em
+          .getRepository(EventoDeSaidaEntity)
+          .countBy({ publishedAt: IsNull() });
         this.metricas.outboxPendente.set(pendentes);
         return lote.length;
       });
     } catch (e) {
-      this.logger.error({ err: (e as Error).message }, 'falha ao drenar o outbox');
+      this.logger.error(
+        { err: (e as Error).message },
+        'falha ao drenar o outbox',
+      );
       return 0;
     } finally {
       this.rodando = false;

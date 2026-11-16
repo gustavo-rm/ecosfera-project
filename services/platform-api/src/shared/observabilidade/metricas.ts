@@ -1,4 +1,10 @@
-import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from '@prometheus-io/client';
+import {
+  Counter,
+  Gauge,
+  Histogram,
+  Registry,
+  collectDefaultMetrics,
+} from '@prometheus-io/client';
 
 /** Métricas Prometheus do processo. Rótulos sem PII (só rotas-modelo e códigos). */
 export class Metricas {
@@ -51,6 +57,7 @@ export class Metricas {
   });
 
   constructor(padrao = true) {
-    if (padrao) collectDefaultMetrics({ register: this.registro, prefix: 'platform_' });
+    if (padrao)
+      collectDefaultMetrics({ register: this.registro, prefix: 'platform_' });
   }
 }

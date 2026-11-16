@@ -31,10 +31,19 @@ export class ServicoDeTokens implements VerificadorDeCredenciais {
     this.chaveServico = new TextEncoder().encode(config.SERVICE_TOKEN_SECRET);
   }
 
-  async emitirAcesso(u: Usuario, sessaoId: string): Promise<{ token: string; expiraEm: number }> {
+  async emitirAcesso(
+    u: Usuario,
+    sessaoId: string,
+  ): Promise<{ token: string; expiraEm: number }> {
     const agora = Math.floor(this.relogio.agora().getTime() / 1000);
     const exp = agora + this.config.ACCESS_TOKEN_TTL_SECONDS;
-    const token = await new SignJWT({ typ: 'access', role: u.papel, sch: u.escolaId, min: u.menor, sid: sessaoId })
+    const token = await new SignJWT({
+      typ: 'access',
+      role: u.papel,
+      sch: u.escolaId,
+      min: u.menor,
+      sid: sessaoId,
+    })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
       .setSubject(u.id)
       .setIssuer(this.config.JWT_ISSUER)
@@ -59,16 +68,23 @@ export class ServicoDeTokens implements VerificadorDeCredenciais {
         algorithms: ['HS256'],
         currentDate: this.relogio.agora(),
       });
-      carga = r.payload as Record<string, unknown>;
+      carga = r.payload;
     } catch (e) {
-      if (e instanceof errors.JWTExpired) throw new ErroNaoAutenticado('Token expirado');
+      if (e instanceof errors.JWTExpired)
+        throw new ErroNaoAutenticado('Token expirado');
       throw new ErroNaoAutenticado('Token inválido');
     }
     const { sub, role, sch, min, sid, typ } = carga;
-    if (typ !== 'access' || typeof sub !== 'string' || !ehPapel(role) || typeof sid !== 'string') {
+    if (
+      typ !== 'access' ||
+      typeof sub !== 'string' ||
+      !ehPapel(role) ||
+      typeof sid !== 'string'
+    ) {
       throw new ErroNaoAutenticado('Token inválido');
     }
-    if (!(await this.sessoes.existe(sid))) throw new ErroNaoAutenticado('Sessão encerrada ou revogada');
+    if (!(await this.sessoes.existe(sid)))
+      throw new ErroNaoAutenticado('Sessão encerrada ou revogada');
     return {
       tipo: 'usuario',
       usuarioId: sub,
@@ -87,8 +103,10 @@ export class ServicoDeTokens implements VerificadorDeCredenciais {
         currentDate: this.relogio.agora(),
         maxTokenAge: '15m',
       });
-      if (payload.typ !== 'service' || typeof payload.sub !== 'string') throw new Error('typ');
-      if (!this.config.SERVICE_ALLOWED_NAMES.includes(payload.sub)) throw new Error('servico');
+      if (payload.typ !== 'service' || typeof payload.sub !== 'string')
+        throw new Error('typ');
+      if (!this.config.SERVICE_ALLOWED_NAMES.includes(payload.sub))
+        throw new Error('servico');
       return { tipo: 'servico', servico: payload.sub };
     } catch {
       throw new ErroNaoAutenticado('Credencial de serviço inválida');
@@ -96,7 +114,12 @@ export class ServicoDeTokens implements VerificadorDeCredenciais {
   }
 
   /** Para testes e para o script de emissão de credencial de serviço. */
-  static async emitirTokenDeServico(segredo: string, servico: string, ttlSegundos = 300, agora = new Date()): Promise<string> {
+  static async emitirTokenDeServico(
+    segredo: string,
+    servico: string,
+    ttlSegundos = 300,
+    agora = new Date(),
+  ): Promise<string> {
     const iat = Math.floor(agora.getTime() / 1000);
     return new SignJWT({ typ: 'service' })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })

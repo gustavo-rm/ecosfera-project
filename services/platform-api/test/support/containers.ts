@@ -1,8 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
+import {
+  PostgreSqlContainer,
+  type StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
+import {
+  RedisContainer,
+  type StartedRedisContainer,
+} from '@testcontainers/redis';
 import { Client } from 'pg';
 import { DataSource } from 'typeorm';
 
@@ -28,7 +34,14 @@ export async function subirAmbiente(): Promise<Ambiente> {
       .withPassword('ecosfera')
       .withCopyFilesToContainer([
         {
-          source: join(RAIZ, 'infra', 'docker', 'postgres', 'initdb', '01-extensions-schemas.sql'),
+          source: join(
+            RAIZ,
+            'infra',
+            'docker',
+            'postgres',
+            'initdb',
+            '01-extensions-schemas.sql',
+          ),
           target: '/docker-entrypoint-initdb.d/01-extensions-schemas.sql',
         },
       ])
@@ -44,14 +57,25 @@ export async function subirAmbiente(): Promise<Ambiente> {
   const u = new URL(urlAdmin);
   u.username = 'platform_app';
   u.password = SENHA_APP;
-  return { pg, redis, urlAdmin, urlApp: u.toString(), urlRedis: redis.getConnectionUrl() };
+  return {
+    pg,
+    redis,
+    urlAdmin,
+    urlApp: u.toString(),
+    urlRedis: redis.getConnectionUrl(),
+  };
 }
 
 export async function aplicarPapeis(urlAdmin: string): Promise<void> {
   const c = new Client({ connectionString: urlAdmin });
   await c.connect();
   try {
-    await c.query(readFileSync(join(__dirname, '..', '..', 'db', 'papeis-por-schema.sql'), 'utf8'));
+    await c.query(
+      readFileSync(
+        join(__dirname, '..', '..', 'db', 'papeis-por-schema.sql'),
+        'utf8',
+      ),
+    );
     await c.query(`ALTER ROLE platform_app PASSWORD '${SENHA_APP}'`);
   } finally {
     await c.end();

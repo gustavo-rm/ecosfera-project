@@ -24,7 +24,11 @@ export type Intencao =
   /** Gerir conta (papel, correção, exclusão). */
   | 'gerir';
 
-export function decidirAcessoAoUsuario(ator: AtorUsuario, f: FatosDoAlvo, intencao: Intencao): ResultadoDePosse {
+export function decidirAcessoAoUsuario(
+  ator: AtorUsuario,
+  f: FatosDoAlvo,
+  intencao: Intencao,
+): ResultadoDePosse {
   if (!f.existe) return 'inexistente';
   const mesmaEscola = ator.escolaId !== null && f.escolaId === ator.escolaId;
 
@@ -32,7 +36,11 @@ export function decidirAcessoAoUsuario(ator: AtorUsuario, f: FatosDoAlvo, intenc
     return intencao === 'gerir' || intencao === 'ler' ? 'permitido' : 'negado';
   }
   if (ator.usuarioId === f.alvoId) {
-    return intencao === 'ler-pedagogico' ? 'negado' : intencao === 'gerir' ? 'negado' : 'permitido';
+    return intencao === 'ler-pedagogico'
+      ? 'negado'
+      : intencao === 'gerir'
+        ? 'negado'
+        : 'permitido';
   }
   if (ator.papel === 'guardian') {
     if (!f.responsavelPeloAlvo) return 'inexistente';

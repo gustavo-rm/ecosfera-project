@@ -18,12 +18,25 @@ export class ProvedorDeTeste {
   async iniciar(): Promise<void> {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
     this.chave = privateKey;
-    const jwk = { ...(await exportJWK(publicKey)), kid: 'k1', alg: 'RS256', use: 'sig' };
+    const jwk = {
+      ...(await exportJWK(publicKey)),
+      kid: 'k1',
+      alg: 'RS256',
+      use: 'sig',
+    };
     this.servidor = http.createServer((req, res) => {
       const u = new URL(req.url ?? '/', this.url);
-      const json = (s: number, b: unknown) => res.writeHead(s, { 'content-type': 'application/json' }).end(JSON.stringify(b));
+      const json = (s: number, b: unknown) =>
+        res
+          .writeHead(s, { 'content-type': 'application/json' })
+          .end(JSON.stringify(b));
       if (u.pathname === '/.well-known/openid-configuration') {
-        return json(200, { issuer: this.url, authorization_endpoint: `${this.url}/authorize`, token_endpoint: `${this.url}/token`, jwks_uri: `${this.url}/jwks` });
+        return json(200, {
+          issuer: this.url,
+          authorization_endpoint: `${this.url}/authorize`,
+          token_endpoint: `${this.url}/token`,
+          jwks_uri: `${this.url}/jwks`,
+        });
       }
       if (u.pathname === '/jwks') return json(200, { keys: [jwk] });
       if (u.pathname === '/token' && req.method === 'POST') {
@@ -32,9 +45,12 @@ export class ProvedorDeTeste {
         req.on('end', () => {
           const p = new URLSearchParams(corpo);
           const claims = this.codigos.get(p.get('code') ?? '');
-          if (!claims || !p.get('code_verifier')) return json(400, { error: 'invalid_grant' });
+          if (!claims || !p.get('code_verifier'))
+            return json(400, { error: 'invalid_grant' });
           this.codigos.delete(p.get('code')!);
-          void this.assinar(claims).then((t) => json(200, { id_token: t, token_type: 'Bearer' }));
+          void this.assinar(claims).then((t) =>
+            json(200, { id_token: t, token_type: 'Bearer' }),
+          );
         });
         return;
       }

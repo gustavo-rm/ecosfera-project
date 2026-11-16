@@ -21,7 +21,13 @@ export class AppModule {
   static com(config: Configuracao): DynamicModule {
     return {
       module: AppModule,
-      imports: [InfraestruturaModule.com(config), IdentityModule, EducationModule, OrchestrationModule, AssessmentModule],
+      imports: [
+        InfraestruturaModule.com(config),
+        IdentityModule,
+        EducationModule,
+        OrchestrationModule,
+        AssessmentModule,
+      ],
       controllers: [SaudeController],
       providers: [
         { provide: APP_GUARD, useClass: GuardCentral },

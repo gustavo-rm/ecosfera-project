@@ -1,4 +1,10 @@
-import { Column, Entity, Index, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 import { AGORA, type Json } from '../database/colunas';
 
@@ -6,7 +12,9 @@ import { AGORA, type Json } from '../database/colunas';
 @Entity({ name: 'outbox_event', schema: 'platform' })
 @Index('outbox_event_pending_idx', ['publishedAt', 'occurredAt'])
 export class EventoDeSaidaEntity {
-  @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'outbox_event_pkey' })
+  @PrimaryGeneratedColumn('uuid', {
+    primaryKeyConstraintName: 'outbox_event_pkey',
+  })
   id: string;
 
   @Column({ type: 'text', name: 'event_type' })
@@ -37,7 +45,11 @@ export class EventoDeSaidaEntity {
 /** Eventos já consumidos (idempotência do consumidor). */
 @Entity({ name: 'processed_event', schema: 'platform' })
 export class EventoProcessadoEntity {
-  @PrimaryColumn({ type: 'text', name: 'event_id', primaryKeyConstraintName: 'processed_event_pkey' })
+  @PrimaryColumn({
+    type: 'text',
+    name: 'event_id',
+    primaryKeyConstraintName: 'processed_event_pkey',
+  })
   eventId: string;
 
   @Column({ type: 'text', name: 'event_type' })

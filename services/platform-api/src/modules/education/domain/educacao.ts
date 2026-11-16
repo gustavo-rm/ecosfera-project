@@ -32,7 +32,8 @@ export interface Missao {
 }
 
 /** VO HabilidadeBNCC(código): formato oficial EFxxAAnn / EMxxAAAnnn. */
-const CODIGO_BNCC = /^(EF\d{2}[A-Z]{2}\d{2}|EF\d{2}[A-Z]{2}\d{2}[A-Z]?|EM\d{2}[A-Z]{3}\d{3})$/;
+const CODIGO_BNCC =
+  /^(EF\d{2}[A-Z]{2}\d{2}|EF\d{2}[A-Z]{2}\d{2}[A-Z]?|EM\d{2}[A-Z]{3}\d{3})$/;
 export function codigoBnccValido(codigo: string): boolean {
   return CODIGO_BNCC.test(codigo);
 }
@@ -41,16 +42,25 @@ export function codigoBnccValido(codigo: string): boolean {
  * RP-001: toda missão é ancorada a pelo menos uma habilidade BNCC existente e ativa no catálogo.
  * `catalogo` = códigos ativos conhecidos. Devolve os códigos inválidos (422).
  */
-export function validarAncoragem(codigos: string[], catalogo: ReadonlySet<string>): void {
+export function validarAncoragem(
+  codigos: string[],
+  catalogo: ReadonlySet<string>,
+): void {
   const unicos = [...new Set(codigos.map((c) => c.trim().toUpperCase()))];
   if (unicos.length === 0) {
-    throw new ErroDeValidacao('A missão precisa de pelo menos uma habilidade BNCC', [{ campo: 'body.bnccCodes', mensagem: 'obrigatório' }]);
+    throw new ErroDeValidacao(
+      'A missão precisa de pelo menos uma habilidade BNCC',
+      [{ campo: 'body.bnccCodes', mensagem: 'obrigatório' }],
+    );
   }
   const invalidos = unicos.filter((c) => !catalogo.has(c));
   if (invalidos.length > 0) {
     throw new ErroDeValidacao(
       'Habilidade BNCC inexistente no catálogo',
-      invalidos.map((c) => ({ campo: 'body.bnccCodes', mensagem: `código desconhecido ou inativo: ${c}` })),
+      invalidos.map((c) => ({
+        campo: 'body.bnccCodes',
+        mensagem: `código desconhecido ou inativo: ${c}`,
+      })),
     );
   }
 }
@@ -58,7 +68,9 @@ export function validarAncoragem(codigos: string[], catalogo: ReadonlySet<string
 /** Parâmetros da missão: objeto pequeno e plano o bastante para ir ao serviço de simulação. */
 export function validarParametros(p: Record<string, unknown>): void {
   if (JSON.stringify(p).length > 8 * 1024) {
-    throw new ErroDeValidacao('Parâmetros da missão grandes demais', [{ campo: 'body.parameters', mensagem: 'máximo 8 KiB' }]);
+    throw new ErroDeValidacao('Parâmetros da missão grandes demais', [
+      { campo: 'body.parameters', mensagem: 'máximo 8 KiB' },
+    ]);
   }
 }
 
@@ -70,9 +82,14 @@ export interface FatosDaTurma {
 }
 
 /** Acesso a turma: professor da turma, aluno matriculado (só leitura), coordenação/admin da escola. */
-export function decidirAcessoATurma(ator: AtorUsuario, f: FatosDaTurma, intencao: 'ler' | 'gerir'): ResultadoDePosse {
+export function decidirAcessoATurma(
+  ator: AtorUsuario,
+  f: FatosDaTurma,
+  intencao: 'ler' | 'gerir',
+): ResultadoDePosse {
   if (!f.existe) return 'inexistente';
-  if (ator.escolaId === null || f.escolaId !== ator.escolaId) return 'inexistente';
+  if (ator.escolaId === null || f.escolaId !== ator.escolaId)
+    return 'inexistente';
   switch (ator.papel) {
     case 'admin':
     case 'coordinator':
@@ -94,9 +111,14 @@ export interface FatosDaMissao {
   publicadaParaTurmaDoProfessor: boolean;
 }
 
-export function decidirAcessoAMissao(ator: AtorUsuario, f: FatosDaMissao, intencao: 'ler' | 'gerir'): ResultadoDePosse {
+export function decidirAcessoAMissao(
+  ator: AtorUsuario,
+  f: FatosDaMissao,
+  intencao: 'ler' | 'gerir',
+): ResultadoDePosse {
   if (!f.existe) return 'inexistente';
-  if (ator.escolaId === null || f.escolaId !== ator.escolaId) return 'inexistente';
+  if (ator.escolaId === null || f.escolaId !== ator.escolaId)
+    return 'inexistente';
   switch (ator.papel) {
     case 'admin':
     case 'coordinator':
@@ -105,7 +127,9 @@ export function decidirAcessoAMissao(ator: AtorUsuario, f: FatosDaMissao, intenc
       if (f.autorId === ator.usuarioId) return 'permitido';
       return intencao === 'ler' ? 'permitido' : 'negado';
     case 'student':
-      return intencao === 'ler' && f.publicadaParaTurmaDoAluno ? 'permitido' : 'negado';
+      return intencao === 'ler' && f.publicadaParaTurmaDoAluno
+        ? 'permitido'
+        : 'negado';
     default:
       return 'negado';
   }

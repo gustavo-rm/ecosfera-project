@@ -18,7 +18,11 @@ export class MailerFalso implements Mailer {
     this.caixa.push(m);
     if (this.caixa.length > 200) this.caixa.shift();
     this.logger.info(
-      { fake: 'Mailer', subject: m.assunto, ...(this.mostrarConteudo || !m.sensivel ? { body: m.texto } : {}) },
+      {
+        fake: 'Mailer',
+        subject: m.assunto,
+        ...(this.mostrarConteudo || !m.sensivel ? { body: m.texto } : {}),
+      },
       '[FAKE Mailer] mensagem não enviada (adaptador falso)',
     );
     return Promise.resolve();
@@ -29,7 +33,9 @@ export class MailerFalso implements Mailer {
 export class MailerDesligado implements Mailer {
   enviar(): Promise<void> {
     return Promise.reject(
-      new ErroNaoImplementado('Envio de e-mail não configurado nesta implantação. Peça ao administrador da escola.'),
+      new ErroNaoImplementado(
+        'Envio de e-mail não configurado nesta implantação. Peça ao administrador da escola.',
+      ),
     );
   }
 }

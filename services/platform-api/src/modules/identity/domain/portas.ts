@@ -5,8 +5,18 @@ export interface RepositorioDeUsuarios {
   porId(id: string): Promise<Usuario | null>;
   porEmail(email: string): Promise<Usuario | null>;
   salvar(u: Usuario): Promise<void>;
-  inserir(u: Omit<Usuario, 'id' | 'podeAutenticar' | 'alterarPapel' | 'pseudonimizar'>): Promise<Usuario>;
-  listarDaEscola(escolaId: string, papel: Papel | undefined, pagina: number, tamanho: number): Promise<{ itens: Usuario[]; total: number }>;
+  inserir(
+    u: Omit<
+      Usuario,
+      'id' | 'podeAutenticar' | 'alterarPapel' | 'pseudonimizar'
+    >,
+  ): Promise<Usuario>;
+  listarDaEscola(
+    escolaId: string,
+    papel: Papel | undefined,
+    pagina: number,
+    tamanho: number,
+  ): Promise<{ itens: Usuario[]; total: number }>;
 }
 export const REPOSITORIO_DE_USUARIOS = Symbol('RepositorioDeUsuarios');
 
@@ -34,13 +44,23 @@ export interface DadosDaSessao {
 }
 export type ResultadoDaRotacao =
   | { tipo: 'ok'; novoSegredo: string; usuarioId: string }
-  | { tipo: 'reuso' ; usuarioId: string }
+  | { tipo: 'reuso'; usuarioId: string }
   | { tipo: 'invalido' };
 
 /** Sessões e famílias de refresh token (Redis). */
 export interface ArmazemDeSessoes {
-  criar(sessaoId: string, usuarioId: string, segredo: string, ttlSegundos: number): Promise<void>;
-  rotacionar(sessaoId: string, segredoApresentado: string, novoSegredo: string, ttlSegundos: number): Promise<ResultadoDaRotacao>;
+  criar(
+    sessaoId: string,
+    usuarioId: string,
+    segredo: string,
+    ttlSegundos: number,
+  ): Promise<void>;
+  rotacionar(
+    sessaoId: string,
+    segredoApresentado: string,
+    novoSegredo: string,
+    ttlSegundos: number,
+  ): Promise<ResultadoDaRotacao>;
   existe(sessaoId: string): Promise<boolean>;
   revogar(sessaoId: string): Promise<void>;
   revogarTodasDoUsuario(usuarioId: string): Promise<number>;

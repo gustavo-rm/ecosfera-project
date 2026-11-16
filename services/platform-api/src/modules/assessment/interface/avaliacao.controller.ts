@@ -10,7 +10,14 @@ import { ServicoDeExportacao } from '../application/exportacao.service';
 import { ServicoLgpd } from '../application/lgpd.service';
 import { ServicoDePainel } from '../application/painel.service';
 import { ProjecaoDeAvaliacao } from '../application/projecao.service';
-import { ContratosAvaliacao as C, ContratosLgpd as L, type EsquemaConfigAlerta, type EsquemaFeedback, type EsquemaNovaAvaliacao, type EsquemaPolitica } from './contratos';
+import {
+  ContratosAvaliacao as C,
+  ContratosLgpd as L,
+  type EsquemaConfigAlerta,
+  type EsquemaFeedback,
+  type EsquemaNovaAvaliacao,
+  type EsquemaPolitica,
+} from './contratos';
 
 const EQUIPE = ['teacher', 'coordinator', 'admin'] as const;
 const pedagogico = { papeis: EQUIPE, posse: { regra: 'usuario:pedagogico' } };
@@ -40,7 +47,11 @@ export class AvaliacaoController {
 
   @Endpoint(C.evidencias)
   @Autorizacao(pedagogico)
-  evidencias(@UsuarioAtual() a: AtorUsuario, @Param('id') id: string, @Consulta() q: { page: number; pageSize: number; competency?: string }) {
+  evidencias(
+    @UsuarioAtual() a: AtorUsuario,
+    @Param('id') id: string,
+    @Consulta() q: { page: number; pageSize: number; competency?: string },
+  ) {
     return this.painel.evidencias(a, id, q.competency, q.page, q.pageSize);
   }
 
@@ -52,7 +63,11 @@ export class AvaliacaoController {
 
   @Endpoint(C.registrar)
   @Autorizacao({ papeis: ['teacher'], posse: { regra: 'usuario:pedagogico' } })
-  registrar(@UsuarioAtual() a: AtorUsuario, @Param('id') id: string, @Body() b: z.infer<typeof EsquemaNovaAvaliacao>) {
+  registrar(
+    @UsuarioAtual() a: AtorUsuario,
+    @Param('id') id: string,
+    @Body() b: z.infer<typeof EsquemaNovaAvaliacao>,
+  ) {
     return this.painel.registrarAvaliacao(a, id, b);
   }
 
@@ -101,13 +116,21 @@ export class AvaliacaoController {
 
   @Endpoint(C.definirConfig)
   @Autorizacao({ papeis: ['coordinator', 'admin'] })
-  definirConfig(@UsuarioAtual() a: AtorUsuario, @Param('id') id: string, @Body() b: z.infer<typeof EsquemaConfigAlerta>) {
+  definirConfig(
+    @UsuarioAtual() a: AtorUsuario,
+    @Param('id') id: string,
+    @Body() b: z.infer<typeof EsquemaConfigAlerta>,
+  ) {
     return this.painel.definirConfiguracaoDeAlerta(a, id, b);
   }
 
   @Endpoint(C.feedback)
   @Autorizacao({ papeis: ['teacher'], posse: { regra: 'usuario:pedagogico' } })
-  feedback(@UsuarioAtual() a: AtorUsuario, @Param('id') id: string, @Body() b: z.infer<typeof EsquemaFeedback>) {
+  feedback(
+    @UsuarioAtual() a: AtorUsuario,
+    @Param('id') id: string,
+    @Body() b: z.infer<typeof EsquemaFeedback>,
+  ) {
     return this.painel.enviarFeedback(a, id, b.content, b.assessmentId);
   }
 
@@ -124,19 +147,37 @@ export class AvaliacaoController {
   }
 
   @Endpoint(C.exportar)
-  @Autorizacao({ papeis: ['teacher', 'coordinator', 'admin'], posse: { regra: 'turma:gerir', parametro: 'classId', origem: 'query' } })
-  exportar(@UsuarioAtual() a: AtorUsuario, @Consulta() q: { format: 'pdf' | 'csv'; classId: string }) {
+  @Autorizacao({
+    papeis: ['teacher', 'coordinator', 'admin'],
+    posse: { regra: 'turma:gerir', parametro: 'classId', origem: 'query' },
+  })
+  exportar(
+    @UsuarioAtual() a: AtorUsuario,
+    @Consulta() q: { format: 'pdf' | 'csv'; classId: string },
+  ) {
     return this.exportacao.relatorio(a, q.classId, q.format);
   }
 
   @Endpoint(C.dataset)
   @Autorizacao({ papeis: ['researcher'] })
-  dataset(@UsuarioAtual() a: AtorUsuario, @Consulta() q: { anonymized: boolean; format: 'json' | 'csv' }) {
+  dataset(
+    @UsuarioAtual() a: AtorUsuario,
+    @Consulta() q: { anonymized: boolean; format: 'json' | 'csv' },
+  ) {
     return this.exportacao.dataset(a, q.anonymized, q.format);
   }
 
   @Endpoint(L.acesso)
-  @Autorizacao({ papeis: ['guardian', 'admin', 'teacher', 'coordinator', 'researcher', 'platform_admin'] })
+  @Autorizacao({
+    papeis: [
+      'guardian',
+      'admin',
+      'teacher',
+      'coordinator',
+      'researcher',
+      'platform_admin',
+    ],
+  })
   acesso(@UsuarioAtual() a: AtorUsuario, @Param('id') id: string) {
     return this.lgpd.acesso(a, id);
   }
@@ -155,7 +196,11 @@ export class AvaliacaoController {
 
   @Endpoint(L.definirPolitica)
   @Autorizacao({ papeis: ['platform_admin'] })
-  definirPolitica(@UsuarioAtual() a: AtorUsuario, @Param('category') c: string, @Body() b: z.infer<typeof EsquemaPolitica>) {
+  definirPolitica(
+    @UsuarioAtual() a: AtorUsuario,
+    @Param('category') c: string,
+    @Body() b: z.infer<typeof EsquemaPolitica>,
+  ) {
     return this.lgpd.definirPolitica(a, c, b.retentionDays);
   }
 

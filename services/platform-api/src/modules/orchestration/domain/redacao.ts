@@ -10,12 +10,21 @@ const PADROES: [RegExp, string][] = [
   [/https?:\/\/\S+/g, '[link]'],
 ];
 
-export function redigirPII(texto: string, nomesConhecidos: string[] = []): string {
+export function redigirPII(
+  texto: string,
+  nomesConhecidos: string[] = [],
+): string {
   let r = texto;
   for (const [re, troca] of PADROES) r = r.replace(re, troca);
   for (const nome of nomesConhecidos) {
     for (const parte of nome.split(/\s+/).filter((p) => p.length >= 3)) {
-      r = r.replace(new RegExp(`\\b${parte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), '[nome]');
+      r = r.replace(
+        new RegExp(
+          `\\b${parte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
+          'gi',
+        ),
+        '[nome]',
+      );
     }
   }
   return r;

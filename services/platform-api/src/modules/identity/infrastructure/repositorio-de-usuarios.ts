@@ -3,7 +3,7 @@ import type { DataSource, Repository } from 'typeorm';
 import type { Json } from '../../../shared/database/colunas';
 import type { Papel } from '../../../shared/kernel/papeis';
 import type { RepositorioDeUsuarios } from '../domain/portas';
-import { mesclarPreferencias, type MudancaDePreferencias, Usuario } from '../domain/usuario';
+import { mesclarPreferencias, Usuario } from '../domain/usuario';
 import { UsuarioEntity } from './persistencia/usuario.entity';
 
 export function paraDominio(e: UsuarioEntity): Usuario {
@@ -15,7 +15,7 @@ export function paraDominio(e: UsuarioEntity): Usuario {
     e.role,
     e.isMinor,
     e.status,
-    mesclarPreferencias(e.preferences as MudancaDePreferencias, {}),
+    mesclarPreferencias(e.preferences, {}),
     e.passwordHash,
   );
 }
@@ -54,7 +54,12 @@ export class RepositorioDeUsuariosTypeorm implements RepositorioDeUsuarios {
     );
   }
 
-  async inserir(u: Omit<Usuario, 'id' | 'podeAutenticar' | 'alterarPapel' | 'pseudonimizar'>): Promise<Usuario> {
+  async inserir(
+    u: Omit<
+      Usuario,
+      'id' | 'podeAutenticar' | 'alterarPapel' | 'pseudonimizar'
+    >,
+  ): Promise<Usuario> {
     const e = await this.repo.save(
       this.repo.create({
         schoolId: u.escolaId,
@@ -70,7 +75,12 @@ export class RepositorioDeUsuariosTypeorm implements RepositorioDeUsuarios {
     return paraDominio(e);
   }
 
-  async listarDaEscola(escolaId: string, papel: Papel | undefined, pagina: number, tamanho: number) {
+  async listarDaEscola(
+    escolaId: string,
+    papel: Papel | undefined,
+    pagina: number,
+    tamanho: number,
+  ) {
     const [itens, total] = await this.repo.findAndCount({
       where: { schoolId: escolaId, ...(papel ? { role: papel } : {}) },
       order: { createdAt: 'ASC', id: 'ASC' },

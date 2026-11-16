@@ -8,7 +8,8 @@ export class RegistroDeRegrasDePosse {
   private readonly regras = new Map<string, RegraDePosse>();
 
   registrar(nome: string, regra: RegraDePosse): void {
-    if (this.regras.has(nome)) throw new Error(`Regra de posse duplicada: ${nome}`);
+    if (this.regras.has(nome))
+      throw new Error(`Regra de posse duplicada: ${nome}`);
     this.regras.set(nome, regra);
   }
 

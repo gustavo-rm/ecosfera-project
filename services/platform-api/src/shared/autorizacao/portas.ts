@@ -18,4 +18,7 @@ export const GATE_DE_CONSENTIMENTO = Symbol('GateDeConsentimento');
 export type ResultadoDePosse = 'permitido' | 'negado' | 'inexistente';
 
 /** Regra de posse: o ator pode agir sobre o recurso identificado por `valor`? */
-export type RegraDePosse = (ator: AtorUsuario, valor: string) => Promise<ResultadoDePosse>;
+export type RegraDePosse = (
+  ator: AtorUsuario,
+  valor: string,
+) => Promise<ResultadoDePosse>;

@@ -36,11 +36,18 @@ export interface MudancaDePreferencias {
   accessibility?: Partial<Preferencias['accessibility']>;
 }
 
-export function mesclarPreferencias(atual: MudancaDePreferencias | undefined, mudanca: MudancaDePreferencias): Preferencias {
+export function mesclarPreferencias(
+  atual: MudancaDePreferencias | undefined,
+  mudanca: MudancaDePreferencias,
+): Preferencias {
   const base = { ...PREFERENCIAS_PADRAO, ...(atual ?? {}) };
   return {
     language: mudanca.language ?? base.language,
-    accessibility: { ...PREFERENCIAS_PADRAO.accessibility, ...base.accessibility, ...(mudanca.accessibility ?? {}) },
+    accessibility: {
+      ...PREFERENCIAS_PADRAO.accessibility,
+      ...base.accessibility,
+      ...(mudanca.accessibility ?? {}),
+    },
   };
 }
 
@@ -68,7 +75,8 @@ export class Usuario {
   }
 
   alterarPapel(novo: Papel): void {
-    if (this.situacao !== 'active') throw new ErroDeValidacao('Conta inativa não pode mudar de papel');
+    if (this.situacao !== 'active')
+      throw new ErroDeValidacao('Conta inativa não pode mudar de papel');
     this.papel = novo;
     if (novo !== 'student') this.menor = false;
   }

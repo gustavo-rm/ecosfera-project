@@ -1,4 +1,10 @@
-import { applyDecorators, HttpCode, RequestMapping, RequestMethod, SetMetadata } from '@nestjs/common';
+import {
+  applyDecorators,
+  HttpCode,
+  RequestMapping,
+  RequestMethod,
+  SetMetadata,
+} from '@nestjs/common';
 import type { z } from 'zod';
 
 /**

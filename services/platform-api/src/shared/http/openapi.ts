@@ -8,8 +8,16 @@ import type { DefinicaoDeEndpoint } from './contrato';
 type Json = Record<string, unknown>;
 
 /** Converte um schema Zod em JSON Schema 2020-12, movendo $defs para components/schemas. */
-function converter(schema: z.ZodType, io: 'input' | 'output', componentes: Record<string, Json>): Json {
-  const js = z.toJSONSchema(schema, { io, unrepresentable: 'any', target: 'draft-2020-12' }) as Json;
+function converter(
+  schema: z.ZodType,
+  io: 'input' | 'output',
+  componentes: Record<string, Json>,
+): Json {
+  const js = z.toJSONSchema(schema, {
+    io,
+    unrepresentable: 'any',
+    target: 'draft-2020-12',
+  }) as Json;
   const defs = (js.$defs ?? {}) as Record<string, Json>;
   delete js.$defs;
   delete js.$schema;
@@ -18,15 +26,22 @@ function converter(schema: z.ZodType, io: 'input' | 'output', componentes: Recor
     if (v && typeof v === 'object') {
       const o: Json = {};
       for (const [k, x] of Object.entries(v as Json)) {
-        if (k === '$ref' && typeof x === 'string') o[k] = x.replace('#/$defs/', '#/components/schemas/');
-        else if (k === 'id' && typeof x === 'string' && (v as Json).type !== undefined) continue;
+        if (k === '$ref' && typeof x === 'string')
+          o[k] = x.replace('#/$defs/', '#/components/schemas/');
+        else if (
+          k === 'id' &&
+          typeof x === 'string' &&
+          (v as Json).type !== undefined
+        )
+          continue;
         else o[k] = reescrever(x);
       }
       return o;
     }
     return v;
   };
-  for (const [id, d] of Object.entries(defs)) componentes[id] ??= reescrever(d) as Json;
+  for (const [id, d] of Object.entries(defs))
+    componentes[id] ??= reescrever(d) as Json;
   const raiz = reescrever(js) as Json;
   const id = z.globalRegistry.get(schema)?.id;
   if (typeof id === 'string') {
@@ -37,60 +52,136 @@ function converter(schema: z.ZodType, io: 'input' | 'output', componentes: Recor
 }
 
 const PROBLEMA = { $ref: '#/components/schemas/Problem' };
-const respostaProblema = (descricao: string) => ({ description: descricao, content: { 'application/problem+json': { schema: PROBLEMA } } });
+const respostaProblema = (descricao: string) => ({
+  description: descricao,
+  content: { 'application/problem+json': { schema: PROBLEMA } },
+});
 
 function extensaoDeAutorizacao(a: DeclaracaoDeAutorizacao | undefined): Json {
   if (!a) return { deny: true };
   if ('publico' in a) return { public: true, reason: a.motivo };
-  if ('servico' in a) return { service: true, services: a.servicos ?? 'allowed list (SERVICE_ALLOWED_NAMES)' };
-  return { roles: a.papeis, ...(a.posse ? { ownership: a.posse.regra, ownershipParam: `${a.posse.origem ?? 'params'}.${a.posse.parametro ?? 'id'}` } : {}), ...(a.consentimento ? { consentWhenActorIsMinor: a.consentimento } : {}) };
+  if ('servico' in a)
+    return {
+      service: true,
+      services: a.servicos ?? 'allowed list (SERVICE_ALLOWED_NAMES)',
+    };
+  return {
+    roles: a.papeis,
+    ...(a.posse
+      ? {
+          ownership: a.posse.regra,
+          ownershipParam: `${a.posse.origem ?? 'params'}.${a.posse.parametro ?? 'id'}`,
+        }
+      : {}),
+    ...(a.consentimento ? { consentWhenActorIsMinor: a.consentimento } : {}),
+  };
 }
 
-function operacao(d: DefinicaoDeEndpoint, a: DeclaracaoDeAutorizacao | undefined, componentes: Record<string, Json>): Json {
+function operacao(
+  d: DefinicaoDeEndpoint,
+  a: DeclaracaoDeAutorizacao | undefined,
+  componentes: Record<string, Json>,
+): Json {
   const parametros: Json[] = [];
   const adicionar = (onde: 'path' | 'query', s: z.ZodObject | undefined) => {
     if (!s) return;
-    const js = converter(s, 'input', componentes) as { properties?: Record<string, Json>; required?: string[] };
+    const js = converter(s, 'input', componentes) as {
+      properties?: Record<string, Json>;
+      required?: string[];
+    };
     for (const [nome, sch] of Object.entries(js.properties ?? {})) {
-      parametros.push({ name: nome, in: onde, required: onde === 'path' || (js.required ?? []).includes(nome), schema: sch });
+      parametros.push({
+        name: nome,
+        in: onde,
+        required: onde === 'path' || (js.required ?? []).includes(nome),
+        schema: sch,
+      });
     }
   };
   adicionar('path', d.parametros);
   adicionar('query', d.consulta);
-  for (const [nome, desc] of Object.entries(d.cabecalhosDeEntrada ?? {})) parametros.push({ name: nome, in: 'header', required: false, description: desc, schema: { type: 'string' } });
+  for (const [nome, desc] of Object.entries(d.cabecalhosDeEntrada ?? {}))
+    parametros.push({
+      name: nome,
+      in: 'header',
+      required: false,
+      description: desc,
+      schema: { type: 'string' },
+    });
 
   const respostas: Json = {};
   for (const [status, r] of Object.entries(d.respostas)) {
     const n = Number(status);
-    const tipo = r.tipoConteudo ?? (n >= 400 ? 'application/problem+json' : 'application/json');
-    const schema = r.esquema ? converter(r.esquema, 'output', componentes) : n >= 400 ? PROBLEMA : undefined;
+    const tipo =
+      r.tipoConteudo ??
+      (n >= 400 ? 'application/problem+json' : 'application/json');
+    const schema = r.esquema
+      ? converter(r.esquema, 'output', componentes)
+      : n >= 400
+        ? PROBLEMA
+        : undefined;
     respostas[status] = {
       description: r.descricao,
-      ...(schema || r.tipoConteudo ? { content: { [tipo]: schema ? { schema } : {} } } : {}),
-      ...(r.cabecalhos ? { headers: Object.fromEntries(Object.entries(r.cabecalhos).map(([h, desc]) => [h, { description: desc, schema: { type: 'string' } }])) } : {}),
+      ...(schema || r.tipoConteudo
+        ? { content: { [tipo]: schema ? { schema } : {} } }
+        : {}),
+      ...(r.cabecalhos
+        ? {
+            headers: Object.fromEntries(
+              Object.entries(r.cabecalhos).map(([h, desc]) => [
+                h,
+                { description: desc, schema: { type: 'string' } },
+              ]),
+            ),
+          }
+        : {}),
     };
   }
   const tem = (s: number) => respostas[String(s)] !== undefined;
-  if (d.seguranca !== 'publico' && !tem(401)) respostas['401'] = respostaProblema('Não autenticado (token ausente, expirado ou revogado)');
-  if (d.seguranca !== 'publico' && !tem(403)) respostas['403'] = respostaProblema('Sem permissão para esta ação');
-  if ((d.corpo || d.consulta || d.parametros) && !tem(422)) respostas['422'] = respostaProblema('Dados inválidos');
-  if (!tem(429)) respostas['429'] = respostaProblema('Limite de requisições excedido');
-  if (!tem(500)) respostas['500'] = respostaProblema('Erro interno (com traceId)');
+  if (d.seguranca !== 'publico' && !tem(401))
+    respostas['401'] = respostaProblema(
+      'Não autenticado (token ausente, expirado ou revogado)',
+    );
+  if (d.seguranca !== 'publico' && !tem(403))
+    respostas['403'] = respostaProblema('Sem permissão para esta ação');
+  if ((d.corpo || d.consulta || d.parametros) && !tem(422))
+    respostas['422'] = respostaProblema('Dados inválidos');
+  if ((d.parametros || (a && 'papeis' in a && a.posse)) && !tem(404))
+    respostas['404'] = respostaProblema(
+      'Não encontrado (inclui recurso de outra escola, que não é revelado)',
+    );
+  if (!tem(429))
+    respostas['429'] = respostaProblema('Limite de requisições excedido');
+  if (!tem(500))
+    respostas['500'] = respostaProblema('Erro interno (com traceId)');
 
   return {
     operationId: d.operationId,
     tags: [d.tag],
     summary: d.resumo,
     ...(d.descricao ? { description: d.descricao } : {}),
-    security: d.seguranca === 'publico' ? [] : d.seguranca === 'servico' ? [{ servico: [] }] : [{ bearer: [] }],
+    security:
+      d.seguranca === 'publico'
+        ? []
+        : d.seguranca === 'servico'
+          ? [{ servico: [] }]
+          : [{ bearer: [] }],
     ...(parametros.length ? { parameters: parametros } : {}),
     ...(d.corpo
       ? {
           requestBody: {
             required: true,
             content: {
-              'application/json': { schema: converter(d.corpo, 'input', componentes) },
-              ...(d.operationId === 'ltiLaunch' ? { 'application/x-www-form-urlencoded': { schema: converter(d.corpo, 'input', componentes) } } : {}),
+              'application/json': {
+                schema: converter(d.corpo, 'input', componentes),
+              },
+              ...(d.operationId === 'ltiLaunch'
+                ? {
+                    'application/x-www-form-urlencoded': {
+                      schema: converter(d.corpo, 'input', componentes),
+                    },
+                  }
+                : {}),
             },
           },
         }
@@ -107,12 +198,22 @@ export function gerarOpenApi(versao = '1.0.0'): Json {
   const paths: Record<string, Record<string, Json>> = {};
   const rotas = rotasDeclaradas()
     .filter((r) => r.contrato && !r.contrato.interna)
-    .sort((a, b) => a.contrato!.caminho.localeCompare(b.contrato!.caminho) || a.contrato!.metodo.localeCompare(b.contrato!.metodo));
+    .sort(
+      (a, b) =>
+        a.contrato!.caminho.localeCompare(b.contrato!.caminho) ||
+        a.contrato!.metodo.localeCompare(b.contrato!.metodo),
+    );
   for (const r of rotas) {
     const d = r.contrato!;
-    (paths[d.caminho] ??= {})[d.metodo.toLowerCase()] = operacao(d, r.autorizacao, componentes);
+    (paths[d.caminho] ??= {})[d.metodo.toLowerCase()] = operacao(
+      d,
+      r.autorizacao,
+      componentes,
+    );
   }
-  const ordenados = Object.fromEntries(Object.entries(componentes).sort(([a], [b]) => a.localeCompare(b)));
+  const ordenados = Object.fromEntries(
+    Object.entries(componentes).sort(([a], [b]) => a.localeCompare(b)),
+  );
   return {
     openapi: '3.1.0',
     jsonSchemaDialect: 'https://json-schema.org/draft/2020-12/schema',
@@ -126,13 +227,26 @@ export function gerarOpenApi(versao = '1.0.0'): Json {
       license: { name: 'MIT' },
     },
     servers: [{ url: '/platform/api/v1' }],
-    tags: [...new Set(rotas.map((r) => r.contrato!.tag))].sort().map((t) => ({ name: t })),
+    tags: [...new Set(rotas.map((r) => r.contrato!.tag))]
+      .sort()
+      .map((t) => ({ name: t })),
     paths,
     components: {
       schemas: ordenados,
       securitySchemes: {
-        bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Access token de vida curta emitido por /auth/login' },
-        servico: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Credencial de serviço (typ=service), para o ai-sim-service' },
+        bearer: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Access token de vida curta emitido por /auth/login',
+        },
+        servico: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description:
+            'Credencial de serviço (typ=service), para o ai-sim-service',
+        },
       },
     },
   };

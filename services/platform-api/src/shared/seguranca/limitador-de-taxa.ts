@@ -25,20 +25,42 @@ export class LimitadorDeTaxa {
     private readonly chaves: ChavesRedis,
   ) {}
 
-  async consumir(nome: string, chave: string, limite: number, janelaSegundos: number): Promise<ResultadoDoLimite> {
-    const [usados, ttl] = (await this.redis.eval(SCRIPT, 1, this.chaves.limite(nome, chave), janelaSegundos)) as [
-      number,
-      number,
-    ];
-    return { permitido: usados <= limite, usados, tentarEmSegundos: Math.max(ttl, 1) };
+  async consumir(
+    nome: string,
+    chave: string,
+    limite: number,
+    janelaSegundos: number,
+  ): Promise<ResultadoDoLimite> {
+    const [usados, ttl] = (await this.redis.eval(
+      SCRIPT,
+      1,
+      this.chaves.limite(nome, chave),
+      janelaSegundos,
+    )) as [number, number];
+    return {
+      permitido: usados <= limite,
+      usados,
+      tentarEmSegundos: Math.max(ttl, 1),
+    };
   }
 
   /** Consulta sem consumir (para contadores que só sobem em falha). */
-  async excedido(nome: string, chave: string, limite: number): Promise<ResultadoDoLimite> {
+  async excedido(
+    nome: string,
+    chave: string,
+    limite: number,
+  ): Promise<ResultadoDoLimite> {
     const k = this.chaves.limite(nome, chave);
-    const [usados, ttl] = await Promise.all([this.redis.get(k), this.redis.ttl(k)]);
+    const [usados, ttl] = await Promise.all([
+      this.redis.get(k),
+      this.redis.ttl(k),
+    ]);
     const n = Number(usados ?? 0);
-    return { permitido: n < limite, usados: n, tentarEmSegundos: Math.max(ttl, 1) };
+    return {
+      permitido: n < limite,
+      usados: n,
+      tentarEmSegundos: Math.max(ttl, 1),
+    };
   }
 
   async zerar(nome: string, chave: string): Promise<void> {

@@ -24,12 +24,24 @@ export function opcoesDoBanco(o: OpcoesDeBanco): DataSourceOptions {
     uuidExtension: 'pgcrypto',
     installExtensions: false,
     entities: ENTIDADES,
-    migrations: [join(__dirname, '..', '..', 'infrastructure', 'database', 'migrations', '*.{ts,js}')],
+    migrations: [
+      join(
+        __dirname,
+        '..',
+        '..',
+        'infrastructure',
+        'database',
+        'migrations',
+        '*.{ts,js}',
+      ),
+    ],
     migrationsTableName: 'platform_migrations',
     migrationsTransactionMode: 'each',
     synchronize: false,
     migrationsRun: false,
-    logging: o.logging ? ['error', 'warn', 'migration'] : ['error', 'migration'],
+    logging: o.logging
+      ? ['error', 'warn', 'migration']
+      : ['error', 'migration'],
     ssl: o.ssl ? { rejectUnauthorized: true } : undefined,
     applicationName: o.applicationName ?? 'platform-api',
     extra: { max: o.poolMax ?? 10 },

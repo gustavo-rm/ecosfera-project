@@ -24,35 +24,104 @@ export class SimulacaoHttp implements SimulationGateway {
     return `/simulation/api/v1/planets/${encodeURIComponent(id)}${resto}`;
   }
 
-  criarPlaneta(id: string, seed: string, params: Record<string, unknown>, ctx: ContextoDaChamada) {
-    return this.c.requisitar<EstadoDoPlaneta>('POST', '/simulation/api/v1/planets', { planetId: id, seed, params, context: ctx }, { idempotente: true, operacao: 'createPlanet' });
+  criarPlaneta(
+    id: string,
+    seed: string,
+    params: Record<string, unknown>,
+    ctx: ContextoDaChamada,
+  ) {
+    return this.c.requisitar<EstadoDoPlaneta>(
+      'POST',
+      '/simulation/api/v1/planets',
+      { planetId: id, seed, params, context: ctx },
+      { idempotente: true, operacao: 'createPlanet' },
+    );
   }
   estado(id: string) {
-    return this.c.requisitar<EstadoDoPlaneta>('GET', this.p(id), undefined, { operacao: 'getPlanet' });
+    return this.c.requisitar<EstadoDoPlaneta>('GET', this.p(id), undefined, {
+      operacao: 'getPlanet',
+    });
   }
   validar(id: string, params: Record<string, unknown>) {
-    return this.c.requisitar<{ ok: boolean; warnings: string[] }>('POST', this.p(id, '/validate'), { params }, { idempotente: true, operacao: 'validate' });
+    return this.c.requisitar<{ ok: boolean; warnings: string[] }>(
+      'POST',
+      this.p(id, '/validate'),
+      { params },
+      { idempotente: true, operacao: 'validate' },
+    );
   }
-  avancar(id: string, steps: number, speed: number, assincrono: boolean, ctx: ContextoDaChamada) {
-    return this.c.requisitar<ResultadoDoTick>('POST', this.p(id, '/tick'), { steps, speed, async: assincrono, context: ctx, requestId: randomUUID() }, { operacao: 'tick' });
+  avancar(
+    id: string,
+    steps: number,
+    speed: number,
+    assincrono: boolean,
+    ctx: ContextoDaChamada,
+  ) {
+    return this.c.requisitar<ResultadoDoTick>(
+      'POST',
+      this.p(id, '/tick'),
+      {
+        steps,
+        speed,
+        async: assincrono,
+        context: ctx,
+        requestId: randomUUID(),
+      },
+      { operacao: 'tick' },
+    );
   }
   intervir(id: string, i: Intervencao, ctx: ContextoDaChamada) {
-    return this.c.requisitar<ResultadoDaIntervencao>('POST', this.p(id, '/interventions'), { ...i, context: ctx }, { operacao: 'intervention' });
+    return this.c.requisitar<ResultadoDaIntervencao>(
+      'POST',
+      this.p(id, '/interventions'),
+      { ...i, context: ctx },
+      { operacao: 'intervention' },
+    );
   }
   linhaDoTempo(id: string) {
-    return this.c.requisitar<Awaited<ReturnType<SimulationGateway['linhaDoTempo']>>>('GET', this.p(id, '/timeline'), undefined, { operacao: 'timeline' });
+    return this.c.requisitar<
+      Awaited<ReturnType<SimulationGateway['linhaDoTempo']>>
+    >('GET', this.p(id, '/timeline'), undefined, { operacao: 'timeline' });
   }
   salvarCheckpoint(id: string, ctx: ContextoDaChamada) {
-    return this.c.requisitar<{ checkpointId: string }>('POST', this.p(id, '/checkpoints'), { context: ctx }, { operacao: 'checkpoint' });
+    return this.c.requisitar<{ checkpointId: string }>(
+      'POST',
+      this.p(id, '/checkpoints'),
+      { context: ctx },
+      { operacao: 'checkpoint' },
+    );
   }
   series(id: string, metrica: string) {
-    return this.c.requisitar<Awaited<ReturnType<SimulationGateway['series']>>>('GET', this.p(id, `/series?metric=${encodeURIComponent(metrica)}`), undefined, { operacao: 'series' });
+    return this.c.requisitar<Awaited<ReturnType<SimulationGateway['series']>>>(
+      'GET',
+      this.p(id, `/series?metric=${encodeURIComponent(metrica)}`),
+      undefined,
+      { operacao: 'series' },
+    );
   }
   eventos(id: string) {
-    return this.c.requisitar<Awaited<ReturnType<SimulationGateway['eventos']>>>('GET', this.p(id, '/events'), undefined, { operacao: 'events' });
+    return this.c.requisitar<Awaited<ReturnType<SimulationGateway['eventos']>>>(
+      'GET',
+      this.p(id, '/events'),
+      undefined,
+      { operacao: 'events' },
+    );
   }
-  responderEvento(id: string, eventId: string, escolha: string, ctx: ContextoDaChamada) {
-    return this.c.requisitar<{ outcome: string; delta: Record<string, number> }>('POST', this.p(id, '/events/respond'), { eventId, choice: escolha, context: ctx }, { operacao: 'respondEvent' });
+  responderEvento(
+    id: string,
+    eventId: string,
+    escolha: string,
+    ctx: ContextoDaChamada,
+  ) {
+    return this.c.requisitar<{
+      outcome: string;
+      delta: Record<string, number>;
+    }>(
+      'POST',
+      this.p(id, '/events/respond'),
+      { eventId, choice: escolha, context: ctx },
+      { operacao: 'respondEvent' },
+    );
   }
 }
 
@@ -61,12 +130,23 @@ export class TutorHttp implements TutorGateway {
   readonly nome = 'http:ai-sim-service';
   constructor(private readonly c: ClienteHttpDoServico) {}
 
-  async *explicar(p: { planetId: string; contextRef: string; question?: string }, ctx: ContextoDaChamada): AsyncIterable<string> {
+  async *explicar(
+    p: { planetId: string; contextRef: string; question?: string },
+    ctx: ContextoDaChamada,
+  ): AsyncIterable<string> {
     let res: Response;
     try {
-      res = await this.c.fetch('POST', '/tutor/api/v1/explain', { ...p, context: ctx }, 'text/event-stream');
+      res = await this.c.fetch(
+        'POST',
+        '/tutor/api/v1/explain',
+        { ...p, context: ctx },
+        'text/event-stream',
+      );
     } catch (e) {
-      throw new ErroDeDependencia('tutor', (e as Error).name === 'TimeoutError');
+      throw new ErroDeDependencia(
+        'tutor',
+        (e as Error).name === 'TimeoutError',
+      );
     }
     if (!res.ok || !res.body) throw new ErroDeDependencia('tutor');
     const leitor = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -78,7 +158,11 @@ export class TutorHttp implements TutorGateway {
       const blocos = resto.split('\n\n');
       resto = blocos.pop() ?? '';
       for (const b of blocos) {
-        const dados = b.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n');
+        const dados = b
+          .split('\n')
+          .filter((l) => l.startsWith('data:'))
+          .map((l) => l.slice(5).trimStart())
+          .join('\n');
         if (!dados) continue;
         try {
           const j = JSON.parse(dados) as { text?: string };
@@ -90,12 +174,27 @@ export class TutorHttp implements TutorGateway {
     }
   }
   dica(p: { planetId: string; missionId: string }, ctx: ContextoDaChamada) {
-    return this.c.requisitar<{ hint: string; level: number }>('POST', '/tutor/api/v1/hint', { ...p, context: ctx }, { operacao: 'hint' });
+    return this.c.requisitar<{ hint: string; level: number }>(
+      'POST',
+      '/tutor/api/v1/hint',
+      { ...p, context: ctx },
+      { operacao: 'hint' },
+    );
   }
   conselheiro(p: { role: string; query: string }, ctx: ContextoDaChamada) {
-    return this.c.requisitar<{ advice: string }>('POST', '/tutor/api/v1/advisor', { ...p, context: ctx }, { operacao: 'advisor' });
+    return this.c.requisitar<{ advice: string }>(
+      'POST',
+      '/tutor/api/v1/advisor',
+      { ...p, context: ctx },
+      { operacao: 'advisor' },
+    );
   }
   adaptacao(ctx: ContextoDaChamada) {
-    return this.c.requisitar<{ difficulty: string; unlocks: string[] }>('GET', `/tutor/api/v1/adaptation/${encodeURIComponent(ctx.alunoId)}`, undefined, { operacao: 'adaptation' });
+    return this.c.requisitar<{ difficulty: string; unlocks: string[] }>(
+      'GET',
+      `/tutor/api/v1/adaptation/${encodeURIComponent(ctx.alunoId)}`,
+      undefined,
+      { operacao: 'adaptation' },
+    );
   }
 }

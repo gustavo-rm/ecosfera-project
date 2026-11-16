@@ -4,7 +4,11 @@ import { Uuid } from '../../../shared/http/esquemas-comuns';
 import { PAPEIS } from '../../../shared/kernel/papeis';
 import { IDIOMAS, type Usuario } from '../domain/usuario';
 
-export const EsquemaPapel = z.enum(PAPEIS).meta({ id: 'Role', description: 'student=aluno, teacher=professor, coordinator=coordenador, admin=admin da escola, guardian=responsável, researcher=pesquisador, platform_admin=operador da plataforma' });
+export const EsquemaPapel = z.enum(PAPEIS).meta({
+  id: 'Role',
+  description:
+    'student=aluno, teacher=professor, coordinator=coordenador, admin=admin da escola, guardian=responsável, researcher=pesquisador, platform_admin=operador da plataforma',
+});
 
 export const EsquemaPreferencias = z
   .object({
@@ -15,7 +19,12 @@ export const EsquemaPreferencias = z
       reducedMotion: z.boolean(),
       screenReader: z.boolean(),
       captions: z.boolean(),
-      colorBlindMode: z.enum(['none', 'protanopia', 'deuteranopia', 'tritanopia']),
+      colorBlindMode: z.enum([
+        'none',
+        'protanopia',
+        'deuteranopia',
+        'tritanopia',
+      ]),
     }),
   })
   .meta({ id: 'Preferences' });
@@ -62,23 +71,35 @@ export const EsquemaTokens = z
   .object({
     accessToken: z.string(),
     tokenType: z.literal('Bearer'),
-    expiresIn: z.number().int().describe('Validade do access token, em segundos'),
+    expiresIn: z
+      .number()
+      .int()
+      .describe('Validade do access token, em segundos'),
     refreshToken: z
       .string()
       .optional()
-      .describe('Só no corpo quando o cliente pede X-Refresh-Transport: body (apps sem navegador). Navegadores recebem cookie httpOnly.'),
+      .describe(
+        'Só no corpo quando o cliente pede X-Refresh-Transport: body (apps sem navegador). Navegadores recebem cookie httpOnly.',
+      ),
   })
   .meta({ id: 'Tokens' });
 
-export const EsquemaRespostaLogin = EsquemaTokens.extend({ perfil: EsquemaPerfil }).meta({ id: 'LoginResponse' });
+export const EsquemaRespostaLogin = EsquemaTokens.extend({
+  perfil: EsquemaPerfil,
+}).meta({ id: 'LoginResponse' });
 
 export const EsquemaRefresh = z
   .object({ refreshToken: z.string().min(10).max(512).optional() })
   .meta({ id: 'RefreshRequest' });
 
-export const EsquemaEsqueci = z.object({ email: z.email().max(254) }).meta({ id: 'ForgotPasswordRequest' });
+export const EsquemaEsqueci = z
+  .object({ email: z.email().max(254) })
+  .meta({ id: 'ForgotPasswordRequest' });
 export const EsquemaRedefinir = z
-  .object({ token: z.string().min(20).max(256), newPassword: z.string().min(1).max(256) })
+  .object({
+    token: z.string().min(20).max(256),
+    newPassword: z.string().min(1).max(256),
+  })
   .meta({ id: 'ResetPasswordRequest' });
 
 export const EsquemaNovoUsuario = z
@@ -87,19 +108,41 @@ export const EsquemaNovoUsuario = z
     email: z.email().max(254),
     role: EsquemaPapel,
     schoolId: Uuid.optional(),
-    isMinor: z.boolean().optional().describe('Só para alunos. Padrão: true (menor de idade)'),
-    password: z.string().min(1).max(256).optional().describe('Senha inicial. Se omitida, um link de ativação é enviado.'),
+    isMinor: z
+      .boolean()
+      .optional()
+      .describe('Só para alunos. Padrão: true (menor de idade)'),
+    password: z
+      .string()
+      .min(1)
+      .max(256)
+      .optional()
+      .describe('Senha inicial. Se omitida, um link de ativação é enviado.'),
   })
   .strict()
   .meta({ id: 'CreateUserRequest' });
 
 export const EsquemaCorrecao = z
-  .object({ name: z.string().trim().min(1).max(200).optional(), email: z.email().max(254).optional() })
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    email: z.email().max(254).optional(),
+  })
   .strict()
-  .refine((v) => v.name !== undefined || v.email !== undefined, 'Informe ao menos um campo')
+  .refine(
+    (v) => v.name !== undefined || v.email !== undefined,
+    'Informe ao menos um campo',
+  )
   .meta({ id: 'RectifyUserRequest' });
 
-export const EsquemaMudancaDePapel = z.object({ role: EsquemaPapel }).strict().meta({ id: 'ChangeRoleRequest' });
-export const EsquemaVinculoResponsavel = z.object({ guardianUserId: Uuid }).strict().meta({ id: 'LinkGuardianRequest' });
+export const EsquemaMudancaDePapel = z
+  .object({ role: EsquemaPapel })
+  .strict()
+  .meta({ id: 'ChangeRoleRequest' });
+export const EsquemaVinculoResponsavel = z
+  .object({ guardianUserId: Uuid })
+  .strict()
+  .meta({ id: 'LinkGuardianRequest' });
 
-export const EsquemaResumoDeAluno = z.object({ id: Uuid, name: z.string(), schoolId: Uuid.nullable() }).meta({ id: 'StudentSummary' });
+export const EsquemaResumoDeAluno = z
+  .object({ id: Uuid, name: z.string(), schoolId: Uuid.nullable() })
+  .meta({ id: 'StudentSummary' });

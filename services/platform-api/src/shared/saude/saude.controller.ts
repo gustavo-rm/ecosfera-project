@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Inject, Req, Res } from '@nestjs/common';
+import { Controller, Header, Inject, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { Redis } from 'ioredis';
 import { DataSource } from 'typeorm';
@@ -16,7 +16,9 @@ const Prontidao = z
   .object({
     status: z.literal('ready'),
     checks: z.object({ database: z.literal('ok'), redis: z.literal('ok') }),
-    fakeAdapters: z.array(z.string()).describe('Adaptadores falsos ativos (vazio em produção)'),
+    fakeAdapters: z
+      .array(z.string())
+      .describe('Adaptadores falsos ativos (vazio em produção)'),
   })
   .meta({ id: 'Readiness' });
 
@@ -53,7 +55,10 @@ export const ContratosDeSaude = {
     seguranca: 'publico',
     sucesso: 200,
     respostas: {
-      200: { descricao: 'Métricas no formato texto do Prometheus', tipoConteudo: 'text/plain' },
+      200: {
+        descricao: 'Métricas no formato texto do Prometheus',
+        tipoConteudo: 'text/plain',
+      },
       403: { descricao: 'Token de métricas ausente ou inválido' },
     },
   }),
@@ -96,14 +101,20 @@ export class SaudeController {
   }
 
   @Endpoint(ContratosDeSaude.metricas)
-  @Autorizacao({ publico: true, motivo: 'raspagem do Prometheus; protegida por METRICS_TOKEN' })
+  @Autorizacao({
+    publico: true,
+    motivo: 'raspagem do Prometheus; protegida por METRICS_TOKEN',
+  })
   @Header('Cache-Control', 'no-store')
   async metricasPrometheus(@Req() req: Request, @Res() res: Response) {
     const token = this.config.METRICS_TOKEN;
     if (token) {
-      if (req.headers.authorization !== `Bearer ${token}`) throw new ErroAcessoNegado('Token de métricas inválido');
+      if (req.headers.authorization !== `Bearer ${token}`)
+        throw new ErroAcessoNegado('Token de métricas inválido');
     } else if (this.config.NODE_ENV === 'production') {
-      throw new ErroAcessoNegado('Métricas desabilitadas: defina METRICS_TOKEN');
+      throw new ErroAcessoNegado(
+        'Métricas desabilitadas: defina METRICS_TOKEN',
+      );
     }
     res.setHeader('Content-Type', this.metricas.registro.contentType);
     res.send(await this.metricas.registro.metrics());

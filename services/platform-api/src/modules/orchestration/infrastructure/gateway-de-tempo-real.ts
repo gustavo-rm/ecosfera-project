@@ -7,8 +7,16 @@ import type { Logger } from 'pino';
 import { WebSocket, WebSocketServer } from 'ws';
 
 import { RegistroDeRegrasDePosse } from '../../../shared/autorizacao/registro-de-posse';
-import { GATE_DE_CONSENTIMENTO, type GateDeConsentimento, VERIFICADOR_DE_CREDENCIAIS, type VerificadorDeCredenciais } from '../../../shared/autorizacao/portas';
-import { CONFIGURACAO, type Configuracao } from '../../../shared/config/configuracao';
+import {
+  GATE_DE_CONSENTIMENTO,
+  type GateDeConsentimento,
+  VERIFICADOR_DE_CREDENCIAIS,
+  type VerificadorDeCredenciais,
+} from '../../../shared/autorizacao/portas';
+import {
+  CONFIGURACAO,
+  type Configuracao,
+} from '../../../shared/config/configuracao';
 import { PREFIXO_API } from '../../../shared/http/contrato';
 import type { AtorUsuario } from '../../../shared/kernel/ator';
 import { ErroDeAplicacao } from '../../../shared/kernel/erros';
@@ -18,11 +26,17 @@ import { Metricas } from '../../../shared/observabilidade/metricas';
 import { ChavesRedis } from '../../../shared/redis/chaves';
 import { REDIS, REDIS_ASSINANTE } from '../../../shared/redis/redis';
 import type { MensagemDoStream } from '../domain/portas';
-import { ARMAZEM_DE_SESSOES, type ArmazemDeSessoes } from '../../identity/domain/portas';
+import {
+  ARMAZEM_DE_SESSOES,
+  type ArmazemDeSessoes,
+} from '../../identity/domain/portas';
 import { PlanetaMetaEntity } from './persistencia/planeta.entity';
 import { DataSource } from 'typeorm';
 
-const CAMINHO = new RegExp(`^/${PREFIXO_API.replace(/\//g, '\\/')}/planets/([0-9a-f-]{36})/stream$`, 'i');
+const CAMINHO = new RegExp(
+  `^/${PREFIXO_API.replace(/\//g, '\\/')}/planets/([0-9a-f-]{36})/stream$`,
+  'i',
+);
 const PAPEIS = new Set(['student', 'teacher', 'coordinator', 'admin']);
 
 interface Conexao {
@@ -47,7 +61,8 @@ export class GatewayDeTempoReal implements OnApplicationShutdown {
   intervaloDeBatimentoMs = 30_000;
 
   constructor(
-    @Inject(VERIFICADOR_DE_CREDENCIAIS) private readonly credenciais: VerificadorDeCredenciais,
+    @Inject(VERIFICADOR_DE_CREDENCIAIS)
+    private readonly credenciais: VerificadorDeCredenciais,
     @Inject(GATE_DE_CONSENTIMENTO) private readonly gate: GateDeConsentimento,
     @Inject(ARMAZEM_DE_SESSOES) private readonly sessoes: ArmazemDeSessoes,
     @Inject(REDIS) private readonly redis: Redis,
@@ -63,20 +78,29 @@ export class GatewayDeTempoReal implements OnApplicationShutdown {
       noServer: true,
       maxPayload: 16 * 1024,
       perMessageDeflate: false,
-      handleProtocols: (protocolos) => (protocolos.has('ecosfera.v1') ? 'ecosfera.v1' : false),
+      handleProtocols: (protocolos) =>
+        protocolos.has('ecosfera.v1') ? 'ecosfera.v1' : false,
     });
   }
 
   anexar(servidor: Server): void {
-    servidor.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
-      const url = new URL(req.url ?? '/', 'http://localhost');
-      const m = CAMINHO.exec(url.pathname);
-      if (!m) return; // outro uso de upgrade: não é conosco
-      void this.aoPedirUpgrade(req, socket, head, m[1]!.toLowerCase(), url);
-    });
-    this.assinante.on('message', (canal: string, msg: string) => this.aoReceber(canal, msg));
+    servidor.on(
+      'upgrade',
+      (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+        const url = new URL(req.url ?? '/', 'http://localhost');
+        const m = CAMINHO.exec(url.pathname);
+        if (!m) return; // outro uso de upgrade: não é conosco
+        void this.aoPedirUpgrade(req, socket, head, m[1].toLowerCase(), url);
+      },
+    );
+    this.assinante.on('message', (canal: string, msg: string) =>
+      this.aoReceber(canal, msg),
+    );
     void this.assinante.subscribe(this.chaves.canalDeRevogacao());
-    this.batimento = setInterval(() => void this.bater(), this.intervaloDeBatimentoMs);
+    this.batimento = setInterval(
+      () => void this.bater(),
+      this.intervaloDeBatimentoMs,
+    );
     this.batimento.unref();
   }
 
@@ -86,43 +110,115 @@ export class GatewayDeTempoReal implements OnApplicationShutdown {
     return n;
   }
 
-  private recusar(socket: Duplex, status: number, tipo: string, detalhe: string): void {
-    const corpo = JSON.stringify({ type: `/errors/${tipo}`, title: 'Conexão recusada', status, detail: detalhe, instance: 'websocket', traceId: novoTraceId() });
-    const texto = { 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found' }[status] ?? 'Bad Request';
-    socket.write(`HTTP/1.1 ${status} ${texto}\r\nContent-Type: application/problem+json\r\nContent-Length: ${Buffer.byteLength(corpo)}\r\nConnection: close\r\n\r\n${corpo}`);
+  private recusar(
+    socket: Duplex,
+    status: number,
+    tipo: string,
+    detalhe: string,
+  ): void {
+    const corpo = JSON.stringify({
+      type: `/errors/${tipo}`,
+      title: 'Conexão recusada',
+      status,
+      detail: detalhe,
+      instance: 'websocket',
+      traceId: novoTraceId(),
+    });
+    const texto =
+      { 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found' }[status] ??
+      'Bad Request';
+    socket.write(
+      `HTTP/1.1 ${status} ${texto}\r\nContent-Type: application/problem+json\r\nContent-Length: ${Buffer.byteLength(corpo)}\r\nConnection: close\r\n\r\n${corpo}`,
+    );
     socket.destroy();
   }
 
   private tokenDoPedido(req: IncomingMessage): string | undefined {
     const auth = req.headers.authorization;
     if (auth?.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
-    const protocolos = String(req.headers['sec-websocket-protocol'] ?? '').split(',').map((p) => p.trim());
-    return protocolos.find((p) => p.startsWith('bearer.'))?.slice('bearer.'.length);
+    const protocolos = String(req.headers['sec-websocket-protocol'] ?? '')
+      .split(',')
+      .map((p) => p.trim());
+    return protocolos
+      .find((p) => p.startsWith('bearer.'))
+      ?.slice('bearer.'.length);
   }
 
-  private async aoPedirUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer, planetaId: string, url: URL): Promise<void> {
+  private async aoPedirUpgrade(
+    req: IncomingMessage,
+    socket: Duplex,
+    head: Buffer,
+    planetaId: string,
+    url: URL,
+  ): Promise<void> {
     try {
       const token = this.tokenDoPedido(req);
-      if (!token) return this.recusar(socket, 401, 'unauthenticated', 'Token ausente no handshake');
+      if (!token)
+        return this.recusar(
+          socket,
+          401,
+          'unauthenticated',
+          'Token ausente no handshake',
+        );
       const ator = await this.credenciais.verificarAcesso(token);
-      if (!PAPEIS.has(ator.papel)) return this.recusar(socket, 403, 'forbidden', 'Papel sem acesso ao stream');
+      if (!PAPEIS.has(ator.papel))
+        return this.recusar(
+          socket,
+          403,
+          'forbidden',
+          'Papel sem acesso ao stream',
+        );
       const regra = this.posse.obter('planeta:ler')!;
       const d = await regra(ator, planetaId);
-      if (d === 'inexistente') return this.recusar(socket, 404, 'not-found', 'Planeta não encontrado');
-      if (d === 'negado') return this.recusar(socket, 403, 'forbidden', 'Sem acesso a este planeta');
-      const meta = await this.ds.getRepository(PlanetaMetaEntity).findOne({ where: { id: planetaId }, select: { id: true, ownerUserId: true } });
-      if (!meta || !(await this.gate.permite(meta.ownerUserId, 'platform_use'))) {
-        return this.recusar(socket, 403, 'consent-required', 'Consentimento do responsável necessário');
+      if (d === 'inexistente')
+        return this.recusar(socket, 404, 'not-found', 'Planeta não encontrado');
+      if (d === 'negado')
+        return this.recusar(
+          socket,
+          403,
+          'forbidden',
+          'Sem acesso a este planeta',
+        );
+      const meta = await this.ds.getRepository(PlanetaMetaEntity).findOne({
+        where: { id: planetaId },
+        select: { id: true, ownerUserId: true },
+      });
+      if (
+        !meta ||
+        !(await this.gate.permite(meta.ownerUserId, 'platform_use'))
+      ) {
+        return this.recusar(
+          socket,
+          403,
+          'consent-required',
+          'Consentimento do responsável necessário',
+        );
       }
-      this.wss.handleUpgrade(req, socket, head, (ws) => void this.aoConectar(ws, ator, planetaId, meta.ownerUserId, url));
+      this.wss.handleUpgrade(
+        req,
+        socket,
+        head,
+        (ws) =>
+          void this.aoConectar(ws, ator, planetaId, meta.ownerUserId, url),
+      );
     } catch (e) {
-      if (e instanceof ErroDeAplicacao && e.tipo === 'unauthenticated') return this.recusar(socket, 401, 'unauthenticated', e.message);
-      this.logger.error({ err: (e as Error).message }, 'falha no handshake do WebSocket');
+      if (e instanceof ErroDeAplicacao && e.tipo === 'unauthenticated')
+        return this.recusar(socket, 401, 'unauthenticated', e.message);
+      this.logger.error(
+        { err: (e as Error).message },
+        'falha no handshake do WebSocket',
+      );
       this.recusar(socket, 400, 'bad-request', 'Falha no handshake');
     }
   }
 
-  private async aoConectar(ws: WebSocket, ator: AtorUsuario, planetaId: string, donoId: string, url: URL): Promise<void> {
+  private async aoConectar(
+    ws: WebSocket,
+    ator: AtorUsuario,
+    planetaId: string,
+    donoId: string,
+    url: URL,
+  ): Promise<void> {
     const c: Conexao = { ws, ator, planetaId, donoId, vivo: true };
     let grupo = this.porPlaneta.get(planetaId);
     if (!grupo) {
@@ -136,11 +232,20 @@ export class GatewayDeTempoReal implements OnApplicationShutdown {
     ws.on('message', () => undefined); // o canal é só servidor → cliente
     ws.on('close', () => void this.remover(c));
     ws.on('error', () => ws.terminate());
-    this.enviar(c, JSON.stringify({ type: 'event', payload: { kind: 'connected', planetId: planetaId }, tickId: 0 } satisfies MensagemDoStream));
+    this.enviar(
+      c,
+      JSON.stringify({
+        type: 'event',
+        payload: { kind: 'connected', planetId: planetaId },
+        tickId: 0,
+      } satisfies MensagemDoStream),
+    );
     // Reconexão: reenvia o que o cliente perdeu desde lastTickId.
     const ultimo = Number(url.searchParams.get('lastTickId') ?? NaN);
     if (Number.isFinite(ultimo)) {
-      const guardadas = (await this.redis.lrange(this.chaves.replayDoPlaneta(planetaId), 0, -1)).reverse();
+      const guardadas = (
+        await this.redis.lrange(this.chaves.replayDoPlaneta(planetaId), 0, -1)
+      ).reverse();
       for (const g of guardadas) {
         const m = JSON.parse(g) as MensagemDoStream;
         if (m.tickId > ultimo) this.enviar(c, g);
@@ -162,12 +267,13 @@ export class GatewayDeTempoReal implements OnApplicationShutdown {
     if (canal === this.chaves.canalDeRevogacao()) {
       const { studentId } = JSON.parse(msg) as { studentId: string };
       for (const grupo of this.porPlaneta.values()) {
-        for (const c of grupo) if (c.donoId === studentId) c.ws.close(4403, 'consent revoked');
+        for (const c of grupo)
+          if (c.donoId === studentId) c.ws.close(4403, 'consent revoked');
       }
       return;
     }
     const m = /:planet:([0-9a-f-]{36}):stream$/.exec(canal);
-    const grupo = m ? this.porPlaneta.get(m[1]!) : undefined;
+    const grupo = m ? this.porPlaneta.get(m[1]) : undefined;
     if (!grupo) return;
     const tipo = (JSON.parse(msg) as MensagemDoStream).type;
     for (const c of grupo) this.enviar(c, msg, tipo === 'delta');
@@ -208,15 +314,18 @@ export class GatewayDeTempoReal implements OnApplicationShutdown {
         }
         c.vivo = false;
         c.ws.ping();
-        if (!(await this.sessoes.existe(c.ator.sessaoId))) c.ws.close(4401, 'session revoked');
-        else if (!(await this.gate.permite(c.donoId, 'platform_use'))) c.ws.close(4403, 'consent revoked');
+        if (!(await this.sessoes.existe(c.ator.sessaoId)))
+          c.ws.close(4401, 'session revoked');
+        else if (!(await this.gate.permite(c.donoId, 'platform_use')))
+          c.ws.close(4403, 'consent revoked');
       }
     }
   }
 
   onApplicationShutdown(): void {
     if (this.batimento) clearInterval(this.batimento);
-    for (const grupo of this.porPlaneta.values()) for (const c of grupo) c.ws.close(1001, 'server shutdown');
+    for (const grupo of this.porPlaneta.values())
+      for (const c of grupo) c.ws.close(1001, 'server shutdown');
     this.wss.close();
   }
 }

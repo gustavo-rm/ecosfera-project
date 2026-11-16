@@ -25,34 +25,196 @@ const COMPETENCIAS: [string, string, string[]][] = [
 
 /** [código, componente, tema, etapa, competência] */
 const HABILIDADES: [string, string, string, string, string][] = [
-  ['EF09CI16', 'Ciências', 'Criar planeta / zona habitável', 'fundamental', 'CAUSE_EFFECT'],
-  ['EF09CI14', 'Ciências', 'Criar planeta / zona habitável', 'fundamental', 'CAUSE_EFFECT'],
-  ['EM13CNT201', 'Ciências da Natureza', 'Criar planeta / zona habitável', 'medio', 'CAUSE_EFFECT'],
-  ['EM13CNT202', 'Ciências da Natureza', 'Criar planeta / zona habitável', 'medio', 'CAUSE_EFFECT'],
-  ['EF06CI11', 'Ciências', 'Estrutura da Terra e geologia', 'fundamental', 'SYSTEMS_THINKING'],
-  ['EF06CI14', 'Ciências', 'Órbita, estações, dia/noite', 'fundamental', 'CAUSE_EFFECT'],
-  ['EF09CI17', 'Ciências', 'Órbita, estações, dia/noite', 'fundamental', 'CAUSE_EFFECT'],
-  ['EF07CI13', 'Ciências', 'Atmosfera e efeito estufa', 'fundamental', 'CAUSE_EFFECT'],
-  ['EF07CI12', 'Ciências', 'Atmosfera e efeito estufa', 'fundamental', 'CAUSE_EFFECT'],
+  [
+    'EF09CI16',
+    'Ciências',
+    'Criar planeta / zona habitável',
+    'fundamental',
+    'CAUSE_EFFECT',
+  ],
+  [
+    'EF09CI14',
+    'Ciências',
+    'Criar planeta / zona habitável',
+    'fundamental',
+    'CAUSE_EFFECT',
+  ],
+  [
+    'EM13CNT201',
+    'Ciências da Natureza',
+    'Criar planeta / zona habitável',
+    'medio',
+    'CAUSE_EFFECT',
+  ],
+  [
+    'EM13CNT202',
+    'Ciências da Natureza',
+    'Criar planeta / zona habitável',
+    'medio',
+    'CAUSE_EFFECT',
+  ],
+  [
+    'EF06CI11',
+    'Ciências',
+    'Estrutura da Terra e geologia',
+    'fundamental',
+    'SYSTEMS_THINKING',
+  ],
+  [
+    'EF06CI14',
+    'Ciências',
+    'Órbita, estações, dia/noite',
+    'fundamental',
+    'CAUSE_EFFECT',
+  ],
+  [
+    'EF09CI17',
+    'Ciências',
+    'Órbita, estações, dia/noite',
+    'fundamental',
+    'CAUSE_EFFECT',
+  ],
+  [
+    'EF07CI13',
+    'Ciências',
+    'Atmosfera e efeito estufa',
+    'fundamental',
+    'CAUSE_EFFECT',
+  ],
+  [
+    'EF07CI12',
+    'Ciências',
+    'Atmosfera e efeito estufa',
+    'fundamental',
+    'CAUSE_EFFECT',
+  ],
   ['EF07CI14', 'Ciências', 'Camada de ozônio', 'fundamental', 'CAUSE_EFFECT'],
-  ['EF08CI14', 'Ciências', 'Clima e circulação', 'fundamental', 'SYSTEMS_THINKING'],
-  ['EF08CI15', 'Ciências', 'Eventos climáticos', 'fundamental', 'CONSEQUENCE_ANALYSIS'],
-  ['EF08CI16', 'Ciências', 'Alterações climáticas', 'fundamental', 'CONSEQUENCE_ANALYSIS'],
-  ['EM13CNT101', 'Ciências da Natureza', 'Ciclos do carbono/água/nitrogênio', 'medio', 'SYSTEMS_THINKING'],
-  ['EM13CNT203', 'Ciências da Natureza', 'Ciclos do carbono/água/nitrogênio; trade-offs', 'medio', 'SYSTEMS_THINKING'],
-  ['EF07CI07', 'Ciências', 'Ecossistemas e cadeias tróficas', 'fundamental', 'SYSTEMS_THINKING'],
-  ['EF07CI08', 'Ciências', 'Ecossistemas e cadeias tróficas', 'fundamental', 'SYSTEMS_THINKING'],
-  ['EF09CI12', 'Ciências', 'Biodiversidade e espécies', 'fundamental', 'CONSEQUENCE_ANALYSIS'],
-  ['EM13CNT206', 'Ciências da Natureza', 'Biodiversidade e espécies; trade-offs', 'medio', 'CONSEQUENCE_ANALYSIS'],
-  ['EF09CI11', 'Ciências', 'Evolução e seleção natural', 'fundamental', 'EVOLUTION'],
-  ['EF09CI09', 'Ciências', 'Evolução e seleção natural', 'fundamental', 'EVOLUTION'],
-  ['EF07MA17', 'Matemática', 'Séries temporais e dados', 'fundamental', 'DATA_LITERACY'],
-  ['EF07MA35', 'Matemática', 'Séries temporais e dados', 'fundamental', 'DATA_LITERACY'],
-  ['EF07MA36', 'Matemática', 'Séries temporais e dados', 'fundamental', 'DATA_LITERACY'],
-  ['EF07MA37', 'Matemática', 'Séries temporais e dados', 'fundamental', 'DATA_LITERACY'],
-  ['EM13CNT306', 'Ciências da Natureza', 'Trade-offs e decisão socioambiental', 'medio', 'DECISION_MAKING'],
-  ['EM13CNT301', 'Ciências da Natureza', 'Investigar (hipótese → teste → revisão)', 'medio', 'SCIENTIFIC_THINKING'],
-  ['EM13CNT302', 'Ciências da Natureza', 'Investigar (hipótese → teste → revisão)', 'medio', 'SCIENTIFIC_THINKING'],
+  [
+    'EF08CI14',
+    'Ciências',
+    'Clima e circulação',
+    'fundamental',
+    'SYSTEMS_THINKING',
+  ],
+  [
+    'EF08CI15',
+    'Ciências',
+    'Eventos climáticos',
+    'fundamental',
+    'CONSEQUENCE_ANALYSIS',
+  ],
+  [
+    'EF08CI16',
+    'Ciências',
+    'Alterações climáticas',
+    'fundamental',
+    'CONSEQUENCE_ANALYSIS',
+  ],
+  [
+    'EM13CNT101',
+    'Ciências da Natureza',
+    'Ciclos do carbono/água/nitrogênio',
+    'medio',
+    'SYSTEMS_THINKING',
+  ],
+  [
+    'EM13CNT203',
+    'Ciências da Natureza',
+    'Ciclos do carbono/água/nitrogênio; trade-offs',
+    'medio',
+    'SYSTEMS_THINKING',
+  ],
+  [
+    'EF07CI07',
+    'Ciências',
+    'Ecossistemas e cadeias tróficas',
+    'fundamental',
+    'SYSTEMS_THINKING',
+  ],
+  [
+    'EF07CI08',
+    'Ciências',
+    'Ecossistemas e cadeias tróficas',
+    'fundamental',
+    'SYSTEMS_THINKING',
+  ],
+  [
+    'EF09CI12',
+    'Ciências',
+    'Biodiversidade e espécies',
+    'fundamental',
+    'CONSEQUENCE_ANALYSIS',
+  ],
+  [
+    'EM13CNT206',
+    'Ciências da Natureza',
+    'Biodiversidade e espécies; trade-offs',
+    'medio',
+    'CONSEQUENCE_ANALYSIS',
+  ],
+  [
+    'EF09CI11',
+    'Ciências',
+    'Evolução e seleção natural',
+    'fundamental',
+    'EVOLUTION',
+  ],
+  [
+    'EF09CI09',
+    'Ciências',
+    'Evolução e seleção natural',
+    'fundamental',
+    'EVOLUTION',
+  ],
+  [
+    'EF07MA17',
+    'Matemática',
+    'Séries temporais e dados',
+    'fundamental',
+    'DATA_LITERACY',
+  ],
+  [
+    'EF07MA35',
+    'Matemática',
+    'Séries temporais e dados',
+    'fundamental',
+    'DATA_LITERACY',
+  ],
+  [
+    'EF07MA36',
+    'Matemática',
+    'Séries temporais e dados',
+    'fundamental',
+    'DATA_LITERACY',
+  ],
+  [
+    'EF07MA37',
+    'Matemática',
+    'Séries temporais e dados',
+    'fundamental',
+    'DATA_LITERACY',
+  ],
+  [
+    'EM13CNT306',
+    'Ciências da Natureza',
+    'Trade-offs e decisão socioambiental',
+    'medio',
+    'DECISION_MAKING',
+  ],
+  [
+    'EM13CNT301',
+    'Ciências da Natureza',
+    'Investigar (hipótese → teste → revisão)',
+    'medio',
+    'SCIENTIFIC_THINKING',
+  ],
+  [
+    'EM13CNT302',
+    'Ciências da Natureza',
+    'Investigar (hipótese → teste → revisão)',
+    'medio',
+    'SCIENTIFIC_THINKING',
+  ],
 ];
 
 export const VERSAO_INICIAL_DO_CATALOGO = '2026.0-draft';
@@ -68,7 +230,11 @@ export class EducationCurriculum1794880100000 implements MigrationInterface {
         ADD CONSTRAINT track_level_key UNIQUE (level)
     `);
     const trilhas: [string, string, string][] = [
-      ['Fundamental II', 'Trilha para os anos finais do Ensino Fundamental', 'fundamental_ii'],
+      [
+        'Fundamental II',
+        'Trilha para os anos finais do Ensino Fundamental',
+        'fundamental_ii',
+      ],
       ['Ensino Médio', 'Trilha para o Ensino Médio', 'medio'],
       ['Técnico', 'Trilha para o ensino técnico', 'tecnico'],
     ];
@@ -92,10 +258,18 @@ export class EducationCurriculum1794880100000 implements MigrationInterface {
         ADD CONSTRAINT class_track_id_fkey FOREIGN KEY (track_id)
           REFERENCES platform.track(id) ON DELETE SET NULL
     `);
-    await q.query(`CREATE INDEX class_school_idx ON platform.class (school_id)`);
-    await q.query(`CREATE INDEX class_teacher_idx ON platform.class (teacher_user_id)`);
-    await q.query(`CREATE INDEX enrollment_student_idx ON platform.enrollment (student_user_id)`);
-    await q.query(`CREATE INDEX guardian_student_idx ON platform.guardian (student_user_id)`);
+    await q.query(
+      `CREATE INDEX class_school_idx ON platform.class (school_id)`,
+    );
+    await q.query(
+      `CREATE INDEX class_teacher_idx ON platform.class (teacher_user_id)`,
+    );
+    await q.query(
+      `CREATE INDEX enrollment_student_idx ON platform.enrollment (student_user_id)`,
+    );
+    await q.query(
+      `CREATE INDEX guardian_student_idx ON platform.guardian (student_user_id)`,
+    );
 
     await q.query(`
       ALTER TABLE platform.mission
@@ -111,7 +285,9 @@ export class EducationCurriculum1794880100000 implements MigrationInterface {
           REFERENCES platform.app_user(id) ON DELETE SET NULL,
         ADD CONSTRAINT mission_status_check CHECK (status IN ('draft', 'published', 'archived'))
     `);
-    await q.query(`CREATE INDEX mission_school_idx ON platform.mission (school_id)`);
+    await q.query(
+      `CREATE INDEX mission_school_idx ON platform.mission (school_id)`,
+    );
 
     await q.query(`
       CREATE TABLE platform.mission_assignment (
@@ -128,7 +304,9 @@ export class EducationCurriculum1794880100000 implements MigrationInterface {
           REFERENCES platform.app_user(id) ON DELETE SET NULL
       )
     `);
-    await q.query(`CREATE INDEX mission_assignment_class_idx ON platform.mission_assignment (class_id)`);
+    await q.query(
+      `CREATE INDEX mission_assignment_class_idx ON platform.mission_assignment (class_id)`,
+    );
 
     await q.query(`
       ALTER TABLE platform.competency
@@ -158,11 +336,19 @@ export class EducationCurriculum1794880100000 implements MigrationInterface {
     `);
 
     for (const [codigo, nome, cgs] of COMPETENCIAS) {
-      await q.query(`UPDATE platform.competency SET code = $1 WHERE name = $2 AND code IS NULL`, [codigo, nome]);
+      await q.query(
+        `UPDATE platform.competency SET code = $1 WHERE name = $2 AND code IS NULL`,
+        [codigo, nome],
+      );
       await q.query(
         `INSERT INTO platform.competency (code, name, description, general_competencies)
          VALUES ($1, $2, $3, $4) ON CONFLICT (code) DO NOTHING`,
-        [codigo, nome, 'Competência do modelo pedagógico ECOSFERA — pendente de validação', cgs],
+        [
+          codigo,
+          nome,
+          'Competência do modelo pedagógico ECOSFERA — pendente de validação',
+          cgs,
+        ],
       );
     }
     for (const [codigo, componente, tema, etapa, competencia] of HABILIDADES) {

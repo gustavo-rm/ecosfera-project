@@ -2732,6 +2732,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -2794,6 +2803,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2937,6 +2955,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -3001,6 +3028,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3075,6 +3111,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -3139,6 +3184,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3654,6 +3708,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -4101,6 +4164,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -4320,6 +4392,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4743,6 +4824,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -4803,6 +4893,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4877,6 +4976,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -4937,6 +5045,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5012,6 +5129,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -5072,6 +5198,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5150,6 +5285,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -5210,6 +5354,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5288,6 +5441,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -5346,6 +5508,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6157,6 +6328,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -6217,6 +6397,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6465,6 +6654,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -6529,6 +6727,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6616,6 +6823,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -6676,6 +6892,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6747,6 +6972,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7779,6 +8013,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Dados inválidos */
             422: {
                 headers: {
@@ -8013,6 +8256,15 @@ export interface operations {
             };
             /** @description Sem permissão para esta ação */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado (inclui recurso de outra escola, que não é revelado) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

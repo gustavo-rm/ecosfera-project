@@ -9,7 +9,10 @@ import { DataSource } from 'typeorm';
 
 import { opcoesDoBanco } from '../src/shared/database/opcoes';
 
-export async function verificarDrift(url: string, aplicar: boolean): Promise<string[]> {
+export async function verificarDrift(
+  url: string,
+  aplicar: boolean,
+): Promise<string[]> {
   const ds = new DataSource(opcoesDoBanco({ url }));
   await ds.initialize();
   try {
@@ -33,7 +36,9 @@ if (require.main === module) {
         console.log('Sem drift: entidades e migrações coincidem.');
         return;
       }
-      console.error(`DRIFT: ${diferencas.length} diferença(s) entre entidades e migrações:`);
+      console.error(
+        `DRIFT: ${diferencas.length} diferença(s) entre entidades e migrações:`,
+      );
       for (const d of diferencas) console.error(`  ${d}`);
       process.exit(1);
     })

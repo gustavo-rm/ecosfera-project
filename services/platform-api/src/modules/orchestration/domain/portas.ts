@@ -32,30 +32,94 @@ export interface ResultadoDaIntervencao {
 }
 
 export type ResultadoDoTick =
-  | { tipo: 'sincrono'; delta: Record<string, number>; era: number; tickId: number }
+  | {
+      tipo: 'sincrono';
+      delta: Record<string, number>;
+      era: number;
+      tickId: number;
+    }
   | { tipo: 'assincrono'; jobId: string };
 
 export interface SimulationGateway {
   readonly nome: string;
-  criarPlaneta(planetaId: string, seed: string, params: Record<string, unknown>, ctx: ContextoDaChamada): Promise<EstadoDoPlaneta>;
+  criarPlaneta(
+    planetaId: string,
+    seed: string,
+    params: Record<string, unknown>,
+    ctx: ContextoDaChamada,
+  ): Promise<EstadoDoPlaneta>;
   estado(planetaId: string, ctx: ContextoDaChamada): Promise<EstadoDoPlaneta>;
-  validar(planetaId: string, params: Record<string, unknown>, ctx: ContextoDaChamada): Promise<{ ok: boolean; warnings: string[] }>;
-  avancar(planetaId: string, passos: number, velocidade: number, assincrono: boolean, ctx: ContextoDaChamada): Promise<ResultadoDoTick>;
-  intervir(planetaId: string, i: Intervencao, ctx: ContextoDaChamada): Promise<ResultadoDaIntervencao>;
-  linhaDoTempo(planetaId: string, ctx: ContextoDaChamada): Promise<{ eras: { era: number; startedAtTick: number }[]; checkpoints: { checkpointId: string; tick: number; era: number }[] }>;
-  salvarCheckpoint(planetaId: string, ctx: ContextoDaChamada): Promise<{ checkpointId: string }>;
-  series(planetaId: string, metrica: string, ctx: ContextoDaChamada): Promise<{ metric: string; points: { tick: number; value: number }[] }>;
-  eventos(planetaId: string, ctx: ContextoDaChamada): Promise<{ events: { eventId: string; kind: string; tick: number; status: string; options: string[] }[] }>;
-  responderEvento(planetaId: string, eventId: string, escolha: string, ctx: ContextoDaChamada): Promise<{ outcome: string; delta: Record<string, number> }>;
+  validar(
+    planetaId: string,
+    params: Record<string, unknown>,
+    ctx: ContextoDaChamada,
+  ): Promise<{ ok: boolean; warnings: string[] }>;
+  avancar(
+    planetaId: string,
+    passos: number,
+    velocidade: number,
+    assincrono: boolean,
+    ctx: ContextoDaChamada,
+  ): Promise<ResultadoDoTick>;
+  intervir(
+    planetaId: string,
+    i: Intervencao,
+    ctx: ContextoDaChamada,
+  ): Promise<ResultadoDaIntervencao>;
+  linhaDoTempo(
+    planetaId: string,
+    ctx: ContextoDaChamada,
+  ): Promise<{
+    eras: { era: number; startedAtTick: number }[];
+    checkpoints: { checkpointId: string; tick: number; era: number }[];
+  }>;
+  salvarCheckpoint(
+    planetaId: string,
+    ctx: ContextoDaChamada,
+  ): Promise<{ checkpointId: string }>;
+  series(
+    planetaId: string,
+    metrica: string,
+    ctx: ContextoDaChamada,
+  ): Promise<{ metric: string; points: { tick: number; value: number }[] }>;
+  eventos(
+    planetaId: string,
+    ctx: ContextoDaChamada,
+  ): Promise<{
+    events: {
+      eventId: string;
+      kind: string;
+      tick: number;
+      status: string;
+      options: string[];
+    }[];
+  }>;
+  responderEvento(
+    planetaId: string,
+    eventId: string,
+    escolha: string,
+    ctx: ContextoDaChamada,
+  ): Promise<{ outcome: string; delta: Record<string, number> }>;
 }
 export const SIMULATION_GATEWAY = Symbol('SimulationGateway');
 
 export interface TutorGateway {
   readonly nome: string;
-  explicar(p: { planetId: string; contextRef: string; question?: string }, ctx: ContextoDaChamada): AsyncIterable<string>;
-  dica(p: { planetId: string; missionId: string }, ctx: ContextoDaChamada): Promise<{ hint: string; level: number }>;
-  conselheiro(p: { role: string; query: string }, ctx: ContextoDaChamada): Promise<{ advice: string }>;
-  adaptacao(ctx: ContextoDaChamada): Promise<{ difficulty: string; unlocks: string[] }>;
+  explicar(
+    p: { planetId: string; contextRef: string; question?: string },
+    ctx: ContextoDaChamada,
+  ): AsyncIterable<string>;
+  dica(
+    p: { planetId: string; missionId: string },
+    ctx: ContextoDaChamada,
+  ): Promise<{ hint: string; level: number }>;
+  conselheiro(
+    p: { role: string; query: string },
+    ctx: ContextoDaChamada,
+  ): Promise<{ advice: string }>;
+  adaptacao(
+    ctx: ContextoDaChamada,
+  ): Promise<{ difficulty: string; unlocks: string[] }>;
 }
 export const TUTOR_GATEWAY = Symbol('TutorGateway');
 

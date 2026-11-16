@@ -8,7 +8,12 @@ import { UsuarioAtual } from '../../../shared/http/decoradores';
 import type { AtorUsuario } from '../../../shared/kernel/ator';
 import { ErroDeAplicacao } from '../../../shared/kernel/erros';
 import { ServicoDeTutor } from '../application/tutor.service';
-import { ContratosIA as C, type EsquemaConselheiro, type EsquemaDica, type EsquemaExplicar } from './contratos';
+import {
+  ContratosIA as C,
+  type EsquemaConselheiro,
+  type EsquemaDica,
+  type EsquemaExplicar,
+} from './contratos';
 
 @Controller()
 export class IaController {
@@ -16,8 +21,16 @@ export class IaController {
 
   /** SSE sem buffer (RNF-003): cada trecho é escrito assim que chega. */
   @Endpoint(C.explicar)
-  @Autorizacao({ papeis: ['student'], posse: { regra: 'planeta:agir', parametro: 'planetId', origem: 'body' }, consentimento: 'platform_use' })
-  async explicar(@UsuarioAtual() a: AtorUsuario, @Body() b: z.infer<typeof EsquemaExplicar>, @Res() res: Response) {
+  @Autorizacao({
+    papeis: ['student'],
+    posse: { regra: 'planeta:agir', parametro: 'planetId', origem: 'body' },
+    consentimento: 'platform_use',
+  })
+  async explicar(
+    @UsuarioAtual() a: AtorUsuario,
+    @Body() b: z.infer<typeof EsquemaExplicar>,
+    @Res() res: Response,
+  ) {
     const fluxo = this.tutor.explicar(a, b)[Symbol.asyncIterator]();
     // Primeiro trecho antes dos cabeçalhos: falha de autorização/dependência ainda vira RFC 7807.
     const primeiro = await fluxo.next();
@@ -27,7 +40,8 @@ export class IaController {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
-    const escrever = (texto: string) => res.write(`data: ${JSON.stringify({ text: texto })}\n\n`);
+    const escrever = (texto: string) =>
+      res.write(`data: ${JSON.stringify({ text: texto })}\n\n`);
     try {
       if (!primeiro.done) escrever(primeiro.value);
       for (let r = await fluxo.next(); !r.done; r = await fluxo.next()) {
@@ -37,25 +51,37 @@ export class IaController {
       res.write('event: end\ndata: {}\n\n');
     } catch (e) {
       const tipo = e instanceof ErroDeAplicacao ? e.tipo : 'internal';
-      res.write(`event: error\ndata: ${JSON.stringify({ type: `/errors/${tipo}`, detail: 'O tutor interrompeu a resposta' })}\n\n`);
+      res.write(
+        `event: error\ndata: ${JSON.stringify({ type: `/errors/${tipo}`, detail: 'O tutor interrompeu a resposta' })}\n\n`,
+      );
     }
     res.end();
   }
 
   @Endpoint(C.dica)
-  @Autorizacao({ papeis: ['student'], posse: { regra: 'planeta:agir', parametro: 'planetId', origem: 'body' }, consentimento: 'platform_use' })
+  @Autorizacao({
+    papeis: ['student'],
+    posse: { regra: 'planeta:agir', parametro: 'planetId', origem: 'body' },
+    consentimento: 'platform_use',
+  })
   dica(@UsuarioAtual() a: AtorUsuario, @Body() b: z.infer<typeof EsquemaDica>) {
     return this.tutor.dica(a, b);
   }
 
   @Endpoint(C.conselheiro)
   @Autorizacao({ papeis: ['student'], consentimento: 'platform_use' })
-  conselheiro(@UsuarioAtual() a: AtorUsuario, @Body() b: z.infer<typeof EsquemaConselheiro>) {
+  conselheiro(
+    @UsuarioAtual() a: AtorUsuario,
+    @Body() b: z.infer<typeof EsquemaConselheiro>,
+  ) {
     return this.tutor.conselheiro(a, b);
   }
 
   @Endpoint(C.adaptacao)
-  @Autorizacao({ papeis: ['teacher', 'coordinator', 'admin'], posse: { regra: 'usuario:pedagogico', parametro: 'studentId' } })
+  @Autorizacao({
+    papeis: ['teacher', 'coordinator', 'admin'],
+    posse: { regra: 'usuario:pedagogico', parametro: 'studentId' },
+  })
   adaptacao(@UsuarioAtual() a: AtorUsuario, @Param('studentId') id: string) {
     return this.tutor.adaptacao(a, id);
   }

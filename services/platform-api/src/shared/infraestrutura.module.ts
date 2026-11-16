@@ -1,4 +1,10 @@
-import { Global, Inject, type DynamicModule, type OnApplicationShutdown, type Provider } from '@nestjs/common';
+import {
+  Global,
+  Inject,
+  type DynamicModule,
+  type OnApplicationShutdown,
+  type Provider,
+} from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 import { DataSource } from 'typeorm';
@@ -8,7 +14,11 @@ import { OBJECT_STORAGE } from './armazenamento/portas';
 import { ArmazenamentoS3 } from './armazenamento/s3';
 import { Auditoria } from './auditoria/auditoria';
 import { RegistroDeRegrasDePosse } from './autorizacao/registro-de-posse';
-import { adaptadoresFalsosAtivos, CONFIGURACAO, type Configuracao } from './config/configuracao';
+import {
+  adaptadoresFalsosAtivos,
+  CONFIGURACAO,
+  type Configuracao,
+} from './config/configuracao';
 import { opcoesDoBanco } from './database/opcoes';
 import { VinculosEscolaresSql } from './database/vinculos-sql';
 import { GERADOR_DE_IDS, GeradorDeUuid } from './kernel/ids';
@@ -17,7 +27,12 @@ import { VINCULOS_ESCOLARES } from './kernel/vinculos';
 import { criarLoggerRaiz, LOGGER } from './observabilidade/logger';
 import { Metricas } from './observabilidade/metricas';
 import { ChavesRedis } from './redis/chaves';
-import { criarRedis, REDIS, REDIS_ASSINANTE, REDIS_BLOQUEANTE } from './redis/redis';
+import {
+  criarRedis,
+  REDIS,
+  REDIS_ASSINANTE,
+  REDIS_BLOQUEANTE,
+} from './redis/redis';
 import { Cifrador } from './seguranca/cifrador';
 import { LimitadorDeTaxa } from './seguranca/limitador-de-taxa';
 import { Pseudonimizador } from './seguranca/pseudonimizador';
@@ -31,7 +46,8 @@ class Encerramento implements OnApplicationShutdown {
     @Inject(REDIS_BLOQUEANTE) private readonly bloqueante: Redis,
   ) {}
   async onApplicationShutdown(): Promise<void> {
-    for (const r of [this.bloqueante, this.assinante, this.redis]) r.disconnect();
+    for (const r of [this.bloqueante, this.assinante, this.redis])
+      r.disconnect();
     if (this.ds.isInitialized) await this.ds.destroy();
   }
 }
@@ -43,7 +59,10 @@ export class InfraestruturaModule {
     const providers: Provider[] = [
       { provide: CONFIGURACAO, useValue: config },
       { provide: LOGGER, useFactory: () => criarLoggerRaiz(config.LOG_LEVEL) },
-      { provide: Metricas, useFactory: () => new Metricas(config.NODE_ENV !== 'test') },
+      {
+        provide: Metricas,
+        useFactory: () => new Metricas(config.NODE_ENV !== 'test'),
+      },
       { provide: RELOGIO, useClass: RelogioDoSistema },
       { provide: GERADOR_DE_IDS, useClass: GeradorDeUuid },
       {
@@ -60,13 +79,32 @@ export class InfraestruturaModule {
           return ds.initialize();
         },
       },
-      { provide: REDIS, useFactory: () => criarRedis(config.REDIS_URL, 'comandos') },
-      { provide: REDIS_ASSINANTE, useFactory: () => criarRedis(config.REDIS_URL, 'assinante') },
-      { provide: REDIS_BLOQUEANTE, useFactory: () => criarRedis(config.REDIS_URL, 'bloqueante') },
-      { provide: ChavesRedis, useValue: new ChavesRedis(config.REDIS_KEY_PREFIX) },
-      { provide: Auditoria, inject: [DataSource], useFactory: (ds: DataSource) => new Auditoria(ds.manager) },
+      {
+        provide: REDIS,
+        useFactory: () => criarRedis(config.REDIS_URL, 'comandos'),
+      },
+      {
+        provide: REDIS_ASSINANTE,
+        useFactory: () => criarRedis(config.REDIS_URL, 'assinante'),
+      },
+      {
+        provide: REDIS_BLOQUEANTE,
+        useFactory: () => criarRedis(config.REDIS_URL, 'bloqueante'),
+      },
+      {
+        provide: ChavesRedis,
+        useValue: new ChavesRedis(config.REDIS_KEY_PREFIX),
+      },
+      {
+        provide: Auditoria,
+        inject: [DataSource],
+        useFactory: (ds: DataSource) => new Auditoria(ds.manager),
+      },
       { provide: Cifrador, useValue: new Cifrador(config.DATA_ENCRYPTION_KEY) },
-      { provide: Pseudonimizador, useValue: new Pseudonimizador(config.PSEUDONYM_KEY) },
+      {
+        provide: Pseudonimizador,
+        useValue: new Pseudonimizador(config.PSEUDONYM_KEY),
+      },
       {
         provide: LimitadorDeTaxa,
         inject: [REDIS, ChavesRedis],
@@ -77,7 +115,11 @@ export class InfraestruturaModule {
         provide: OBJECT_STORAGE,
         useFactory: () =>
           config.ADAPTER_STORAGE === 'fake'
-            ? new ArmazenamentoFalso(config.FAKE_STORAGE_DIR, config.PSEUDONYM_KEY, config.PUBLIC_BASE_URL)
+            ? new ArmazenamentoFalso(
+                config.FAKE_STORAGE_DIR,
+                config.PSEUDONYM_KEY,
+                config.PUBLIC_BASE_URL,
+              )
             : new ArmazenamentoS3({
                 endpoint: config.S3_ENDPOINT,
                 publicEndpoint: config.S3_PUBLIC_ENDPOINT,
@@ -87,7 +129,11 @@ export class InfraestruturaModule {
                 forcePathStyle: config.S3_FORCE_PATH_STYLE,
               }),
       },
-      { provide: VINCULOS_ESCOLARES, inject: [DataSource], useFactory: (ds: DataSource) => new VinculosEscolaresSql(ds) },
+      {
+        provide: VINCULOS_ESCOLARES,
+        inject: [DataSource],
+        useFactory: (ds: DataSource) => new VinculosEscolaresSql(ds),
+      },
       Encerramento,
       {
         provide: 'AVISO_DE_FAKES',
@@ -96,7 +142,10 @@ export class InfraestruturaModule {
           const fakes = adaptadoresFalsosAtivos(config);
           if (fakes.length > 0) {
             // Fakes honestos: anunciados em toda inicialização.
-            logger.warn({ fakeAdapters: fakes }, `ADAPTADORES FALSOS ATIVOS: ${fakes.join(', ')} — não use em produção`);
+            logger.warn(
+              { fakeAdapters: fakes },
+              `ADAPTADORES FALSOS ATIVOS: ${fakes.join(', ')} — não use em produção`,
+            );
           }
           return fakes;
         },

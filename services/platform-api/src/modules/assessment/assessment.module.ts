@@ -17,7 +17,11 @@ import { AvaliacaoController } from './interface/avaliacao.controller';
   imports: [IdentityModule, EducationModule, OrchestrationModule],
   controllers: [AvaliacaoController, ArquivosController],
   providers: [
-    { provide: ConsultasDeAvaliacao, inject: [DataSource], useFactory: (ds: DataSource) => new ConsultasDeAvaliacao(ds) },
+    {
+      provide: ConsultasDeAvaliacao,
+      inject: [DataSource],
+      useFactory: (ds: DataSource) => new ConsultasDeAvaliacao(ds),
+    },
     ProjecaoDeAvaliacao,
     ServicoDePainel,
     ServicoDeExportacao,

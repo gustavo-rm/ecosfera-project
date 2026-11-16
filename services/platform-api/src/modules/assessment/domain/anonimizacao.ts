@@ -33,11 +33,15 @@ export interface LinhaAnonima {
 }
 
 export function semanaIso(d: Date): string {
-  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const t = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
   const dia = t.getUTCDay() || 7;
   t.setUTCDate(t.getUTCDate() + 4 - dia);
   const inicio = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
-  const semana = Math.ceil(((t.getTime() - inicio.getTime()) / 86_400_000 + 1) / 7);
+  const semana = Math.ceil(
+    ((t.getTime() - inicio.getTime()) / 86_400_000 + 1) / 7,
+  );
   return `${t.getUTCFullYear()}-W${String(semana).padStart(2, '0')}`;
 }
 
@@ -45,13 +49,19 @@ export function anonimizar(
   linhas: LinhaBruta[],
   k: number,
   pseudo: (v: string) => string,
-): { linhas: LinhaAnonima[]; gruposSuprimidos: number; linhasSuprimidas: number } {
+): {
+  linhas: LinhaAnonima[];
+  gruposSuprimidos: number;
+  linhasSuprimidas: number;
+} {
   const grupos = new Map<string, Set<string>>();
   for (const l of linhas) {
     const g = `${l.escolaId}|${l.nivel ?? 'sem_nivel'}`;
     (grupos.get(g) ?? grupos.set(g, new Set()).get(g)!).add(l.alunoId);
   }
-  const suprimidos = new Set([...grupos].filter(([, alunos]) => alunos.size < k).map(([g]) => g));
+  const suprimidos = new Set(
+    [...grupos].filter(([, alunos]) => alunos.size < k).map(([g]) => g),
+  );
   const saida: LinhaAnonima[] = [];
   let linhasSuprimidas = 0;
   for (const l of linhas) {
@@ -65,14 +75,17 @@ export function anonimizar(
       trackLevel: l.nivel ?? 'sem_nivel',
       competency: l.competencia,
       probability: Math.round(l.probabilidade * 100) / 100,
-      uncertainty: l.incerteza === null ? null : Math.round(l.incerteza * 100) / 100,
+      uncertainty:
+        l.incerteza === null ? null : Math.round(l.incerteza * 100) / 100,
       evidenceCount: l.evidencias,
       week: semanaIso(l.atualizadoEm),
       synthetic: l.sintetico,
     });
   }
   // Embaralha a ordem para não preservar a ordem de inserção (que poderia ligar linhas).
-  saida.sort((a, b) => (a.student + a.competency).localeCompare(b.student + b.competency));
+  saida.sort((a, b) =>
+    (a.student + a.competency).localeCompare(b.student + b.competency),
+  );
   return { linhas: saida, gruposSuprimidos: suprimidos.size, linhasSuprimidas };
 }
 
@@ -85,6 +98,8 @@ export function procurarPII(texto: string, conhecidos: string[]): string[] {
   if (UUID.test(texto)) achados.push('uuid');
   if (EMAIL.test(texto)) achados.push('email');
   const baixo = texto.toLowerCase();
-  for (const c of conhecidos) if (c.length >= 4 && baixo.includes(c.toLowerCase())) achados.push(`valor conhecido (${c.length} caracteres)`);
+  for (const c of conhecidos)
+    if (c.length >= 4 && baixo.includes(c.toLowerCase()))
+      achados.push(`valor conhecido (${c.length} caracteres)`);
   return achados;
 }

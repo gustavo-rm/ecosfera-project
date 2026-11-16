@@ -15,8 +15,12 @@ export class IdentityTenancyLgpd1794880000000 implements MigrationInterface {
   name = 'IdentityTenancyLgpd1794880000000';
 
   public async up(q: QueryRunner): Promise<void> {
-    await q.query(`ALTER TYPE platform.user_role ADD VALUE IF NOT EXISTS 'researcher'`);
-    await q.query(`ALTER TYPE platform.user_role ADD VALUE IF NOT EXISTS 'platform_admin'`);
+    await q.query(
+      `ALTER TYPE platform.user_role ADD VALUE IF NOT EXISTS 'researcher'`,
+    );
+    await q.query(
+      `ALTER TYPE platform.user_role ADD VALUE IF NOT EXISTS 'platform_admin'`,
+    );
 
     await q.query(`
       ALTER TABLE platform.app_user
@@ -26,7 +30,9 @@ export class IdentityTenancyLgpd1794880000000 implements MigrationInterface {
         ADD COLUMN pseudonymized_at timestamptz,
         ADD CONSTRAINT app_user_status_check CHECK (status IN ('active', 'disabled', 'pseudonymized'))
     `);
-    await q.query(`CREATE INDEX app_user_school_role_idx ON platform.app_user (school_id, role)`);
+    await q.query(
+      `CREATE INDEX app_user_school_role_idx ON platform.app_user (school_id, role)`,
+    );
 
     await q.query(`
       ALTER TABLE platform.consent
@@ -82,8 +88,12 @@ export class IdentityTenancyLgpd1794880000000 implements MigrationInterface {
         ADD COLUMN outcome text NOT NULL DEFAULT 'success',
         ADD CONSTRAINT audit_log_outcome_check CHECK (outcome IN ('success', 'denied', 'failure'))
     `);
-    await q.query(`CREATE INDEX audit_log_school_created_idx ON platform.audit_log (school_id, created_at)`);
-    await q.query(`CREATE INDEX audit_log_action_idx ON platform.audit_log (action)`);
+    await q.query(
+      `CREATE INDEX audit_log_school_created_idx ON platform.audit_log (school_id, created_at)`,
+    );
+    await q.query(
+      `CREATE INDEX audit_log_action_idx ON platform.audit_log (action)`,
+    );
     await q.query(`
       CREATE OR REPLACE FUNCTION platform.audit_log_immutable() RETURNS trigger
       LANGUAGE plpgsql AS $$
@@ -119,7 +129,9 @@ export class IdentityTenancyLgpd1794880000000 implements MigrationInterface {
         CONSTRAINT external_identity_provider_kind_check CHECK (provider_kind IN ('oidc', 'lti'))
       )
     `);
-    await q.query(`CREATE INDEX external_identity_user_idx ON platform.external_identity (user_id)`);
+    await q.query(
+      `CREATE INDEX external_identity_user_idx ON platform.external_identity (user_id)`,
+    );
 
     await q.query(`
       CREATE TABLE platform.lti_platform (
@@ -211,8 +223,12 @@ export class IdentityTenancyLgpd1794880000000 implements MigrationInterface {
     await q.query(`DROP TABLE IF EXISTS platform.oidc_provider`);
     await q.query(`DROP TABLE IF EXISTS platform.lti_platform`);
     await q.query(`DROP TABLE IF EXISTS platform.external_identity`);
-    await q.query(`DROP TRIGGER IF EXISTS audit_log_no_truncate ON platform.audit_log`);
-    await q.query(`DROP TRIGGER IF EXISTS audit_log_no_update_delete ON platform.audit_log`);
+    await q.query(
+      `DROP TRIGGER IF EXISTS audit_log_no_truncate ON platform.audit_log`,
+    );
+    await q.query(
+      `DROP TRIGGER IF EXISTS audit_log_no_update_delete ON platform.audit_log`,
+    );
     await q.query(`DROP FUNCTION IF EXISTS platform.audit_log_immutable()`);
     await q.query(`DROP INDEX IF EXISTS platform.audit_log_action_idx`);
     await q.query(`DROP INDEX IF EXISTS platform.audit_log_school_created_idx`);

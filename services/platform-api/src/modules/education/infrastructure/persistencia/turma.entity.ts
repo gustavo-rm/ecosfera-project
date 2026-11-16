@@ -1,4 +1,13 @@
-import { Check, Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 
 import { AGORA } from '../../../../shared/database/colunas';
 
@@ -33,14 +42,20 @@ export class TurmaEntity {
   schoolId: string;
 
   @ManyToOne('EscolaEntity', { onDelete: 'CASCADE', nullable: false })
-  @JoinColumn({ name: 'school_id', foreignKeyConstraintName: 'class_school_id_fkey' })
+  @JoinColumn({
+    name: 'school_id',
+    foreignKeyConstraintName: 'class_school_id_fkey',
+  })
   private readonly _escola?: unknown;
 
   @Column({ type: 'uuid', name: 'teacher_user_id', nullable: true })
   teacherUserId: string | null;
 
   @ManyToOne('UsuarioEntity', { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'teacher_user_id', foreignKeyConstraintName: 'class_teacher_user_id_fkey' })
+  @JoinColumn({
+    name: 'teacher_user_id',
+    foreignKeyConstraintName: 'class_teacher_user_id_fkey',
+  })
   private readonly _professor?: unknown;
 
   @Column({ type: 'text' })
@@ -56,7 +71,10 @@ export class TurmaEntity {
   trackId: string | null;
 
   @ManyToOne('TrilhaEntity', { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'track_id', foreignKeyConstraintName: 'class_track_id_fkey' })
+  @JoinColumn({
+    name: 'track_id',
+    foreignKeyConstraintName: 'class_track_id_fkey',
+  })
   private readonly _trilha?: unknown;
 
   @Column({ type: 'timestamptz', name: 'updated_at', default: AGORA })
@@ -67,21 +85,29 @@ export class TurmaEntity {
 @Unique('enrollment_class_id_student_user_id_key', ['classId', 'studentUserId'])
 @Index('enrollment_student_idx', ['studentUserId'])
 export class MatriculaEntity {
-  @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'enrollment_pkey' })
+  @PrimaryGeneratedColumn('uuid', {
+    primaryKeyConstraintName: 'enrollment_pkey',
+  })
   id: string;
 
   @Column({ type: 'uuid', name: 'class_id' })
   classId: string;
 
   @ManyToOne('TurmaEntity', { onDelete: 'CASCADE', nullable: false })
-  @JoinColumn({ name: 'class_id', foreignKeyConstraintName: 'enrollment_class_id_fkey' })
+  @JoinColumn({
+    name: 'class_id',
+    foreignKeyConstraintName: 'enrollment_class_id_fkey',
+  })
   private readonly _turma?: unknown;
 
   @Column({ type: 'uuid', name: 'student_user_id' })
   studentUserId: string;
 
   @ManyToOne('UsuarioEntity', { onDelete: 'CASCADE', nullable: false })
-  @JoinColumn({ name: 'student_user_id', foreignKeyConstraintName: 'enrollment_student_user_id_fkey' })
+  @JoinColumn({
+    name: 'student_user_id',
+    foreignKeyConstraintName: 'enrollment_student_user_id_fkey',
+  })
   private readonly _aluno?: unknown;
 
   @Column({ type: 'timestamptz', name: 'created_at', default: AGORA })

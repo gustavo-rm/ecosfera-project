@@ -206,7 +206,9 @@ export class InitPlatformSchema1710000000000 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE IF EXISTS platform.feedback;`);
     await queryRunner.query(`DROP TABLE IF EXISTS platform.assessment;`);
     await queryRunner.query(`DROP TABLE IF EXISTS platform.evidence;`);
-    await queryRunner.query(`DROP TABLE IF EXISTS platform.competency_estimate;`);
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS platform.competency_estimate;`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS platform.cognitive_profile;`);
     await queryRunner.query(`DROP TABLE IF EXISTS platform.competency;`);
     await queryRunner.query(`DROP TABLE IF EXISTS platform.mission_bncc;`);

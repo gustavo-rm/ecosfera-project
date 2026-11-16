@@ -46,7 +46,11 @@ export function calcularAlertas(
   const alertas: Alerta[] = [];
   for (const e of estimativas) {
     const confiavel = e.incerteza === null || e.incerteza <= c.incertezaMaxima;
-    if (e.probabilidade < c.limiarDeDominio && confiavel && e.evidencias >= c.minimoDeEvidencias) {
+    if (
+      e.probabilidade < c.limiarDeDominio &&
+      confiavel &&
+      e.evidencias >= c.minimoDeEvidencias
+    ) {
       alertas.push({
         studentId: e.alunoId,
         kind: 'low_mastery',
@@ -68,7 +72,9 @@ export function calcularAlertas(
         probability: null,
         uncertainty: null,
         evidenceCount: 0,
-        reason: quando ? `Sem atividade há mais de ${c.diasDeInatividade} dias` : 'Ainda sem atividade registrada',
+        reason: quando
+          ? `Sem atividade há mais de ${c.diasDeInatividade} dias`
+          : 'Ainda sem atividade registrada',
       });
     }
   }

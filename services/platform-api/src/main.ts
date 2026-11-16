@@ -6,7 +6,10 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
 import { configurarAplicacao } from './configurar-aplicacao';
-import { carregarConfiguracao, ErroDeConfiguracao } from './shared/config/configuracao';
+import {
+  carregarConfiguracao,
+  ErroDeConfiguracao,
+} from './shared/config/configuracao';
 import { criarLoggerRaiz, LoggerNest } from './shared/observabilidade/logger';
 import { encerrarRastreamento } from './shared/observabilidade/rastreamento';
 
@@ -22,13 +25,19 @@ async function iniciar(): Promise<void> {
     throw e;
   }
   const logger = criarLoggerRaiz(config.LOG_LEVEL);
-  const app = await NestFactory.create<NestExpressApplication>(AppModule.com(config), {
-    bodyParser: false,
-    logger: new LoggerNest(logger),
-  });
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule.com(config),
+    {
+      bodyParser: false,
+      logger: new LoggerNest(logger),
+    },
+  );
   configurarAplicacao(app, config);
   await app.listen(config.PORT);
-  logger.info({ port: config.PORT, env: config.NODE_ENV }, 'platform-api no ar');
+  logger.info(
+    { port: config.PORT, env: config.NODE_ENV },
+    'platform-api no ar',
+  );
   process.on('SIGTERM', () => void encerrarRastreamento());
 }
 

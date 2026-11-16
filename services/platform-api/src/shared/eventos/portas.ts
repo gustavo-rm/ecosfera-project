@@ -6,8 +6,11 @@ export interface EventPublisher {
 }
 export const EVENT_PUBLISHER = Symbol('EventPublisher');
 
-export type ResultadoDoTratamento = 'processed' | 'duplicate' | 'skipped_no_consent' | 'ignored';
-export type TratadorDeEvento = (e: EnvelopeDeEvento) => Promise<ResultadoDoTratamento>;
+export type ResultadoDoTratamento =
+  'processed' | 'duplicate' | 'skipped_no_consent' | 'ignored';
+export type TratadorDeEvento = (
+  e: EnvelopeDeEvento,
+) => Promise<ResultadoDoTratamento>;
 
 /** Porta de consumo dos eventos de avaliação vindos do ai-sim-service. */
 export interface AssessmentEventSource {

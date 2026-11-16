@@ -8,7 +8,10 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { configurarAplicacao } from '../../src/configurar-aplicacao';
 import { ServicoDeUsuarios } from '../../src/modules/identity/application/usuarios.service';
-import { carregarConfiguracao, type Configuracao } from '../../src/shared/config/configuracao';
+import {
+  carregarConfiguracao,
+  type Configuracao,
+} from '../../src/shared/config/configuracao';
 import { PREFIXO_API } from '../../src/shared/http/contrato';
 import { middlewareDeContrato, violacoes } from './contrato';
 import type { Papel } from '../../src/shared/kernel/papeis';
@@ -25,9 +28,13 @@ export interface AppDeTeste {
 }
 
 /** Sobe a aplicação completa (mesma configuração do main.ts) contra os contêineres de teste. */
-export async function criarApp(sobrescritas: Record<string, string> = {}): Promise<AppDeTeste> {
+export async function criarApp(
+  sobrescritas: Record<string, string> = {},
+): Promise<AppDeTeste> {
   const config = carregarConfiguracao({ ...process.env, ...sobrescritas });
-  const mod = await Test.createTestingModule({ imports: [AppModule.com(config)] }).compile();
+  const mod = await Test.createTestingModule({
+    imports: [AppModule.com(config)],
+  }).compile();
   const app = mod.createNestApplication({ bodyParser: false, logger: false });
   app.use(middlewareDeContrato);
   configurarAplicacao(app, config);
@@ -41,7 +48,10 @@ export async function criarApp(sobrescritas: Record<string, string> = {}): Promi
     fechar: async () => {
       await app.close();
       // Teste de contrato: qualquer divergência entre resposta real e OpenAPI falha a suíte.
-      if (violacoes.length > 0) throw new Error(`Violações de contrato:\n${violacoes.splice(0).join('\n')}`);
+      if (violacoes.length > 0)
+        throw new Error(
+          `Violações de contrato:\n${violacoes.splice(0).join('\n')}`,
+        );
     },
   };
 }
@@ -50,9 +60,15 @@ export function sufixo(): string {
   return randomBytes(4).toString('hex');
 }
 
-export async function criarEscola(t: AppDeTeste, nome = `Escola ${sufixo()}`): Promise<string> {
-  const r: { id: string }[] = await t.ds.query(`INSERT INTO platform.school (name) VALUES ($1) RETURNING id`, [nome]);
-  return r[0]!.id;
+export async function criarEscola(
+  t: AppDeTeste,
+  nome = `Escola ${sufixo()}`,
+): Promise<string> {
+  const r: { id: string }[] = await t.ds.query(
+    `INSERT INTO platform.school (name) VALUES ($1) RETURNING id`,
+    [nome],
+  );
+  return r[0].id;
 }
 
 export interface UsuarioDeTeste {
@@ -82,16 +98,29 @@ export async function criarUsuario(
     password: SENHA_PADRAO,
   });
   const { token, refresh } = await login(t, email, SENHA_PADRAO);
-  return { id: u.id, email, senha: SENHA_PADRAO, papel, escolaId, token, refresh };
+  return {
+    id: u.id,
+    email,
+    senha: SENHA_PADRAO,
+    papel,
+    escolaId,
+    token,
+    refresh,
+  };
 }
 
-export async function login(t: AppDeTeste, email: string, senha: string): Promise<{ token: string; refresh: string }> {
+export async function login(
+  t: AppDeTeste,
+  email: string,
+  senha: string,
+): Promise<{ token: string; refresh: string }> {
   const r = await t
     .http()
     .post(`${API}/auth/login`)
     .set('X-Refresh-Transport', 'body')
     .send({ email, senha });
-  if (r.status !== 200) throw new Error(`login falhou: ${r.status} ${JSON.stringify(r.body)}`);
+  if (r.status !== 200)
+    throw new Error(`login falhou: ${r.status} ${JSON.stringify(r.body)}`);
   const corpo = r.body as { accessToken: string; refreshToken: string };
   return { token: corpo.accessToken, refresh: corpo.refreshToken };
 }

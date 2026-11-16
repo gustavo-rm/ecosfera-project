@@ -9,7 +9,10 @@ import type { VinculosEscolares } from '../kernel/vinculos';
 export class VinculosEscolaresSql implements VinculosEscolares {
   constructor(private readonly ds: DataSource) {}
 
-  async professorLecionaParaAluno(professorId: string, alunoId: string): Promise<boolean> {
+  async professorLecionaParaAluno(
+    professorId: string,
+    alunoId: string,
+  ): Promise<boolean> {
     const r: unknown[] = await this.ds.query(
       `SELECT 1 FROM platform.enrollment e JOIN platform.class c ON c.id = e.class_id
        WHERE e.student_user_id = $1 AND c.teacher_user_id = $2 LIMIT 1`,
@@ -18,7 +21,10 @@ export class VinculosEscolaresSql implements VinculosEscolares {
     return r.length > 0;
   }
 
-  async responsavelPeloAluno(responsavelId: string, alunoId: string): Promise<boolean> {
+  async responsavelPeloAluno(
+    responsavelId: string,
+    alunoId: string,
+  ): Promise<boolean> {
     const r: unknown[] = await this.ds.query(
       `SELECT 1 FROM platform.guardian WHERE guardian_user_id = $1 AND student_user_id = $2 LIMIT 1`,
       [responsavelId, alunoId],
@@ -32,6 +38,8 @@ export class VinculosEscolaresSql implements VinculosEscolares {
       [usuarioId],
     );
     const l = r[0];
-    return l ? { existe: true, escolaId: l.school_id, papel: l.role } : { existe: false, escolaId: null, papel: null };
+    return l
+      ? { existe: true, escolaId: l.school_id, papel: l.role }
+      : { existe: false, escolaId: null, papel: null };
   }
 }

@@ -9,14 +9,12 @@ const booleano = z
   .enum(['true', 'false', '1', '0'])
   .transform((v) => v === 'true' || v === '1');
 
-const listaSeparadaPorVirgula = z
-  .string()
-  .transform((v) =>
-    v
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0),
-  );
+const listaSeparadaPorVirgula = z.string().transform((v) =>
+  v
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0),
+);
 
 /** Segredo com pelo menos 32 caracteres (256 bits se for aleatório em base64/hex). */
 const segredo = (nome: string) =>
@@ -36,7 +34,11 @@ export const esquemaConfiguracao = z
     /** Recusa requisições que não chegaram por HTTPS (X-Forwarded-Proto). */
     REQUIRE_HTTPS: booleano.optional(),
     CORS_ORIGINS: listaSeparadaPorVirgula.default([]),
-    BODY_LIMIT_BYTES: z.coerce.number().int().positive().default(256 * 1024),
+    BODY_LIMIT_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(256 * 1024),
 
     DATABASE_URL: z.string().min(1, 'DATABASE_URL é obrigatória'),
     DB_SSL: booleano.default(false),
@@ -85,12 +87,25 @@ export const esquemaConfiguracao = z
     S3_BUCKET_EXPORTS: z.string().default('exports'),
     S3_BUCKET_DATASETS: z.string().default('datasets'),
     FAKE_STORAGE_DIR: z.string().default('/tmp/ecosfera-platform-storage'),
-    SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(1).max(3600).default(300),
-    EXPORT_MAX_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
+    SIGNED_URL_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(3600)
+      .default(300),
+    EXPORT_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(10 * 1024 * 1024),
 
     RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().positive().default(5),
     RATE_LIMIT_IP_PER_MINUTE: z.coerce.number().int().positive().default(300),
-    RATE_LIMIT_AUTH_IP_PER_MINUTE: z.coerce.number().int().positive().default(30),
+    RATE_LIMIT_AUTH_IP_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(30),
 
     PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
     METRICS_TOKEN: z.string().min(16).optional(),
@@ -104,7 +119,11 @@ export const esquemaConfiguracao = z
     OUTBOX_RELAY_ENABLED: booleano.default(true),
     RETENTION_JOB_ENABLED: booleano.default(false),
 
-    WS_MAX_BUFFERED_BYTES: z.coerce.number().int().positive().default(1024 * 1024),
+    WS_MAX_BUFFERED_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(1024 * 1024),
     WS_REPLAY_SIZE: z.coerce.number().int().min(0).default(50),
     TICK_SYNC_MAX_STEPS: z.coerce.number().int().positive().default(10),
   })

@@ -12,7 +12,10 @@ export interface ContextoDaRequisicao {
 
 const armazenamento = new AsyncLocalStorage<ContextoDaRequisicao>();
 
-export function executarComContexto<T>(ctx: ContextoDaRequisicao, fn: () => T): T {
+export function executarComContexto<T>(
+  ctx: ContextoDaRequisicao,
+  fn: () => T,
+): T {
   return armazenamento.run(ctx, fn);
 }
 

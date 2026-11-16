@@ -12,7 +12,10 @@ export class TutorFalso implements TutorGateway {
     private readonly atrasoMs = 40,
   ) {}
 
-  async *explicar(p: { planetId: string; contextRef: string; question?: string }, _ctx: ContextoDaChamada): AsyncIterable<string> {
+  async *explicar(
+    p: { planetId: string; contextRef: string; question?: string },
+    _ctx: ContextoDaChamada,
+  ): AsyncIterable<string> {
     this.logger.debug({ fake: this.nome }, '[FAKE] explicação simulada');
     const partes = [
       '[SIMULADO] ',
@@ -28,14 +31,22 @@ export class TutorFalso implements TutorGateway {
   }
 
   dica(p: { planetId: string; missionId: string }) {
-    return Promise.resolve({ hint: `[SIMULADO] Observe a série de temperatura antes de intervir (missão ${p.missionId.slice(0, 8)}).`, level: 1 });
+    return Promise.resolve({
+      hint: `[SIMULADO] Observe a série de temperatura antes de intervir (missão ${p.missionId.slice(0, 8)}).`,
+      level: 1,
+    });
   }
 
   conselheiro(p: { role: string; query: string }) {
-    return Promise.resolve({ advice: `[SIMULADO] Como ${p.role}, eu compararia ganhos e custos antes de decidir.` });
+    return Promise.resolve({
+      advice: `[SIMULADO] Como ${p.role}, eu compararia ganhos e custos antes de decidir.`,
+    });
   }
 
   adaptacao() {
-    return Promise.resolve({ difficulty: 'standard', unlocks: ['[SIMULADO] trade-offs-basicos'] });
+    return Promise.resolve({
+      difficulty: 'standard',
+      unlocks: ['[SIMULADO] trade-offs-basicos'],
+    });
   }
 }

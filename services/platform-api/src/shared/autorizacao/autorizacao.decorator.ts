@@ -13,11 +13,16 @@ export type DeclaracaoDeAutorizacao =
   | {
       papeis: readonly Papel[];
       /** Regra de posse avaliada pelo guard e verificada de novo no caso de uso. */
-      posse?: { regra: string; parametro?: string; origem?: 'params' | 'body' | 'query' };
+      posse?: {
+        regra: string;
+        parametro?: string;
+        origem?: 'params' | 'body' | 'query';
+      };
       /** Finalidade exigida quando o próprio ator é menor (aluno). */
       consentimento?: Finalidade;
     };
 
 export const META_AUTORIZACAO = 'ecosfera:autorizacao';
 
-export const Autorizacao = (d: DeclaracaoDeAutorizacao) => SetMetadata(META_AUTORIZACAO, d);
+export const Autorizacao = (d: DeclaracaoDeAutorizacao) =>
+  SetMetadata(META_AUTORIZACAO, d);

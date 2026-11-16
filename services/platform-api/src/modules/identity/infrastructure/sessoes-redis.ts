@@ -35,23 +35,42 @@ export class SessoesRedis implements ArmazemDeSessoes {
     private readonly chaves: ChavesRedis,
   ) {}
 
-  async criar(sessaoId: string, usuarioId: string, segredo: string, ttl: number): Promise<void> {
+  async criar(
+    sessaoId: string,
+    usuarioId: string,
+    segredo: string,
+    ttl: number,
+  ): Promise<void> {
     const k = this.chaves.sessao(sessaoId);
     await this.redis
       .multi()
-      .hset(k, { uid: usuarioId, cur: h(segredo), criada: Date.now().toString() })
+      .hset(k, {
+        uid: usuarioId,
+        cur: h(segredo),
+        criada: Date.now().toString(),
+      })
       .expire(k, ttl)
       .sadd(this.chaves.sessoesDoUsuario(usuarioId), sessaoId)
       .expire(this.chaves.sessoesDoUsuario(usuarioId), ttl)
       .exec();
   }
 
-  async rotacionar(sessaoId: string, apresentado: string, novo: string, ttl: number): Promise<ResultadoDaRotacao> {
+  async rotacionar(
+    sessaoId: string,
+    apresentado: string,
+    novo: string,
+    ttl: number,
+  ): Promise<ResultadoDaRotacao> {
     const k = this.chaves.sessao(sessaoId);
-    const [tipo, uid] = (await this.redis.eval(ROTACIONAR, 2, k, usados(k), h(apresentado), h(novo), ttl)) as [
-      string,
-      string,
-    ];
+    const [tipo, uid] = (await this.redis.eval(
+      ROTACIONAR,
+      2,
+      k,
+      usados(k),
+      h(apresentado),
+      h(novo),
+      ttl,
+    )) as [string, string];
     if (tipo === 'ok') return { tipo: 'ok', novoSegredo: novo, usuarioId: uid };
     if (tipo === 'reuso') {
       await this.redis.srem(this.chaves.sessoesDoUsuario(uid), sessaoId);
@@ -75,7 +94,10 @@ export class SessoesRedis implements ArmazemDeSessoes {
     const conjunto = this.chaves.sessoesDoUsuario(usuarioId);
     const ids = await this.redis.smembers(conjunto);
     if (ids.length > 0) {
-      const chaves = ids.flatMap((id) => [this.chaves.sessao(id), usados(this.chaves.sessao(id))]);
+      const chaves = ids.flatMap((id) => [
+        this.chaves.sessao(id),
+        usados(this.chaves.sessao(id)),
+      ]);
       await this.redis.del(...chaves);
     }
     await this.redis.del(conjunto);

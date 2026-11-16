@@ -54,4 +54,6 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text-summary', 'json-summary', 'lcov'],
+  // Gate de cobertura (docs/backend/relatorios/COBERTURA.md). Medido sobre unit + integração.
+  coverageThreshold: { global: { lines: 80, statements: 78, functions: 70, branches: 60 } },
 };
