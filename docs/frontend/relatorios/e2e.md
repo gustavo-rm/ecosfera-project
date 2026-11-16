@@ -1,6 +1,6 @@
 # Relatório de verificação de ponta a ponta
 
-Gerado por `scripts/e2e.mjs` em 2026-11-15, Chromium headless (WebGL por software), contra o build de produção.
+Gerado por `scripts/e2e.mjs` em 2026-11-16, Chromium headless (WebGL por software), contra o build de produção.
 
 ## 1. Acessibilidade automática (axe-core, regras WCAG 2.1 A e AA)
 
@@ -57,7 +57,7 @@ Resumo: 43 combinações de tela e tema, 0 violações, 0 erros de console.
 - OK: O primeiro Tab leva ao link “Pular para o conteúdo”
 - OK: Início → “Começar demonstração” com Tab e Enter abre o jogo
 - OK: Planeta focado aceita setas e zoom por teclado sem erro
-- OK: Enter seleciona o ponto no centro e abre a sonda com valores (Posição 34°, 73° Biomas Deserto Temperatura 7 °C Elevação 1.429 m)
+- OK: Enter seleciona o ponto no centro e abre a sonda com valores (Posição 38°, 53° Biomas Campo Temperatura 12 °C Elevação 452 m)
 - OK: Descrição textual do planeta presente para leitor de tela (Colonização Terrestre, ano 1.050. O planeta é um mundo temperado.  Temperatura média de 16 °C.  Atmosfera com 21,0% de oxigênio, 400 ppm de CO₂ e pres…)
 - OK: Camada de temperatura ligada por teclado (aria-pressed)
 - OK: Linha do tempo rola para o passado com a seta esquerda (mês 12600 → 12540)
@@ -86,10 +86,10 @@ Resumo: 43 combinações de tela e tema, 0 violações, 0 erros de console.
 
 | Medida (12 ações de reflorestar) | p95 |
 |---|---|
-| Disparo da ondulação no ponto (síncrono ao gesto) | 0.4 ms |
-| Ondulação desenhada (dois quadros depois) | 356 ms |
-| Novo estado do planeta recebido da fonte | 131 ms |
+| Disparo da ondulação no ponto (síncrono ao gesto) | 0.3 ms |
+| Ondulação desenhada (dois quadros depois) | 182 ms |
+| Novo estado do planeta recebido da fonte | 58 ms |
 
-- OK: Feedback visual local em até 1 s no p95, em WebGL por software (p95 = 356 ms)
+- OK: Feedback visual local em até 1 s no p95, em WebGL por software (p95 = 182 ms)
 
 **Total de falhas: 0.**
