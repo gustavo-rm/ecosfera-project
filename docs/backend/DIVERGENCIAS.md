@@ -9,7 +9,7 @@ Regra: o repositório manda sobre o que existe; os documentos mandam sobre o que
 | D1 | Dossiê antigo × v3 | Partes citam Java/Spring/JPA | NestJS + TypeORM |
 | D2 | Backlog × Dossiê v3 | Backlog usa Prisma | TypeORM (baseline já aplicada) |
 | D3 | Backlog × Dossiê v3 | Backlog usa NATS | Redis Streams atrás da porta `EventPublisher`/`AssessmentEventSource` |
-| D4 | Backlog × Dossiê | Backlog usa tRPC + Zod | OpenAPI 3.1 congelado; Zod só para validar bordas e gerar o OpenAPI. Sem tRPC (ADR 0007) |
+| D4 | Backlog × Dossiê | Backlog usa tRPC + Zod | OpenAPI 3.1 congelado; Zod só para validar bordas e gerar o OpenAPI. Sem tRPC (ADR 0006) |
 | D5 | Backlog × Dossiê | Backlog cita Socket.IO | WebSocket nativo (`ws`) com mensagens tipadas (ADR 0011) |
 | D6 | Nomes de pastas | `apps/api` / `apps/platform-api` / `packages/shared` | Reais: `services/platform-api`, `packages/api-contracts` |
 | D7 | Dossiê ERS | `POST /assessment/events` na API da plataforma, mas a ingestão é do `ai-sim-service` | O `platform-api` expõe `POST /assessment/events` só para credencial de serviço, com gate de consentimento, e consome Redis Streams (ADR 0013) |
@@ -33,3 +33,8 @@ Regra: o repositório manda sobre o que existe; os documentos mandam sobre o que
 | D20 | `.nvmrc` (24.18.0) × ambiente | O ambiente local tem Node 22.23 | O pacote declara `engines.node >=22`; CI usa o `.nvmrc` |
 | D21 | Briefing §5.1 | Base `/{service}/api/v1` sem nome de serviço definido | Base adotada: `/platform/api/v1` |
 | D22 | Briefing §5.2 × backlog | Dossiê devolve `refreshToken` no corpo; backlog pede cookie `httpOnly` | Os dois, ver ADR 0009 |
+| D23 | Dossiê §5.8 `GET /dashboard/reports/export` | O Dossiê não diz se devolve o arquivo ou um link | Devolve JSON com URL assinada de curta duração (o arquivo fica no MinIO/S3). Idem `GET /research/dataset` |
+| D24 | Dossiê §5.3 | Só `POST /users/{id}/consent`; não há rota de revogação | Acrescentada `POST /users/{id}/consent/revoke` (aditiva) |
+| D25 | Briefing §5.5 × Dossiê | `GET /planets/{id}/stream` é WebSocket, sem lugar no OpenAPI | Documentado na descrição do OpenAPI e no ADR 0011; não é operação REST |
+| D26 | Briefing §1.4 | "Docker Compose ... MinIO" | `minio/minio:latest` não baixa; testes usam `chainguard/minio` (D19/P1) |
+| D27 | Backlog TASK-0028 (Keycloak/Ory) | Não há provedor OIDC no compose | Implementação genérica OIDC; verificada só contra provedor local de teste (P7) |

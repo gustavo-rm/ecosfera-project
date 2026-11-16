@@ -23,3 +23,13 @@ pnpm --filter <pacote> add @ecosfera/api-contracts@workspace:*
 ```
 
 > Placeholder inicial: `src/index.ts` está vazio. Popule conforme as specs forem definidas.
+## Conteúdo atual (platform-api)
+
+| Arquivo | O que é |
+|---|---|
+| `openapi/platform-api.v1.yaml` | Contrato REST do `platform-api` (OpenAPI 3.1), **gerado** a partir das rotas (`pnpm --filter platform-api openapi:gerar`). A extensão `x-authorization` diz papéis, posse e consentimento por operação |
+| `asyncapi/platform-events.v1.yaml` | Eventos publicados e consumidos via Redis Streams (AsyncAPI 3.0) |
+| `src/generated/platform-api.ts` | Tipos TypeScript gerados (openapi-typescript), exportados em `src/index.ts` |
+| `docs/platform-api.html` | Documentação navegável estática (sem dependências externas) |
+
+O CI do `platform-api` falha se o código divergir destes arquivos. Mudanças são aditivas; remoção ou mudança incompatível exige aprovação.
