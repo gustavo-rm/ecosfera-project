@@ -2,18 +2,22 @@ import 'reflect-metadata';
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 
+import { opcoesDoBanco } from '../../shared/database/opcoes';
+
 /**
- * DataSource usado pela CLI de migrations do TypeORM.
+ * DataSource usado pela CLI de migrações do TypeORM.
  * O schema relacional autoritativo vive em "platform" (ver init do Postgres).
  * `synchronize` é SEMPRE false: schema evolui exclusivamente por migration.
  */
-export default new DataSource({
-  type: 'postgres',
-  url: process.env.DATABASE_URL,
-  schema: 'platform',
-  entities: ['src/**/*.entity.{ts,js}'],
-  migrations: ['src/infrastructure/database/migrations/*.{ts,js}'],
-  migrationsTableName: 'platform_migrations',
-  synchronize: false,
-  logging: process.env.DB_LOGGING === 'true',
-});
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL é obrigatória para a CLI de migrações');
+}
+
+export default new DataSource(
+  opcoesDoBanco({
+    url: process.env.DATABASE_URL,
+    ssl: process.env.DB_SSL === 'true',
+    logging: process.env.DB_LOGGING === 'true',
+    applicationName: 'platform-api-migrations',
+  }),
+);
