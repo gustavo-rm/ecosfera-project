@@ -100,12 +100,9 @@ export const esquemaConfiguracao = z
       .default(10 * 1024 * 1024),
 
     RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().positive().default(5),
-    RATE_LIMIT_IP_PER_MINUTE: z.coerce.number().int().positive().default(300),
-    RATE_LIMIT_AUTH_IP_PER_MINUTE: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(30),
+    RATE_LIMIT_IP_PER_MINUTE: z.coerce.number().int().positive().default(3000),
+    // Por IP (escola atrás de NAT: 40+ alunos no mesmo IP, RNF-005). Força bruta é contida por conta.
+    RATE_LIMIT_AUTH_IP_PER_MINUTE: z.coerce.number().int().positive().default(300),
 
     PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
     METRICS_TOKEN: z.string().min(16).optional(),

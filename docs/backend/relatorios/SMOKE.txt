@@ -1,0 +1,193 @@
+Smoke ECOSFERA platform-api — 2026-11-16T23:19:52.899Z — alvo http://localhost:3000
+    GET   /ready → 200
+  adaptadores falsos ativos: ["SimulationGateway","TutorGateway","Mailer","ObjectStorage"]
+
+━━ 1. Escola, admin e usuários; responsável vinculado ao aluno menor
+    POST  /auth/login → 200
+    POST  /schools → 201
+  ✔ operador cria escola com admin inicial — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users → 201
+  ✔ cria teacher (Marina Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users → 201
+  ✔ cria coordinator (Beatriz Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users → 201
+  ✔ cria student (Lucas Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users → 201
+  ✔ cria student (Joana Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users → 201
+  ✔ cria guardian (Helena Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users → 201
+  ✔ cria researcher (Pesquisa Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users/{id}/guardians → 201
+  ✔ admin vincula responsável ao aluno — esperado 201, obtido 201
+
+━━ 2. Aluno menor SEM consentimento é bloqueado; painel mostra pendência
+    POST  /planets → 403 /errors/consent-required
+  ✔ criar planeta sem consentimento — esperado [403,"/errors/consent-required"], obtido [403,"/errors/consent-required"] — "Esta ação exige consentimento válido do responsável para a finalidade "platform_use". Peça ao responsável para registrar o consentimento."
+    POST  /classes → 201
+  ✔ professor cria turma — esperado 201, obtido 201
+    POST  /classes/{id}/students → 200
+  ✔ professor vincula alunos — esperado 200, obtido 200
+    GET   /dashboard/classes/{id}/consents → 200
+  ✔ painel do professor: consentimento do aluno — esperado "pending", obtido "pending"
+
+━━ 3. Responsável consente; aluno cria planeta, intervém e o WebSocket entrega o delta
+    GET   /consent-texts → 200
+    texto vigente: versão 0.1-placeholder (pending_legal_review)
+    POST  /users/{id}/consent → 201
+  ✔ responsável registra consentimento (3 finalidades) — esperado 201, obtido 201
+    POST  /planets → 201
+  ✔ aluno cria planeta (adaptador falso) — esperado 201, obtido 201
+  ✔ WebSocket autenticado abre — esperado undefined, obtido undefined
+    POST  /planets/{id}/interventions → 200
+  ✔ intervenção com trade-off — esperado [200,"prosperity+"], obtido [200,"prosperity+"]
+  ✔ WebSocket recebeu delta — esperado "delta", obtido "delta" tickId=1
+
+━━ 5. Trilha e missão ancorada à BNCC
+    PATCH /classes/{id}/track → 200
+  ✔ define trilha Fundamental II — esperado 200, obtido 200
+    POST  /missions → 422 /errors/validation
+  ✔ código BNCC inexistente — esperado 422, obtido 422 — código desconhecido ou inativo: EF99XX99
+    POST  /missions → 201
+  ✔ missão criada e publicada para a turma — esperado [201,"published"], obtido [201,"published"]
+    GET   /missions?classId={id} → 200
+  ✔ aluno vê a missão publicada — esperado 1, obtido 1
+
+━━ 6. Evidências sintéticas projetadas; professor vê perfil, evidências, alertas e mapa BNCC
+  ✔ perfil por competência projetado (sintético) — esperado true, obtido true
+    GET   /assessment/students/{id}/evidence → 200
+  ✔ evidências rastreáveis ligadas ao planeta — esperado "97731f3e-76c9-4f18-bd3f-0cabdda7dd6c", obtido "97731f3e-76c9-4f18-bd3f-0cabdda7dd6c"
+    GET   /dashboard/classes/{id}/alerts → 200
+  ✔ alertas (limiares placeholder pedagógico) — esperado [200,"pending_pedagogical_review"], obtido [200,"pending_pedagogical_review"]
+    GET   /assessment/students/{id}/bncc → 200
+  ✔ mapa BNCC com domínio estimado — esperado true, obtido true
+    GET   /assessment/students/{id}/profile → 403 /errors/forbidden
+  ✔ aluno NÃO vê a própria pontuação (RP-004) — esperado 403, obtido 403
+    GET   /dashboard/schools/{id}/competencies → 200
+  ✔ coordenação vê agregado da escola — esperado 200, obtido 200
+
+━━ 7. Exportação: URL assinada de curta duração que expira
+    GET   /dashboard/reports/export?format=csv&classId={id} → 200
+  ✔ relatório CSV gerado — esperado 200, obtido 200 — expira em 2026-11-16T23:19:56.635Z
+  ✔ download pela URL assinada — esperado 200, obtido 200
+    aguardando 4 s para a URL expirar…
+  ✔ URL expirada é recusada — esperado true, obtido true (status 403)
+
+━━ 8. Dataset anonimizado para pesquisa, com varredura de PII
+    preparando: mais 5 alunos consentidos na mesma turma (para o grupo passar de k=5)
+    POST  /users → 201
+  ✔ cria student (Aluno Extra 0 Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users/{id}/guardians → 201
+    POST  /classes/{id}/students → 200
+    POST  /users/{id}/consent → 201
+    POST  /planets → 201
+    POST  /planets/{id}/interventions → 200
+    POST  /users → 201
+  ✔ cria student (Aluno Extra 1 Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users/{id}/guardians → 201
+    POST  /classes/{id}/students → 200
+    POST  /users/{id}/consent → 201
+    POST  /planets → 201
+    POST  /planets/{id}/interventions → 200
+    POST  /users → 201
+  ✔ cria student (Aluno Extra 2 Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users/{id}/guardians → 201
+    POST  /classes/{id}/students → 200
+    POST  /users/{id}/consent → 201
+    POST  /planets → 201
+    POST  /planets/{id}/interventions → 200
+    POST  /users → 201
+  ✔ cria student (Aluno Extra 3 Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users/{id}/guardians → 201
+    POST  /classes/{id}/students → 200
+    POST  /users/{id}/consent → 201
+    POST  /planets → 201
+    POST  /planets/{id}/interventions → 200
+    POST  /users → 201
+  ✔ cria student (Aluno Extra 4 Smoke) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /users/{id}/guardians → 201
+    POST  /classes/{id}/students → 200
+    POST  /users/{id}/consent → 201
+    POST  /planets → 201
+    POST  /planets/{id}/interventions → 200
+    GET   /research/dataset?anonymized=false → 422 /errors/validation
+  ✔ anonymized=false recusado — esperado 422, obtido 422
+    GET   /research/dataset?anonymized=true&format=csv → 200
+  ✔ dataset gerado e NÃO vazio — esperado [200,true], obtido [200,true] — k=5, linhas=32, grupos suprimidos=0
+    varredura de PII: 33 valores conhecidos (nomes, e-mails, ids) procurados; 0 achados; UUIDs: 0; e-mails: 0
+  ✔ nenhuma PII no dataset — esperado [0,0,0], obtido [0,0,0]
+
+━━ 9. Casos negativos
+    GET   /planets/{id} → 404 /errors/not-found
+  ✔ aluno lê planeta de outro aluno — esperado 404, obtido 404
+    POST  /schools → 201
+    POST  /auth/login → 200
+    POST  /users → 201
+  ✔ cria teacher (Prof B) — esperado 201, obtido 201
+    POST  /auth/login → 200
+    POST  /classes → 201
+    GET   /classes/{id} → 404 /errors/not-found
+  ✔ professor da escola A lê turma da escola B — esperado 404, obtido 404
+    GET   /dashboard/classes/{id}/overview → 404 /errors/not-found
+  ✔ professor da escola A lê dashboard da escola B — esperado 404, obtido 404
+    POST  /missions → 403 /errors/forbidden
+  ✔ aluno chama endpoint de professor — esperado 403, obtido 403
+    GET   /auth/me → 401 /errors/unauthenticated
+  ✔ token expirado — esperado [401,"Token expirado"], obtido [401,"Token expirado"]
+    POST  /auth/login → 200
+    POST  /auth/refresh → 200
+    POST  /auth/refresh → 401 /errors/unauthenticated
+  ✔ refresh reutilizado é recusado — esperado 401, obtido 401 — "Refresh token reutilizado: a sessão foi encerrada por segurança"
+    POST  /auth/refresh → 401 /errors/unauthenticated
+  ✔ família revogada: o refresh novo também morre — esperado 401, obtido 401
+    POST  /auth/login → 401 /errors/unauthenticated
+    POST  /auth/login → 401 /errors/unauthenticated
+    POST  /auth/login → 401 /errors/unauthenticated
+    POST  /auth/login → 401 /errors/unauthenticated
+    POST  /auth/login → 401 /errors/unauthenticated
+    POST  /auth/login → 429 /errors/rate-limited
+    POST  /auth/login → 429 /errors/rate-limited
+  ✔ excesso de tentativas de login vira 429 — esperado true, obtido true (sequência 401,401,401,401,401,429,429)
+
+━━ 4. Revogação: aluno volta a ser bloqueado; nada novo é projetado
+    GET   /assessment/students/{id}/evidence → 200
+    POST  /users/{id}/consent/revoke → 200
+  ✔ responsável revoga uso e avaliação — esperado 200, obtido 200
+    POST  /planets/{id}/interventions → 403 /errors/consent-required
+  ✔ aluno bloqueado após revogação — esperado [403,"/errors/consent-required"], obtido [403,"/errors/consent-required"]
+    POST  /assessment/events → 202
+  ✔ evento de avaliação após revogação é descartado — esperado "skipped_no_consent", obtido "skipped_no_consent"
+    GET   /assessment/students/{id}/evidence → 403 /errors/consent-required
+  ✔ professor não lê mais dados pedagógicos do aluno — esperado 403, obtido 403 (antes: 2 evidências)
+
+━━ 10. Auditoria imutável
+    audit_log: auth.login_failed (denied) × 15
+    audit_log: auth.refresh_reuse_detected (denied) × 3
+    audit_log: consent.granted (success) × 54
+    audit_log: consent.revoked (success) × 6
+    audit_log: export.created (success) × 4
+    audit_log: minor_data.accessed (success) × 15
+    audit_log: research.dataset_exported (success) × 3
+  ✔ registrado: consent.granted — esperado true, obtido true
+  ✔ registrado: consent.revoked — esperado true, obtido true
+  ✔ registrado: export.created — esperado true, obtido true
+  ✔ registrado: research.dataset_exported — esperado true, obtido true
+  ✔ registrado: auth.login_failed — esperado true, obtido true
+  ✔ registrado: auth.refresh_reuse_detected — esperado true, obtido true
+  ✔ papel "platform_app" não consegue: UPDATE — esperado true, obtido true — permission denied for table audit_log
+  ✔ papel "platform_app" não consegue: DELETE — esperado true, obtido true — permission denied for table audit_log
+  ✔ papel "platform_app" não consegue: TRUNCATE — esperado true, obtido true — permission denied for table audit_log
+
+Resultado: TUDO OK (último passo: 10. Auditoria imutável)
