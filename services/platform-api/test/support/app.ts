@@ -10,6 +10,7 @@ import { configurarAplicacao } from '../../src/configurar-aplicacao';
 import { ServicoDeUsuarios } from '../../src/modules/identity/application/usuarios.service';
 import { carregarConfiguracao, type Configuracao } from '../../src/shared/config/configuracao';
 import { PREFIXO_API } from '../../src/shared/http/contrato';
+import { middlewareDeContrato, violacoes } from './contrato';
 import type { Papel } from '../../src/shared/kernel/papeis';
 
 export const API = `/${PREFIXO_API}`;
@@ -28,6 +29,7 @@ export async function criarApp(sobrescritas: Record<string, string> = {}): Promi
   const config = carregarConfiguracao({ ...process.env, ...sobrescritas });
   const mod = await Test.createTestingModule({ imports: [AppModule.com(config)] }).compile();
   const app = mod.createNestApplication({ bodyParser: false, logger: false });
+  app.use(middlewareDeContrato);
   configurarAplicacao(app, config);
   await app.init();
   const servidor = app.getHttpServer() as Parameters<typeof request>[0];
@@ -36,7 +38,11 @@ export async function criarApp(sobrescritas: Record<string, string> = {}): Promi
     config,
     ds: app.get(DataSource),
     http: () => request(servidor),
-    fechar: () => app.close(),
+    fechar: async () => {
+      await app.close();
+      // Teste de contrato: qualquer divergência entre resposta real e OpenAPI falha a suíte.
+      if (violacoes.length > 0) throw new Error(`Violações de contrato:\n${violacoes.splice(0).join('\n')}`);
+    },
   };
 }
 

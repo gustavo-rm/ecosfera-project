@@ -126,7 +126,7 @@ export class ServicoDeUsuarios {
   }
 
   async atualizarPreferencias(ator: AtorUsuario, id: string, mudanca: MudancaDePreferencias): Promise<Usuario> {
-    if (ator.usuarioId !== id) throw new ErroAcessoNegado('Só o dono altera as próprias preferências');
+    if (ator.usuarioId !== id) throw new ErroNaoEncontrado('Usuário');
     const u = await this.usuarios.porId(id);
     if (!u) throw new ErroNaoEncontrado('Usuário');
     u.preferencias = mesclarPreferencias(u.preferencias, mudanca);

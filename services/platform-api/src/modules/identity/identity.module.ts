@@ -79,6 +79,6 @@ export class IdentityModule implements OnModuleInit {
     this.registro.registrar('usuario:ler', regra('ler'));
     this.registro.registrar('usuario:gerir', regra('gerir'));
     this.registro.registrar('usuario:pedagogico', regra('ler-pedagogico'));
-    this.registro.registrar('usuario:proprio', (ator, id) => Promise.resolve(ator.usuarioId === id ? 'permitido' : 'negado'));
+    this.registro.registrar('usuario:proprio', (ator, id) => Promise.resolve(ator.usuarioId === id ? 'permitido' : 'inexistente'));
   }
 }
