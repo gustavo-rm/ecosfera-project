@@ -3,6 +3,8 @@ import type { AddressInfo } from 'node:net';
 
 import WebSocket from 'ws';
 
+import { ProjecaoDeAvaliacao } from '../../src/modules/assessment/application/projecao.service';
+
 import { API, type AppDeTeste, bearer, criarApp, criarEscola, criarUsuario, type UsuarioDeTeste } from '../support/app';
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -211,8 +213,6 @@ describe('Fluxo: consentimento → planeta → tempo real → avaliação → pa
     expect(bloqueado.status).toBe(403);
     expect(bloqueado.body.type).toBe('/errors/consent-required');
     const antes: { n: number }[] = await t.ds.query(`SELECT count(*)::int AS n FROM platform.evidence WHERE student_user_id = $1`, [aluno.id]);
-    await t.ds.query(`SELECT 1`);
-    const { ProjecaoDeAvaliacao } = await import('../../src/modules/assessment/application/projecao.service');
     const resultado = await t.app.get(ProjecaoDeAvaliacao).tratar({
       eventId: `evt-${Date.now()}`, type: 'EvidenciaGerada', version: 1, occurredAt: new Date().toISOString(),
       data: { studentId: aluno.id, competencyCode: 'CAUSE_EFFECT', type: 'intervention', payload: {} },

@@ -74,8 +74,9 @@ describe('Migrações do schema platform', () => {
         'IdentityTenancyLgpd1794880000000',
         'EducationCurriculum1794880100000',
         'AssessmentOrchestration1794880200000',
+        'LtiContext1794880300000',
       ]);
-      for (let i = 0; i < 3; i++) await ds.undoLastMigration({ transaction: 'each' });
+      for (let i = 0; i < 4; i++) await ds.undoLastMigration({ transaction: 'each' });
       await ds.runMigrations({ transaction: 'each' });
       const trilhas: { n: number }[] = await ds.query(`SELECT count(*)::int AS n FROM platform.track WHERE level IS NOT NULL`);
       const habilidades: { n: number }[] = await ds.query(`SELECT count(*)::int AS n FROM platform.bncc_skill`);

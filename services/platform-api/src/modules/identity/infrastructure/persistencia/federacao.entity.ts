@@ -1,4 +1,4 @@
-import { Check, Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Check, Column, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { AGORA } from '../../../../shared/database/colunas';
 import { PAPEIS, type Papel } from '../../../../shared/kernel/papeis';
@@ -99,6 +99,30 @@ export class ProvedorOidcEntity {
 
   @Column({ type: 'boolean', name: 'allow_provisioning', default: false })
   allowProvisioning: boolean;
+
+  @Column({ type: 'timestamptz', name: 'created_at', default: AGORA })
+  createdAt: Date;
+}
+
+/** Curso do LMS ↔ turma do ECOSFERA. */
+@Entity({ name: 'lti_context', schema: 'platform' })
+export class ContextoLtiEntity {
+  @PrimaryColumn({ type: 'uuid', name: 'platform_id', primaryKeyConstraintName: 'lti_context_pkey' })
+  platformId: string;
+
+  @ManyToOne('PlataformaLtiEntity', { onDelete: 'CASCADE', nullable: false })
+  @JoinColumn({ name: 'platform_id', foreignKeyConstraintName: 'lti_context_platform_id_fkey' })
+  private readonly _plataforma?: unknown;
+
+  @PrimaryColumn({ type: 'text', name: 'context_id', primaryKeyConstraintName: 'lti_context_pkey' })
+  contextId: string;
+
+  @Column({ type: 'uuid', name: 'class_id' })
+  classId: string;
+
+  @ManyToOne('TurmaEntity', { onDelete: 'CASCADE', nullable: false })
+  @JoinColumn({ name: 'class_id', foreignKeyConstraintName: 'lti_context_class_id_fkey' })
+  private readonly _turma?: unknown;
 
   @Column({ type: 'timestamptz', name: 'created_at', default: AGORA })
   createdAt: Date;

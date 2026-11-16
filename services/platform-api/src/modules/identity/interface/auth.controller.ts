@@ -39,7 +39,8 @@ export class AuthController {
     };
   }
 
-  private entregarTokens(r: ResultadoDeLogin, req: Request, res: Response) {
+  /** Entrega tokens (cookie httpOnly ou corpo). Também usado pela federação. */
+  entregar(r: ResultadoDeLogin, req: Request, res: Response) {
     const corpo = querRefreshNoCorpo(req);
     if (!corpo) res.cookie(COOKIE_REFRESH, r.refreshToken, this.opcoesDoCookie());
     res.setHeader('Cache-Control', 'no-store');
@@ -55,7 +56,7 @@ export class AuthController {
   @Autorizacao({ publico: true, motivo: 'login' })
   async login(@Body() b: z.infer<typeof EsquemaLogin>, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const r = await this.auth.login(b.email, b.senha, req.ip ?? 'desconhecido');
-    return { ...this.entregarTokens(r, req, res), perfil: paraPerfil(r.usuario) };
+    return { ...this.entregar(r, req, res), perfil: paraPerfil(r.usuario) };
   }
 
   @Endpoint(ContratosAuth.refresh)
@@ -65,7 +66,7 @@ export class AuthController {
     const token = b.refreshToken ?? cookies?.[COOKIE_REFRESH];
     if (!token) throw new ErroNaoAutenticado('Refresh token ausente');
     try {
-      return this.entregarTokens(await this.auth.renovar(token), req, res);
+      return this.entregar(await this.auth.renovar(token), req, res);
     } catch (e) {
       res.clearCookie(COOKIE_REFRESH, { ...this.opcoesDoCookie(), maxAge: undefined });
       throw e;

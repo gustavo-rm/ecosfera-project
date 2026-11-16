@@ -4,7 +4,7 @@ import { EscolaEntity } from '../../modules/education/infrastructure/persistenci
 import { MissaoEntity, MissaoHabilidadeEntity, PublicacaoDeMissaoEntity } from '../../modules/education/infrastructure/persistencia/missao.entity';
 import { MatriculaEntity, TrilhaEntity, TurmaEntity } from '../../modules/education/infrastructure/persistencia/turma.entity';
 import { ConsentimentoEntity } from '../../modules/identity/infrastructure/persistencia/consentimento.entity';
-import { IdentidadeExternaEntity, PlataformaLtiEntity, ProvedorOidcEntity } from '../../modules/identity/infrastructure/persistencia/federacao.entity';
+import { ContextoLtiEntity, IdentidadeExternaEntity, PlataformaLtiEntity, ProvedorOidcEntity } from '../../modules/identity/infrastructure/persistencia/federacao.entity';
 import { PedidoDeTitularEntity, PoliticaDeRetencaoEntity } from '../../modules/identity/infrastructure/persistencia/lgpd.entity';
 import { TextoDeConsentimentoEntity } from '../../modules/identity/infrastructure/persistencia/texto-consentimento.entity';
 import { UsuarioEntity } from '../../modules/identity/infrastructure/persistencia/usuario.entity';
@@ -23,6 +23,7 @@ export const ENTIDADES = [
   IdentidadeExternaEntity,
   PlataformaLtiEntity,
   ProvedorOidcEntity,
+  ContextoLtiEntity,
   PedidoDeTitularEntity,
   PoliticaDeRetencaoEntity,
   TrilhaEntity,

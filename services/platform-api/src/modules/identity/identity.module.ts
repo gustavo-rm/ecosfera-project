@@ -15,6 +15,7 @@ import { ChavesRedis } from '../../shared/redis/chaves';
 import { REDIS } from '../../shared/redis/redis';
 import { ServicoDeAutenticacao } from './application/autenticacao.service';
 import { ServicoDeConsentimento } from './application/consentimento.service';
+import { ServicoDeFederacao } from './application/federacao.service';
 import { ServicoDeUsuarios } from './application/usuarios.service';
 import { ARMAZEM_DE_SESSOES, type ArmazemDeSessoes, HASHER_DE_SENHA, MAILER, REPOSITORIO_DE_USUARIOS } from './domain/portas';
 import { HasherArgon2 } from './infrastructure/hasher-argon2';
@@ -24,11 +25,12 @@ import { SessoesRedis } from './infrastructure/sessoes-redis';
 import { ServicoDeTokens } from './infrastructure/tokens';
 import { AuthController } from './interface/auth.controller';
 import { ConsentimentoController } from './interface/consentimento.controller';
+import { FederacaoController } from './interface/federacao.controller';
 import { UsuariosController } from './interface/usuarios.controller';
 
 /** Contexto identity: IAM, RBAC, usuários, consentimento, LGPD, federação. */
 @Module({
-  controllers: [AuthController, UsuariosController, ConsentimentoController],
+  controllers: [AuthController, UsuariosController, ConsentimentoController, FederacaoController],
   providers: [
     { provide: HASHER_DE_SENHA, useClass: HasherArgon2 },
     { provide: REPOSITORIO_DE_USUARIOS, inject: [DataSource], useFactory: (ds: DataSource) => new RepositorioDeUsuariosTypeorm(ds) },
@@ -48,6 +50,8 @@ import { UsuariosController } from './interface/usuarios.controller';
     ServicoDeAutenticacao,
     ServicoDeUsuarios,
     ServicoDeConsentimento,
+    ServicoDeFederacao,
+    AuthController,
     { provide: GATE_DE_CONSENTIMENTO, useExisting: ServicoDeConsentimento },
   ],
   exports: [
