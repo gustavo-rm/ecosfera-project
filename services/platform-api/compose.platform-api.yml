@@ -1,0 +1,33 @@
+# Sobe infra de apoio + platform-api em contêiner (implantação on-premise por escola, US-10).
+# Não altera infra/compose/dev.yml: apenas o inclui.
+#   docker compose -f services/platform-api/compose.platform-api.yml --env-file infra/compose/.env up -d --build
+name: ecosfera-platform
+include:
+  - path: ../../infra/compose/dev.yml
+    env_file: ../../infra/compose/.env
+
+services:
+  platform-api-migracoes:
+    build: { context: ../.., dockerfile: services/platform-api/Dockerfile }
+    command: ["node", "dist/migrar.js"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: "no"
+
+  platform-api:
+    build: { context: ../.., dockerfile: services/platform-api/Dockerfile }
+    env_file: [ .env ]
+    environment:
+      NODE_ENV: ${PLATFORM_NODE_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: http://localhost:${MINIO_PORT:-9000}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+    ports: ["${PLATFORM_PORT:-3000}:3000"]
+    depends_on:
+      platform-api-migracoes: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    restart: unless-stopped

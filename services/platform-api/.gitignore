@@ -130,3 +130,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+
+# credenciais geradas pelo seed de desenvolvimento
+.credenciais-dev.json
+.ambiente-de-teste.json
