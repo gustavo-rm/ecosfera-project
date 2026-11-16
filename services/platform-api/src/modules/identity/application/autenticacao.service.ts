@@ -74,7 +74,8 @@ export class ServicoDeAutenticacao {
     const emailN = normalizarEmail(email);
     const contaPseudo = this.pseudo.estavel(emailN, 'login');
     const porIp = await this.limitador.consumir('login-ip', ip, this.config.RATE_LIMIT_AUTH_IP_PER_MINUTE, 60);
-    const porConta = await this.limitador.consumir('login-conta', contaPseudo, this.config.RATE_LIMIT_LOGIN_PER_MINUTE, 60);
+    // Por conta contamos só FALHAS (não bloqueia quem acerta a senha várias vezes).
+    const porConta = await this.limitador.excedido('login-falha', contaPseudo, this.config.RATE_LIMIT_LOGIN_PER_MINUTE);
     if (!porIp.permitido || !porConta.permitido) {
       await this.auditoria.registrar({
         acao: 'auth.login_rate_limited',
@@ -90,6 +91,7 @@ export class ServicoDeAutenticacao {
     const ok = u ? await this.hasher.verificar(u.senhaHash, senha) : await this.hasher.verificar(await this.isca(), senha);
     if (!u || !ok || !u.podeAutenticar()) {
       this.metricas.loginsFalhos.inc();
+      await this.limitador.consumir('login-falha', contaPseudo, this.config.RATE_LIMIT_LOGIN_PER_MINUTE, 15 * 60);
       await this.auditoria.registrar({
         acao: 'auth.login_failed',
         entidade: 'session',
@@ -100,6 +102,7 @@ export class ServicoDeAutenticacao {
       });
       throw new ErroNaoAutenticado(MENSAGEM_LOGIN_INVALIDO);
     }
+    await this.limitador.zerar('login-falha', contaPseudo);
     return this.abrirSessao(u);
   }
 
