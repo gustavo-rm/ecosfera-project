@@ -1,6 +1,6 @@
 # Relatório final — frontend do ECOSFERA
 
-Data: 2026-11-14, atualizado em 2026-11-15. Branch: `feature/frontend-planet-and-dashboards`, criada a partir da `develop`. Commits locais; nada foi enviado ao remoto.
+Data: 2026-11-14, atualizado em 2026-11-15. Branch: `feature/frontend-planet-and-dashboards`, criada a partir da `develop`. A branch foi enviada ao remoto em 2026-11-16 e o PR está aberto contra a `develop`: https://github.com/gustavo-rm/ecosfera-project/pull/20. O merge é do dono do projeto.
 
 ## 1. O que foi feito
 
@@ -18,7 +18,7 @@ Um frontend completo e navegável em `apps/web-client`, que roda sem backend sob
 
 | Verificação | Resultado |
 |---|---|
-| Testes unitários (Vitest) | 76 testes passam. Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
+| Testes unitários (Vitest) | 76 testes passam (última execução no commit enviado). Incluem um teste por linha da tabela "variável → efeito", contraste dos tokens nos 4 temas, paletas sob simulação de daltonismo, descrição textual, métricas de regime, buffer, fixtures, exportações e integridade das chaves de texto. |
 | Tipos e lint | `tsc` sem erros; ESLint sem erros (avisos menores). |
 | Build de produção | 22 rotas estáticas. |
 | Ponta a ponta (Playwright) | 68 checagens passam: axe-core com 0 violações em 43 combinações de tela e tema; 14 fluxos só com teclado; estados carregando, vazio, erro, sem vida e fim de era; 0 erros de console. Relatório legível em `relatorios/e2e.md`. |
