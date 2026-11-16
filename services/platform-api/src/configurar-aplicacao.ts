@@ -1,9 +1,12 @@
+import type { Server } from 'node:http';
+
 import type { INestApplication } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
 
+import { GatewayDeTempoReal } from './modules/orchestration/infrastructure/gateway-de-tempo-real';
 import type { Configuracao } from './shared/config/configuracao';
 import { PREFIXO_API } from './shared/http/contrato';
 import { FiltroDeErros } from './shared/http/filtro-de-erros';
@@ -45,5 +48,6 @@ export function configurarAplicacao(app: INestApplication, config: Configuracao)
     exposedHeaders: ['X-Trace-Id', 'Retry-After'],
     maxAge: 600,
   });
+  app.get(GatewayDeTempoReal).anexar(app.getHttpServer() as Server);
   app.enableShutdownHooks();
 }

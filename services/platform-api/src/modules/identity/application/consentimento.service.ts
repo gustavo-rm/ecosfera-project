@@ -155,6 +155,7 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
       await registrarNoOutbox(em, 'ConsentimentoRevogado', alunoId, { studentId: alunoId, purposes: finalidades, at: agora.toISOString() });
     });
     await this.invalidarCache(alunoId);
+    await this.redis.publish(this.chaves.canalDeRevogacao(), JSON.stringify({ studentId: alunoId, purposes: finalidades }));
     return this.situacaoSemChecagem(alunoId);
   }
 

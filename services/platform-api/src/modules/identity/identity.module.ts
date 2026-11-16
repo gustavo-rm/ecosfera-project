@@ -60,6 +60,7 @@ import { UsuariosController } from './interface/usuarios.controller';
     REPOSITORIO_DE_USUARIOS,
     HASHER_DE_SENHA,
     MAILER,
+    ARMAZEM_DE_SESSOES,
   ],
 })
 export class IdentityModule implements OnModuleInit {

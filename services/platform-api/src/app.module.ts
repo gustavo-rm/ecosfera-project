@@ -1,8 +1,10 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
+import { AssessmentModule } from './modules/assessment/assessment.module';
 import { EducationModule } from './modules/education/education.module';
 import { IdentityModule } from './modules/identity/identity.module';
+import { OrchestrationModule } from './modules/orchestration/orchestration.module';
 import { GuardCentral } from './shared/autorizacao/guard-central';
 import type { Configuracao } from './shared/config/configuracao';
 import { FiltroDeErros } from './shared/http/filtro-de-erros';
@@ -19,7 +21,7 @@ export class AppModule {
   static com(config: Configuracao): DynamicModule {
     return {
       module: AppModule,
-      imports: [InfraestruturaModule.com(config), IdentityModule, EducationModule],
+      imports: [InfraestruturaModule.com(config), IdentityModule, EducationModule, OrchestrationModule, AssessmentModule],
       controllers: [SaudeController],
       providers: [
         { provide: APP_GUARD, useClass: GuardCentral },

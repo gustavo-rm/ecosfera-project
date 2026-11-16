@@ -3,6 +3,9 @@ import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 import { DataSource } from 'typeorm';
 
+import { ArmazenamentoFalso } from './armazenamento/fake';
+import { OBJECT_STORAGE } from './armazenamento/portas';
+import { ArmazenamentoS3 } from './armazenamento/s3';
 import { Auditoria } from './auditoria/auditoria';
 import { RegistroDeRegrasDePosse } from './autorizacao/registro-de-posse';
 import { adaptadoresFalsosAtivos, CONFIGURACAO, type Configuracao } from './config/configuracao';
@@ -70,6 +73,20 @@ export class InfraestruturaModule {
         useFactory: (r: Redis, c: ChavesRedis) => new LimitadorDeTaxa(r, c),
       },
       RegistroDeRegrasDePosse,
+      {
+        provide: OBJECT_STORAGE,
+        useFactory: () =>
+          config.ADAPTER_STORAGE === 'fake'
+            ? new ArmazenamentoFalso(config.FAKE_STORAGE_DIR, config.PSEUDONYM_KEY, config.PUBLIC_BASE_URL)
+            : new ArmazenamentoS3({
+                endpoint: config.S3_ENDPOINT,
+                publicEndpoint: config.S3_PUBLIC_ENDPOINT,
+                region: config.S3_REGION,
+                accessKey: config.S3_ACCESS_KEY,
+                secretKey: config.S3_SECRET_KEY,
+                forcePathStyle: config.S3_FORCE_PATH_STYLE,
+              }),
+      },
       { provide: VINCULOS_ESCOLARES, inject: [DataSource], useFactory: (ds: DataSource) => new VinculosEscolaresSql(ds) },
       Encerramento,
       {

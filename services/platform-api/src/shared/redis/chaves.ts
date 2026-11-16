@@ -34,6 +34,10 @@ export class ChavesRedis {
   canalDoPlaneta(planetaId: string) {
     return `${this.prefixo}planet:${planetaId}:stream`;
   }
+  /** Canal de aviso de revogação de consentimento (fecha WebSockets do aluno em todas as réplicas). */
+  canalDeRevogacao() {
+    return `${this.prefixo}consent:revoked`;
+  }
   /** Últimas mensagens do planeta, para reconexão (lista limitada). */
   replayDoPlaneta(planetaId: string) {
     return `${this.prefixo}planet:${planetaId}:replay`;

@@ -15,7 +15,8 @@ export type TipoDeEventoPublicado =
   | 'IntervencaoAplicada'
   | 'ConsentimentoRevogado'
   | 'ConsentimentoConcedido'
-  | 'MissaoPublicada';
+  | 'MissaoPublicada'
+  | 'TitularExcluido';
 
 export interface EnvelopeDeEvento {
   eventId: string;
