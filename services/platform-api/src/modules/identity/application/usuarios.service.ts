@@ -134,6 +134,16 @@ export class ServicoDeUsuarios {
       }
       senhaHash = await this.hasher.gerar(d.password);
     }
+    if (
+      d.role === 'student' &&
+      d.isMinor === false &&
+      ator !== null &&
+      !['admin', 'platform_admin'].includes(ator.papel)
+    ) {
+      throw new ErroAcessoNegado(
+        'Só o admin da escola pode declarar um aluno maior de idade',
+      );
+    }
     const menor = d.role === 'student' ? (d.isMinor ?? true) : false;
     let u: Usuario;
     try {
@@ -254,6 +264,16 @@ export class ServicoDeUsuarios {
       u.nome = d.name.trim();
       campos.push('name');
     }
+    if (
+      d.email !== undefined &&
+      u.papel === 'guardian' &&
+      ator.papel !== 'platform_admin'
+    ) {
+      // Trocar o e-mail do responsável permitiria assumir a conta que decide o consentimento (revisão, achado 5).
+      throw new ErroAcessoNegado(
+        'O e-mail do responsável só muda por pedido verificado do próprio responsável',
+      );
+    }
     if (d.email !== undefined) {
       const novo = normalizarEmail(d.email);
       const outro = await this.usuarios.porEmail(novo);
@@ -263,12 +283,42 @@ export class ServicoDeUsuarios {
       campos.push('email');
     }
     await this.usuarios.salvar(u);
+    if (campos.includes('email')) await this.sessoes.revogarTodasDoUsuario(id);
     await this.auditoria.registrar({
       acao: 'user.rectified',
       entidade: 'user',
       entidadeId: id,
       escolaId: u.escolaId,
       dados: { fields: campos },
+    });
+    return u;
+  }
+
+  /** RF-002: desativar/reativar conta. Desativar encerra todas as sessões na hora. */
+  async definirSituacao(
+    ator: AtorUsuario,
+    id: string,
+    situacao: 'active' | 'disabled',
+  ): Promise<Usuario> {
+    await this.exigirAcesso(ator, id, 'gerir');
+    if (ator.usuarioId === id)
+      throw new ErroAcessoNegado('Não é possível desativar a própria conta');
+    const u = await this.usuarios.porId(id);
+    if (!u || u.situacao === 'pseudonymized')
+      throw new ErroNaoEncontrado('Usuário');
+    const anterior = u.situacao;
+    u.situacao = situacao;
+    await this.usuarios.salvar(u);
+    const revogadas =
+      situacao === 'disabled'
+        ? await this.sessoes.revogarTodasDoUsuario(id)
+        : 0;
+    await this.auditoria.registrar({
+      acao: 'user.status_changed',
+      entidade: 'user',
+      entidadeId: id,
+      escolaId: u.escolaId,
+      dados: { from: anterior, to: situacao, sessionsRevoked: revogadas },
     });
     return u;
   }

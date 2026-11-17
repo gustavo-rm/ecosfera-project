@@ -211,6 +211,25 @@ export const ContratosUsuarios = {
       404: { descricao: 'Não encontrado' },
     },
   }),
+  situacao: definirEndpoint({
+    operationId: 'setUserStatus',
+    metodo: 'PATCH',
+    caminho: '/users/{id}/status',
+    tag: 'users',
+    resumo:
+      'Desativa ou reativa a conta (RF-002); desativar encerra as sessões',
+    seguranca: 'bearer',
+    parametros: ParametroId,
+    corpo: z
+      .object({ status: z.enum(['active', 'disabled']) })
+      .strict()
+      .meta({ id: 'SetUserStatusRequest' }),
+    sucesso: 200,
+    respostas: {
+      200: { descricao: 'Situação alterada', esquema: EsquemaPerfil },
+      404: { descricao: 'Não encontrado' },
+    },
+  }),
   redefinicaoPeloAdmin: definirEndpoint({
     operationId: 'adminPasswordReset',
     metodo: 'POST',

@@ -23,6 +23,10 @@ export class ChavesRedis {
   consentimento(usuarioId: string) {
     return `${this.prefixo}consent:${usuarioId}`;
   }
+  /** Versão do consentimento do usuário (incrementada a cada mudança; protege o cache contra corrida). */
+  versaoDoConsentimento(usuarioId: string) {
+    return `${this.prefixo}consent_v:${usuarioId}`;
+  }
   /** Estado/nonce de login federado (OIDC/LTI). TTL 10 min. */
   estadoFederado(estado: string) {
     return `${this.prefixo}fed_state:${estado}`;

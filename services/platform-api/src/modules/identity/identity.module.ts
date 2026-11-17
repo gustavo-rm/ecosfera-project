@@ -60,8 +60,9 @@ import { UsuariosController } from './interface/usuarios.controller';
     },
     {
       provide: ARMAZEM_DE_SESSOES,
-      inject: [REDIS, ChavesRedis],
-      useFactory: (r: Redis, c: ChavesRedis) => new SessoesRedis(r, c),
+      inject: [REDIS, ChavesRedis, CONFIGURACAO],
+      useFactory: (r: Redis, c: ChavesRedis, cfg: Configuracao) =>
+        new SessoesRedis(r, c, cfg.REFRESH_ABSOLUTE_TTL_SECONDS * 1000),
     },
     {
       provide: ServicoDeTokens,

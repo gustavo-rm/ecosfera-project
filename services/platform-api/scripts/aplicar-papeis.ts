@@ -11,8 +11,19 @@ if (!url) {
 }
 const c = new Client({ connectionString: url });
 c.connect()
-  .then(() => c.query(readFileSync(join(__dirname, '..', 'db', 'papeis-por-schema.sql'), 'utf8')))
-  .then(() => console.log('Papéis aplicados. Defina as senhas com ALTER ROLE ... PASSWORD (do cofre).'))
+  .then(() =>
+    c.query(
+      readFileSync(
+        join(__dirname, '..', 'db', 'papeis-por-schema.sql'),
+        'utf8',
+      ),
+    ),
+  )
+  .then(() =>
+    console.log(
+      'Papéis aplicados. Defina as senhas com ALTER ROLE ... PASSWORD (do cofre).',
+    ),
+  )
   .catch((e: unknown) => {
     console.error(e);
     process.exitCode = 1;

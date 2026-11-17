@@ -55,12 +55,21 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
     await idp.parar();
   });
 
+  /** Cookie que amarra o login ao navegador (anti-CSRF); o do último início vale para o próximo launch. */
+  let cookieLti = '';
+  const cookieDe = (r: { headers: Record<string, unknown> }, nome: string) =>
+    ((r.headers['set-cookie'] as string[] | undefined) ?? [])
+      .find((c) => c.startsWith(`${nome}=`))
+      ?.split(';')[0] ?? '';
+
   async function iniciarLti(): Promise<{ state: string; nonce: string }> {
     const r = await t
       .http()
       .get(`${API}/auth/lti/login`)
       .query({ iss: idp.url, login_hint: 'u1', target_link_uri: 'http://x' });
     expect(r.status).toBe(302);
+    cookieLti = cookieDe(r, 'ecosfera_fed_lti');
+    expect(cookieLti).toMatch(/HttpOnly|ecosfera_fed_lti=/);
     const loc = new URL(r.headers.location);
     expect(loc.searchParams.get('response_mode')).toBe('form_post');
     return {
@@ -93,6 +102,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
     const prof = await t
       .http()
       .post(`${API}/auth/lti/launch`)
+      .set('Cookie', cookieLti)
       .type('form')
       .set('X-Refresh-Transport', 'body')
       .send({
@@ -112,6 +122,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
     const aluno = await t
       .http()
       .post(`${API}/auth/lti/launch`)
+      .set('Cookie', cookieLti)
       .type('form')
       .send({
         id_token: await idp.assinar(claimsLti(s.nonce, 'aluno-1', 'Learner')),
@@ -138,6 +149,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
     const r = await t
       .http()
       .post(`${API}/auth/lti/launch`)
+      .set('Cookie', cookieLti)
       .type('form')
       .send({
         id_token: await idp.assinar(
@@ -160,6 +172,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
         await t
           .http()
           .post(`${API}/auth/lti/launch`)
+          .set('Cookie', cookieLti)
           .type('form')
           .send({ id_token: token, state: s.state })
       ).status,
@@ -169,6 +182,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
         await t
           .http()
           .post(`${API}/auth/lti/launch`)
+          .set('Cookie', cookieLti)
           .type('form')
           .send({ id_token: token, state: s.state })
       ).status,
@@ -180,6 +194,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
         await t
           .http()
           .post(`${API}/auth/lti/launch`)
+          .set('Cookie', cookieLti)
           .type('form')
           .send({
             id_token: await idp.assinar(
@@ -196,6 +211,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
         await t
           .http()
           .post(`${API}/auth/lti/launch`)
+          .set('Cookie', cookieLti)
           .type('form')
           .send({
             id_token: await idp.assinar(
@@ -217,6 +233,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
     const r = await t
       .http()
       .post(`${API}/auth/lti/launch`)
+      .set('Cookie', cookieLti)
       .type('form')
       .send({ id_token: forjado, state: s4.state });
     expect(r.status).toBe(401);
@@ -228,6 +245,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
 
   it('OIDC: código + PKCE abre sessão; callback repetido é recusado', async () => {
     const a = await t.http().get(`${API}/auth/oidc/idp-escola/authorize`);
+    const cookieOidc = cookieDe(a, 'ecosfera_fed_oidc');
     expect(a.status).toBe(302);
     const loc = new URL(a.headers.location);
     expect(loc.searchParams.get('code_challenge_method')).toBe('S256');
@@ -240,6 +258,7 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
     const r = await t
       .http()
       .get(`${API}/auth/oidc/idp-escola/callback`)
+      .set('Cookie', cookieOidc)
       .query({ code, state })
       .set('X-Refresh-Transport', 'body');
     expect(r.status).toBe(200);
@@ -249,9 +268,24 @@ describe('Federação: LTI 1.3 e OIDC contra provedor LOCAL de teste (RF-009, TA
         await t
           .http()
           .get(`${API}/auth/oidc/idp-escola/callback`)
+          .set('Cookie', cookieOidc)
           .query({ code, state })
       ).status,
     ).toBe(401);
+  });
+
+  it('CSRF de login: launch sem o cookie do navegador que iniciou é recusado', async () => {
+    const st = await iniciarLti();
+    const r = await t
+      .http()
+      .post(`${API}/auth/lti/launch`)
+      .type('form')
+      .send({
+        id_token: await idp.assinar(claimsLti(st.nonce, 'vitima', 'Learner')),
+        state: st.state,
+      });
+    expect(r.status).toBe(401);
+    expect(r.body.detail).toMatch(/outro navegador/);
   });
 
   it('só admin da escola registra plataformas', async () => {

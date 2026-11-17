@@ -1,12 +1,21 @@
-import { Body, Controller, Param, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import { Body, Controller, Inject, Param, Req, Res } from '@nestjs/common';
+import type { CookieOptions, Request, Response } from 'express';
 import { z } from 'zod';
 
 import { Autorizacao } from '../../../shared/autorizacao/autorizacao.decorator';
-import { definirEndpoint, Endpoint } from '../../../shared/http/contrato';
+import {
+  CONFIGURACAO,
+  type Configuracao,
+} from '../../../shared/config/configuracao';
+import {
+  definirEndpoint,
+  Endpoint,
+  PREFIXO_API,
+} from '../../../shared/http/contrato';
 import { Consulta, UsuarioAtual } from '../../../shared/http/decoradores';
 import { Uuid } from '../../../shared/http/esquemas-comuns';
 import type { AtorUsuario } from '../../../shared/kernel/ator';
+import { PADRAO_VARIAVEL_DE_SEGREDO_OIDC } from '../../../shared/seguranca/url-externa';
 import { ServicoDeFederacao } from '../application/federacao.service';
 import { AuthController } from './auth.controller';
 import { EsquemaPapel, EsquemaTokens } from './esquemas';
@@ -55,10 +64,10 @@ const NovoProvedor = z
     clientId: z.string().min(1).max(200),
     clientSecretEnv: z
       .string()
-      .regex(/^[A-Z][A-Z0-9_]{2,63}$/)
+      .regex(PADRAO_VARIAVEL_DE_SEGREDO_OIDC)
       .optional()
       .describe(
-        'NOME da variável de ambiente com o segredo; o segredo nunca vai ao banco',
+        'NOME da variável de ambiente (prefixo OIDC_CLIENT_SECRET_) com o segredo; o segredo nunca vai ao banco',
       ),
     defaultRole: EsquemaPapel,
     allowProvisioning: z.boolean().default(false),
@@ -169,12 +178,34 @@ export const ContratosFederacao = {
   }),
 };
 
+const COOKIE_LTI = 'ecosfera_fed_lti';
+const COOKIE_OIDC = 'ecosfera_fed_oidc';
+
 @Controller()
 export class FederacaoController {
   constructor(
     private readonly fed: ServicoDeFederacao,
     private readonly auth: AuthController,
+    @Inject(CONFIGURACAO) private readonly config: Configuracao,
   ) {}
+
+  /** Cookie que amarra o login federado ao navegador. LTI chega por POST entre sites: precisa de SameSite=None (com Secure). */
+  private cookie(tipo: 'lti' | 'oidc'): CookieOptions {
+    const seguro = this.config.COOKIE_SECURE;
+    return {
+      httpOnly: true,
+      secure: seguro,
+      sameSite: tipo === 'lti' && seguro ? 'none' : 'lax',
+      path: `/${PREFIXO_API}/auth`,
+      maxAge: 10 * 60 * 1000,
+    };
+  }
+
+  private lerCookie(req: Request, nome: string): string | undefined {
+    return (req.cookies as Record<string, string | undefined> | undefined)?.[
+      nome
+    ];
+  }
 
   @Endpoint(ContratosFederacao.ltiLogin)
   @Autorizacao({
@@ -185,7 +216,9 @@ export class FederacaoController {
     @Consulta() q: z.infer<typeof InicioLti>,
     @Res() res: Response,
   ) {
-    res.redirect(302, await this.fed.iniciarLti(q));
+    const r = await this.fed.iniciarLti(q);
+    res.cookie(COOKIE_LTI, r.vinculo, this.cookie('lti'));
+    res.redirect(302, r.url);
   }
 
   @Endpoint(ContratosFederacao.ltiLaunch)
@@ -198,7 +231,12 @@ export class FederacaoController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const r = await this.fed.launchLti(b.id_token, b.state);
+    const r = await this.fed.launchLti(
+      b.id_token,
+      b.state,
+      this.lerCookie(req, COOKIE_LTI),
+    );
+    res.clearCookie(COOKIE_LTI, this.cookie('lti'));
     return { ...this.auth.entregar(r.login, req, res), turma: r.turma };
   }
 
@@ -236,7 +274,9 @@ export class FederacaoController {
   @Endpoint(ContratosFederacao.oidcAutorizar)
   @Autorizacao({ publico: true, motivo: 'início do login federado' })
   async oidcAutorizar(@Param('slug') slug: string, @Res() res: Response) {
-    res.redirect(302, await this.fed.autorizarOidc(slug));
+    const r = await this.fed.autorizarOidc(slug);
+    res.cookie(COOKIE_OIDC, r.vinculo, this.cookie('oidc'));
+    res.redirect(302, r.url);
   }
 
   @Endpoint(ContratosFederacao.oidcCallback)
@@ -251,7 +291,12 @@ export class FederacaoController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.auth.entregar(
-      await this.fed.callbackOidc(slug, q.code, q.state),
+      await this.fed.callbackOidc(
+        slug,
+        q.code,
+        q.state,
+        this.lerCookie(req, COOKIE_OIDC),
+      ),
       req,
       res,
     );

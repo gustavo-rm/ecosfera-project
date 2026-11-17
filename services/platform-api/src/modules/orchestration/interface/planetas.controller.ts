@@ -10,11 +10,11 @@ import { ServicoDeIdempotencia } from '../application/idempotencia';
 import { ServicoDePlanetas } from '../application/planetas.service';
 import {
   ContratosPlanetas as C,
-  type EsquemaIntervencao,
+  EsquemaIntervencao,
   type EsquemaNovoPlaneta,
   type EsquemaResposta,
   type EsquemaSync,
-  type EsquemaTick,
+  EsquemaTick,
   type EsquemaValidar,
 } from './contratos';
 
@@ -142,7 +142,15 @@ export class PlanetasController {
     @Param('id') id: string,
     @Body() b: z.infer<typeof EsquemaSync>,
   ) {
-    return this.planetas.sincronizar(a, id, b.actions, (escopo, chave, fn) =>
+    // Cada ação passa pelo mesmo schema da rota equivalente; inválida é rejeitada sozinha.
+    const acoes = b.actions.map((x) => {
+      if (x.type === 'checkpoint') return x;
+      const r = (
+        x.type === 'intervention' ? EsquemaIntervencao : EsquemaTick
+      ).safeParse(x.payload);
+      return r.success ? { ...x, payload: r.data } : { ...x, invalida: true };
+    });
+    return this.planetas.sincronizar(a, id, acoes, (escopo, chave, fn) =>
       this.idem.executar(escopo, chave, a.usuarioId, fn),
     );
   }

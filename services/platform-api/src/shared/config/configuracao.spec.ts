@@ -7,6 +7,7 @@ import {
 } from './configuracao';
 
 const base = () => ({
+  NODE_ENV: 'development',
   DATABASE_URL: 'postgresql://x@y/z',
   REDIS_URL: 'redis://r',
   JWT_ACCESS_SECRET: 'a'.repeat(40),
@@ -93,6 +94,12 @@ describe('Configuração validada no boot', () => {
         REQUIRE_HTTPS: 'false',
       }),
     ).toThrow(/REQUIRE_HTTPS/);
+  });
+
+  it('sem NODE_ENV o boot falha (a proibição de fakes não pode falhar aberta)', () => {
+    const env: Record<string, string> = { ...base() };
+    delete env.NODE_ENV;
+    expect(() => carregarConfiguracao(env)).toThrow(/NODE_ENV é obrigatório/);
   });
 
   it('http sem AI_SIM_BASE_URL em produção falha', () => {

@@ -88,7 +88,34 @@ const EsquemaConsentimentoInterno = z
     description: 'Resposta mínima, sem PII',
   });
 
+const EsquemaNovoTexto = z
+  .object({
+    purpose: EsquemaFinalidade,
+    version: z.string().min(1).max(64),
+    body: z.string().min(20).max(20000),
+    reviewStatus: z
+      .enum(['pending_legal_review', 'approved'])
+      .describe('approved só depois da revisão do DPO/jurídico'),
+  })
+  .strict()
+  .meta({ id: 'PublishConsentTextRequest' });
+
 export const ContratosConsentimento = {
+  publicarTexto: definirEndpoint({
+    operationId: 'publishConsentText',
+    metodo: 'POST',
+    caminho: '/admin/consent-texts',
+    tag: 'consent',
+    resumo:
+      'Publica nova versão de texto de consentimento (após revisão do DPO)',
+    seguranca: 'bearer',
+    corpo: EsquemaNovoTexto,
+    sucesso: 201,
+    respostas: {
+      201: { descricao: 'Publicado', esquema: EsquemaTexto },
+      409: { descricao: 'Versão já existe' },
+    },
+  }),
   registrar: definirEndpoint({
     operationId: 'grantConsent',
     metodo: 'POST',
@@ -254,6 +281,22 @@ export class ConsentimentoController {
         learning_assessment: p('learning_assessment'),
         research: p('research'),
       },
+    };
+  }
+
+  @Endpoint(ContratosConsentimento.publicarTexto)
+  @Autorizacao({ papeis: ['platform_admin'] })
+  async publicarTexto(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Body() b: z.infer<typeof EsquemaNovoTexto>,
+  ) {
+    const t = await this.consentimento.publicarTexto(ator, b);
+    return {
+      purpose: t.purpose,
+      version: t.version,
+      locale: t.locale,
+      body: t.body,
+      reviewStatus: t.reviewStatus,
     };
   }
 }

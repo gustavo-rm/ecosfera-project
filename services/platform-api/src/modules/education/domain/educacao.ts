@@ -109,6 +109,8 @@ export interface FatosDaMissao {
   autorId: string | null;
   publicadaParaTurmaDoAluno: boolean;
   publicadaParaTurmaDoProfessor: boolean;
+  /** Situação: rascunho só é visível ao autor e à coordenação/admin. */
+  publicada: boolean;
 }
 
 export function decidirAcessoAMissao(
@@ -125,7 +127,8 @@ export function decidirAcessoAMissao(
       return 'permitido';
     case 'teacher':
       if (f.autorId === ator.usuarioId) return 'permitido';
-      return intencao === 'ler' ? 'permitido' : 'negado';
+      // Rascunho de colega não é visível (revisão, suspeita "missões de outros professores").
+      return intencao === 'ler' && f.publicada ? 'permitido' : 'negado';
     case 'student':
       return intencao === 'ler' && f.publicadaParaTurmaDoAluno
         ? 'permitido'

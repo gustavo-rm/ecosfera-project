@@ -21,6 +21,9 @@ GRANT USAGE ON SCHEMA platform TO platform_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA platform TO platform_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA platform TO platform_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA platform GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO platform_app;
+-- Tabelas criadas pelas migrações futuras (rodadas como platform_migrator) também ficam acessíveis ao app.
+ALTER DEFAULT PRIVILEGES FOR ROLE platform_migrator IN SCHEMA platform GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO platform_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE platform_migrator IN SCHEMA platform GRANT USAGE, SELECT ON SEQUENCES TO platform_app;
 
 -- audit_log: só INSERT e SELECT (o gatilho de imutabilidade é a segunda barreira).
 REVOKE UPDATE, DELETE, TRUNCATE ON platform.audit_log FROM platform_app;

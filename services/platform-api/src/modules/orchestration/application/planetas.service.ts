@@ -13,6 +13,7 @@ import type { AtorUsuario } from '../../../shared/kernel/ator';
 import {
   ErroAcessoNegado,
   ErroConsentimentoAusente,
+  ErroDeAplicacao,
   ErroNaoEncontrado,
 } from '../../../shared/kernel/erros';
 import {
@@ -240,6 +241,8 @@ export class ServicoDePlanetas {
       idempotencyKey: string;
       type: 'intervention' | 'checkpoint' | 'tick';
       payload: Record<string, unknown>;
+      /** Marcado pela borda quando o payload não passa no mesmo schema da rota equivalente. */
+      invalida?: boolean;
       clientTimestamp: string;
     }[],
     executarUmaVez: <T>(
@@ -259,6 +262,14 @@ export class ServicoDePlanetas {
       a.clientTimestamp.localeCompare(b.clientTimestamp),
     );
     for (const a of ordenadas) {
+      if (a.invalida) {
+        resultados.push({
+          idempotencyKey: a.idempotencyKey,
+          status: 'rejected',
+          error: '/errors/validation',
+        });
+        continue;
+      }
       try {
         const r = await executarUmaVez(
           `sync:${id}`,
@@ -291,7 +302,11 @@ export class ServicoDePlanetas {
         resultados.push({
           idempotencyKey: a.idempotencyKey,
           status: 'rejected',
-          error: (e as Error).message,
+          // Só o tipo do erro: mensagens internas não vão ao cliente.
+          error:
+            e instanceof ErroDeAplicacao
+              ? `/errors/${e.tipo}`
+              : '/errors/internal',
         });
       }
     }

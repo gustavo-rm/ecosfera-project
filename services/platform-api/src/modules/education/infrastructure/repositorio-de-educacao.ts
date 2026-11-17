@@ -318,6 +318,7 @@ export class RepositorioDeEducacaoTypeorm implements RepositorioDeEducacao {
         autorId: null,
         publicadaParaTurmaDoAluno: false,
         publicadaParaTurmaDoProfessor: false,
+        publicada: false,
       };
     let aluno = false;
     let professor = false;
@@ -344,6 +345,7 @@ export class RepositorioDeEducacaoTypeorm implements RepositorioDeEducacao {
       autorId: e.createdByUserId,
       publicadaParaTurmaDoAluno: aluno,
       publicadaParaTurmaDoProfessor: professor,
+      publicada: e.status === 'published',
     };
   }
 

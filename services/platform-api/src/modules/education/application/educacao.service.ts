@@ -167,6 +167,20 @@ export class ServicoDeEducacao {
         })),
       );
     }
+    if (ator.papel === 'teacher') {
+      // Sem isto o professor ganharia acesso a qualquer aluno da escola só por matriculá-lo (revisão, achado 2).
+      const deOutros: string[] = [];
+      for (const id of unicos) {
+        const turmas = await this.repo.turmasDoAluno(id);
+        if (turmas.some((x) => x.professorId !== ator.usuarioId))
+          deOutros.push(id);
+      }
+      if (deOutros.length > 0) {
+        throw new ErroAcessoNegado(
+          'Aluno já matriculado em turma de outro professor: peça à coordenação para matriculá-lo',
+        );
+      }
+    }
     const r = await this.repo.matricular(turmaId, unicos);
     await this.auditoria.registrar({
       acao: 'class.students_enrolled',

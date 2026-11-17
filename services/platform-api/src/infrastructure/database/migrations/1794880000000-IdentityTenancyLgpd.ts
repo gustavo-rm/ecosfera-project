@@ -239,6 +239,11 @@ export class IdentityTenancyLgpd1794880000000 implements MigrationInterface {
         DROP COLUMN IF EXISTS actor_service, DROP COLUMN IF EXISTS school_id
     `);
     await q.query(`DROP TABLE IF EXISTS platform.consent_text`);
+    // O schema antigo não distingue finalidade: um aceite de "research" viraria consentimento genérico.
+    // Remove as linhas que ele não sabe representar; o histórico do aceite fica no audit_log (imutável).
+    await q.query(
+      `DELETE FROM platform.consent WHERE purpose <> 'platform_use'`,
+    );
     await q.query(`
       ALTER TABLE platform.consent
         DROP CONSTRAINT IF EXISTS consent_student_purpose_key,

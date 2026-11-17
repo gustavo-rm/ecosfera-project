@@ -71,6 +71,7 @@ describe('Acesso a turma e missão', () => {
       autorId: 'prof',
       publicadaParaTurmaDoAluno: false,
       publicadaParaTurmaDoProfessor: false,
+      publicada: false,
     };
     expect(decidirAcessoAMissao(ator('student'), m, 'ler')).toBe('negado');
     expect(
@@ -81,6 +82,10 @@ describe('Acesso a turma e missão', () => {
       ),
     ).toBe('permitido');
     expect(decidirAcessoAMissao(ator('teacher'), m, 'gerir')).toBe('negado');
+    expect(decidirAcessoAMissao(ator('teacher'), m, 'ler')).toBe('negado'); // rascunho de colega
+    expect(
+      decidirAcessoAMissao(ator('teacher'), { ...m, publicada: true }, 'ler'),
+    ).toBe('permitido');
     expect(decidirAcessoAMissao(ator('teacher', 'prof'), m, 'gerir')).toBe(
       'permitido',
     );

@@ -326,6 +326,14 @@ export class ServicoDePainel {
       throw new ErroAcessoNegado('Só o professor do aluno envia feedback');
     if (!(await this.consentimento.permite(alunoId, 'platform_use')))
       throw new ErroConsentimentoAusente('platform_use');
+    if (avaliacaoId) {
+      // IDOR: a avaliação citada precisa ser deste aluno.
+      const av = await this.ds.getRepository(AvaliacaoEntity).findOne({
+        where: { id: avaliacaoId, studentUserId: alunoId },
+        select: { id: true },
+      });
+      if (!av) throw new ErroNaoEncontrado('Avaliação');
+    }
     const r = await this.ds.getRepository(FeedbackEntity).save({
       studentUserId: alunoId,
       authorUserId: ator.usuarioId,

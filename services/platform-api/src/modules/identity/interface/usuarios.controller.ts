@@ -125,6 +125,19 @@ export class UsuariosController {
     return paraPerfil(await this.usuarios.alterarPapel(ator, id, b.role));
   }
 
+  @Endpoint(ContratosUsuarios.situacao)
+  @Autorizacao({
+    papeis: ['admin', 'platform_admin'],
+    posse: { regra: 'usuario:gerir' },
+  })
+  async situacao(
+    @UsuarioAtual() ator: AtorUsuario,
+    @Param('id') id: string,
+    @Body() b: { status: 'active' | 'disabled' },
+  ) {
+    return paraPerfil(await this.usuarios.definirSituacao(ator, id, b.status));
+  }
+
   @Endpoint(ContratosUsuarios.redefinicaoPeloAdmin)
   @Autorizacao({
     papeis: ['admin', 'platform_admin'],

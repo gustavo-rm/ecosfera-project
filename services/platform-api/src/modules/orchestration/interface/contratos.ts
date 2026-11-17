@@ -321,7 +321,12 @@ export const ContratosPlanetas = {
 export const EsquemaExplicar = z
   .object({
     planetId: Uuid,
-    contextRef: z.string().min(1).max(200),
+    contextRef: z
+      .string()
+      .regex(/^[A-Za-z0-9:_./-]{1,200}$/)
+      .describe(
+        'Identificador do contexto (ex.: indicador co2); texto livre não é aceito',
+      ),
     question: z.string().max(1000).optional(),
   })
   .strict()

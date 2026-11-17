@@ -3,12 +3,17 @@ import type { Redis } from 'ioredis';
 import { DataSource, type EntityManager } from 'typeorm';
 
 import { Auditoria } from '../../../shared/auditoria/auditoria';
+import {
+  CONFIGURACAO,
+  type Configuracao,
+} from '../../../shared/config/configuracao';
 import type { GateDeConsentimento } from '../../../shared/autorizacao/portas';
 import { registrarNoOutbox } from '../../../shared/eventos/eventos';
 import type { AtorServico, AtorUsuario } from '../../../shared/kernel/ator';
 import {
   ErroAcessoNegado,
   ErroConsentimentoAusente,
+  ErroDeConflito,
   ErroDeValidacao,
   ErroNaoEncontrado,
 } from '../../../shared/kernel/erros';
@@ -31,6 +36,13 @@ import { TextoDeConsentimentoEntity } from '../infrastructure/persistencia/texto
 import { UsuarioEntity } from '../infrastructure/persistencia/usuario.entity';
 
 const TTL_CACHE_SEGUNDOS = 60;
+const GRAVAR_SE_VERSAO = `
+if (redis.call('GET', KEYS[1]) or '0') ~= ARGV[1] then return 0 end
+redis.call('DEL', KEYS[2])
+for i = 3, #ARGV, 2 do redis.call('HSET', KEYS[2], ARGV[i], ARGV[i + 1]) end
+redis.call('EXPIRE', KEYS[2], ARGV[2])
+return 1
+`;
 
 export interface SituacaoDeConsentimento {
   studentId: string;
@@ -67,6 +79,7 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
     private readonly ds: DataSource,
     @Inject(REDIS) private readonly redis: Redis,
     @Inject(RELOGIO) private readonly relogio: Relogio,
+    @Inject(CONFIGURACAO) private readonly config: Configuracao,
     @Inject(VINCULOS_ESCOLARES) private readonly vinculos: VinculosEscolares,
     private readonly chaves: ChavesRedis,
     private readonly auditoria: Auditoria,
@@ -75,8 +88,13 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
   /** Gate. Lê do cache curto (invalidado a cada mudança) ou do banco. */
   async permite(usuarioId: string, finalidade: Finalidade): Promise<boolean> {
     const chave = this.chaves.consentimento(usuarioId);
-    const cache = await this.redis.hgetall(chave);
-    if (cache.menor !== undefined) {
+    const chaveVersao = this.chaves.versaoDoConsentimento(usuarioId);
+    const [versao, cache] = await Promise.all([
+      this.redis.get(chaveVersao),
+      this.redis.hgetall(chave),
+    ]);
+    const v = versao ?? '0';
+    if (cache.menor !== undefined && cache.v === v) {
       if (cache.menor === '0') return true;
       return cache[finalidade] === '1';
     }
@@ -88,7 +106,7 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
     const linhas = await this.ds
       .getRepository(ConsentimentoEntity)
       .findBy({ studentUserId: usuarioId });
-    const valor: Record<string, string> = { menor: u.isMinor ? '1' : '0' };
+    const valor: Record<string, string> = { menor: u.isMinor ? '1' : '0', v };
     for (const f of FINALIDADES) {
       valor[f] = permiteTratamento(
         u.isMinor,
@@ -97,11 +115,16 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
         ? '1'
         : '0';
     }
-    await this.redis
-      .multi()
-      .hset(chave, valor)
-      .expire(chave, TTL_CACHE_SEGUNDOS)
-      .exec();
+    // Só grava se ninguém mudou o consentimento desde a leitura (revisão, achado 6).
+    await this.redis.eval(
+      GRAVAR_SE_VERSAO,
+      2,
+      chaveVersao,
+      chave,
+      v,
+      TTL_CACHE_SEGUNDOS,
+      ...Object.entries(valor).flat(),
+    );
     return valor[finalidade] === '1';
   }
 
@@ -112,7 +135,11 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
   }
 
   async invalidarCache(usuarioId: string): Promise<void> {
-    await this.redis.del(this.chaves.consentimento(usuarioId));
+    await this.redis
+      .multi()
+      .incr(this.chaves.versaoDoConsentimento(usuarioId))
+      .del(this.chaves.consentimento(usuarioId))
+      .exec();
   }
 
   async situacao(
@@ -174,9 +201,13 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
     const textos = await this.ds
       .getRepository(TextoDeConsentimentoEntity)
       .findBy({ version: versaoDoTexto });
+    // Em produção, só vale aceite sobre texto aprovado pelo DPO/jurídico (revisão, achado 7).
+    const valido = (t: TextoDeConsentimentoEntity) =>
+      this.config.CONSENT_REQUIRE_APPROVED_TEXT
+        ? t.reviewStatus === 'approved'
+        : t.reviewStatus !== 'retired';
     const faltando = finalidades.filter(
-      (f) =>
-        !textos.some((t) => t.purpose === f && t.reviewStatus !== 'retired'),
+      (f) => !textos.some((t) => t.purpose === f && valido(t)),
     );
     if (faltando.length > 0) {
       throw new ErroDeValidacao(
@@ -329,5 +360,46 @@ export class ServicoDeConsentimento implements GateDeConsentimento {
         ['student_user_id', 'purpose'],
       )
       .execute();
+  }
+
+  /** Publica nova versão de texto (após revisão do DPO). Versões antigas continuam válidas como prova do aceite dado. */
+  async publicarTexto(
+    ator: AtorUsuario,
+    d: {
+      purpose: Finalidade;
+      version: string;
+      body: string;
+      reviewStatus: 'pending_legal_review' | 'approved';
+    },
+  ) {
+    if (ator.papel !== 'platform_admin') throw new ErroAcessoNegado();
+    const repo = this.ds.getRepository(TextoDeConsentimentoEntity);
+    if (
+      await repo.findOneBy({
+        purpose: d.purpose,
+        version: d.version,
+        locale: 'pt-BR',
+      })
+    )
+      throw new ErroDeConflito('Versão já existe');
+    const t = await repo.save({
+      purpose: d.purpose,
+      version: d.version,
+      body: d.body,
+      reviewStatus: d.reviewStatus,
+      locale: 'pt-BR',
+    });
+    await this.auditoria.registrar({
+      acao: 'consent_text.published',
+      entidade: 'consent_text',
+      entidadeId: t.id,
+      escolaId: null,
+      dados: {
+        purpose: d.purpose,
+        version: d.version,
+        reviewStatus: d.reviewStatus,
+      },
+    });
+    return t;
   }
 }

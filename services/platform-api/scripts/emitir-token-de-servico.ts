@@ -7,4 +7,8 @@ if (!segredo) {
   console.error('Defina SERVICE_TOKEN_SECRET.');
   process.exit(2);
 }
-void ServicoDeTokens.emitirTokenDeServico(segredo, servico, Number(process.argv[3] ?? 300)).then((t) => console.log(t));
+void ServicoDeTokens.emitirTokenDeServico(
+  segredo,
+  servico,
+  Number(process.argv[3] ?? 300),
+).then((t) => console.log(t));

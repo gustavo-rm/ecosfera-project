@@ -26,6 +26,7 @@ Regras de posse:
 
 | Método | Rota | Quem pode | Posse | Consentimento | Implementação |
 |---|---|---|---|---|---|
+| POST | `/admin/consent-texts` | operador da plataforma | — | — | ConsentimentoController.publicarTexto |
 | POST | `/admin/lti/platforms` | admin da escola | — | — | FederacaoController.registrarLti |
 | POST | `/admin/oidc/providers` | admin da escola | — | — | FederacaoController.registrarOidc |
 | GET | `/admin/retention/policies` | operador da plataforma, admin da escola | — | — | AvaliacaoController.politicas |
@@ -111,5 +112,6 @@ Regras de posse:
 | POST | `/users/{id}/password-reset` | admin da escola, operador da plataforma | `usuario:gerir` sobre `params.id` | — | UsuariosController.redefinicao |
 | PATCH | `/users/{id}/preferences` | aluno, professor, coordenador, admin da escola, responsável, pesquisador, operador da plataforma | `usuario:proprio` sobre `params.id` | — | UsuariosController.preferencias |
 | PATCH | `/users/{id}/role` | admin da escola, operador da plataforma | `usuario:gerir` sobre `params.id` | — | UsuariosController.papel |
+| PATCH | `/users/{id}/status` | admin da escola, operador da plataforma | `usuario:gerir` sobre `params.id` | — | UsuariosController.situacao |
 
 WebSocket `GET /planets/{id}/stream`: aluno, professor, coordenação, admin; posse `planeta:ler`; consentimento `platform_use` do dono; conexão fechada (4403) quando o consentimento é revogado e (4401) quando a sessão é revogada.

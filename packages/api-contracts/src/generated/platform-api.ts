@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/admin/consent-texts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publica nova versão de texto de consentimento (após revisão do DPO) */
+        post: operations["publishConsentText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/lti/platforms": {
         parameters: {
             query?: never;
@@ -1323,6 +1340,23 @@ export interface paths {
         patch: operations["changeUserRole"];
         trace?: never;
     };
+    "/users/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Desativa ou reativa a conta (RF-002); desativar encerra as sessões */
+        patch: operations["setUserStatus"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1689,6 +1723,7 @@ export interface components {
         ExplainRequest: {
             /** Format: uuid */
             planetId: string;
+            /** @description Identificador do contexto (ex.: indicador co2); texto livre não é aceito */
             contextRef: string;
             question?: string;
         };
@@ -1936,6 +1971,16 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        PublishConsentTextRequest: {
+            purpose: components["schemas"]["ConsentPurpose"];
+            version: string;
+            body: string;
+            /**
+             * @description approved só depois da revisão do DPO/jurídico
+             * @enum {string}
+             */
+            reviewStatus: "pending_legal_review" | "approved";
+        };
         PublishMissionRequest: {
             classIds: string[];
         };
@@ -1986,7 +2031,7 @@ export interface components {
             /** Format: uri */
             issuer: string;
             clientId: string;
-            /** @description NOME da variável de ambiente com o segredo; o segredo nunca vai ao banco */
+            /** @description NOME da variável de ambiente (prefixo OIDC_CLIENT_SECRET_) com o segredo; o segredo nunca vai ao banco */
             clientSecretEnv?: string;
             defaultRole: components["schemas"]["Role"];
             /** @default false */
@@ -2083,6 +2128,10 @@ export interface components {
         };
         SetTrackRequest: {
             level: components["schemas"]["TrackLevel"];
+        };
+        SetUserStatusRequest: {
+            /** @enum {string} */
+            status: "active" | "disabled";
         };
         StudentSummary: {
             /** Format: uuid */
@@ -2199,6 +2248,84 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    publishConsentText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishConsentTextRequest"];
+            };
+        };
+        responses: {
+            /** @description Publicado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentText"];
+                };
+            };
+            /** @description Não autenticado (token ausente, expirado ou revogado) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem permissão para esta ação */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Versão já existe */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Dados inválidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Limite de requisições excedido */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Erro interno (com traceId) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     registerLtiPlatform: {
         parameters: {
             query?: never;
@@ -8317,6 +8444,86 @@ export interface operations {
         };
         responses: {
             /** @description Papel alterado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfile"];
+                };
+            };
+            /** @description Não autenticado (token ausente, expirado ou revogado) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem permissão para esta ação */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Dados inválidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Limite de requisições excedido */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Erro interno (com traceId) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    setUserStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetUserStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Situação alterada */
             200: {
                 headers: {
                     [name: string]: unknown;

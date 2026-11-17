@@ -22,6 +22,10 @@ import {
 } from '../../../shared/kernel/erros';
 import type { Papel } from '../../../shared/kernel/papeis';
 import { ChavesRedis } from '../../../shared/redis/chaves';
+import {
+  exigirUrlExterna,
+  PADRAO_VARIAVEL_DE_SEGREDO_OIDC,
+} from '../../../shared/seguranca/url-externa';
 import { REDIS } from '../../../shared/redis/redis';
 import {
   MatriculaEntity,
@@ -69,6 +73,8 @@ export function papelDoLms(papeis: string[]): Papel {
 
 interface EstadoFederado {
   tipo: 'oidc' | 'lti';
+  /** Hash do cookie que amarra o login ao navegador que o iniciou (anti-CSRF de login). */
+  navegador?: string;
   referenciaId: string;
   nonce: string;
   verificador?: string;
@@ -103,6 +109,10 @@ export class ServicoDeFederacao {
     private readonly auditoria: Auditoria,
   ) {}
 
+  private get producao(): boolean {
+    return this.config.NODE_ENV === 'production';
+  }
+
   private conjuntoDeChaves(url: string) {
     let j = this.jwks.get(url);
     if (!j) {
@@ -115,21 +125,28 @@ export class ServicoDeFederacao {
     return j;
   }
 
-  private async guardarEstado(e: EstadoFederado): Promise<string> {
+  private async guardarEstado(
+    e: EstadoFederado,
+  ): Promise<{ estado: string; vinculo: string }> {
     const estado = randomBytes(24).toString('base64url');
+    const vinculo = randomBytes(24).toString('base64url');
     await this.redis.set(
       this.chaves.estadoFederado(estado),
-      JSON.stringify(e),
+      JSON.stringify({
+        ...e,
+        navegador: createHash('sha256').update(vinculo).digest('hex'),
+      }),
       'EX',
       TTL_ESTADO,
     );
-    return estado;
+    return { estado, vinculo };
   }
 
-  /** Estado é de uso único (GETDEL): protege contra CSRF e repetição. */
+  /** Estado é de uso único (GETDEL) e amarrado ao navegador por cookie: protege contra CSRF de login e repetição. */
   private async consumirEstado(
     estado: string,
     tipo: EstadoFederado['tipo'],
+    vinculo: string | undefined,
   ): Promise<EstadoFederado> {
     const bruto = await this.redis.getdel(this.chaves.estadoFederado(estado));
     if (!bruto)
@@ -137,6 +154,14 @@ export class ServicoDeFederacao {
     const e = JSON.parse(bruto) as EstadoFederado;
     if (e.tipo !== tipo)
       throw new ErroNaoAutenticado('Estado de login inválido');
+    if (
+      !vinculo ||
+      createHash('sha256').update(vinculo).digest('hex') !== e.navegador
+    ) {
+      throw new ErroNaoAutenticado(
+        'Login iniciado em outro navegador; comece de novo',
+      );
+    }
     return e;
   }
 
@@ -225,6 +250,13 @@ export class ServicoDeFederacao {
     },
   ) {
     if (ator.papel !== 'admin' || !ator.escolaId) throw new ErroAcessoNegado();
+    for (const [campo, u] of [
+      ['body.authLoginUrl', d.authLoginUrl],
+      ['body.jwksUrl', d.jwksUrl],
+      ['body.authTokenUrl', d.authTokenUrl],
+    ] as const) {
+      if (u) await exigirUrlExterna(u, this.producao, campo);
+    }
     try {
       const p = await this.ds.getRepository(PlataformaLtiEntity).save({
         ...d,
@@ -254,7 +286,7 @@ export class ServicoDeFederacao {
     lti_message_hint?: string;
     client_id?: string;
     lti_deployment_id?: string;
-  }): Promise<string> {
+  }): Promise<{ url: string; vinculo: string }> {
     const where = {
       issuer: q.iss,
       ...(q.client_id ? { clientId: q.client_id } : {}),
@@ -263,7 +295,7 @@ export class ServicoDeFederacao {
     const p = await this.ds.getRepository(PlataformaLtiEntity).findOneBy(where);
     if (!p) throw new ErroNaoEncontrado('Plataforma LTI');
     const nonce = randomBytes(16).toString('base64url');
-    const estado = await this.guardarEstado({
+    const { estado, vinculo } = await this.guardarEstado({
       tipo: 'lti',
       referenciaId: p.id,
       nonce,
@@ -282,18 +314,19 @@ export class ServicoDeFederacao {
     };
     if (q.lti_message_hint) params.lti_message_hint = q.lti_message_hint;
     for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-    return u.toString();
+    return { url: u.toString(), vinculo };
   }
 
   /** Launch: valida o id_token do LMS, provisiona, importa a turma e abre sessão. */
   async launchLti(
     idToken: string,
     estado: string,
+    vinculo: string | undefined,
   ): Promise<{
     login: ResultadoDeLogin;
     turma: { id: string; name: string } | null;
   }> {
-    const e = await this.consumirEstado(estado, 'lti');
+    const e = await this.consumirEstado(estado, 'lti', vinculo);
     const p = await this.ds
       .getRepository(PlataformaLtiEntity)
       .findOneByOrFail({ id: e.referenciaId });
@@ -415,6 +448,16 @@ export class ServicoDeFederacao {
     },
   ) {
     if (ator.papel !== 'admin' || !ator.escolaId) throw new ErroAcessoNegado();
+    // O segredo do cliente vem de variável DEDICADA: nunca um segredo do próprio servidor.
+    if (
+      d.clientSecretEnv &&
+      !PADRAO_VARIAVEL_DE_SEGREDO_OIDC.test(d.clientSecretEnv)
+    ) {
+      throw new ErroAcessoNegado(
+        'clientSecretEnv precisa começar com OIDC_CLIENT_SECRET_',
+      );
+    }
+    await exigirUrlExterna(d.issuer, this.producao, 'body.issuer');
     if (!['student', 'teacher'].includes(d.defaultRole))
       throw new ErroAcessoNegado('Papel padrão só pode ser aluno ou professor');
     try {
@@ -439,6 +482,7 @@ export class ServicoDeFederacao {
   }
 
   private async descobrir(issuer: string): Promise<Descoberta> {
+    await exigirUrlExterna(issuer, this.producao, 'issuer');
     const c = this.descobertas.get(issuer);
     if (c && Date.now() - c.em < 3600_000) return c.d;
     let d: Descoberta;
@@ -457,7 +501,7 @@ export class ServicoDeFederacao {
     return d;
   }
 
-  async autorizarOidc(slug: string): Promise<string> {
+  async autorizarOidc(slug: string): Promise<{ url: string; vinculo: string }> {
     const p = await this.ds
       .getRepository(ProvedorOidcEntity)
       .findOneBy({ slug });
@@ -465,7 +509,7 @@ export class ServicoDeFederacao {
     const d = await this.descobrir(p.issuer);
     const verificador = randomBytes(32).toString('base64url');
     const nonce = randomBytes(16).toString('base64url');
-    const estado = await this.guardarEstado({
+    const { estado, vinculo } = await this.guardarEstado({
       tipo: 'oidc',
       referenciaId: p.id,
       nonce,
@@ -484,21 +528,24 @@ export class ServicoDeFederacao {
         .digest('base64url'),
       code_challenge_method: 'S256',
     }).toString();
-    return u.toString();
+    return { url: u.toString(), vinculo };
   }
 
   async callbackOidc(
     slug: string,
     codigo: string,
     estado: string,
+    vinculo: string | undefined,
   ): Promise<ResultadoDeLogin> {
-    const e = await this.consumirEstado(estado, 'oidc');
+    const e = await this.consumirEstado(estado, 'oidc', vinculo);
     const p = await this.ds
       .getRepository(ProvedorOidcEntity)
       .findOneByOrFail({ id: e.referenciaId });
     if (p.slug !== slug)
       throw new ErroNaoAutenticado('Estado de login inválido');
     const d = await this.descobrir(p.issuer);
+    await exigirUrlExterna(d.token_endpoint, this.producao, 'token_endpoint');
+    await exigirUrlExterna(d.jwks_uri, this.producao, 'jwks_uri');
     const corpo = new URLSearchParams({
       grant_type: 'authorization_code',
       code: codigo,
@@ -506,9 +553,11 @@ export class ServicoDeFederacao {
       client_id: p.clientId,
       code_verifier: e.verificador!,
     });
-    const segredo = p.clientSecretEnv
-      ? process.env[p.clientSecretEnv]
-      : undefined;
+    const segredo =
+      p.clientSecretEnv &&
+      PADRAO_VARIAVEL_DE_SEGREDO_OIDC.test(p.clientSecretEnv)
+        ? process.env[p.clientSecretEnv]
+        : undefined;
     if (segredo) corpo.set('client_secret', segredo);
     let tokens: { id_token?: string };
     try {
@@ -538,9 +587,11 @@ export class ServicoDeFederacao {
     }
     if (c.nonce !== e.nonce) throw new ErroNaoAutenticado('Nonce não confere');
     await this.nonceUnico(String(c.nonce));
+    if (typeof c.sub !== 'string' || c.sub.length === 0)
+      throw new ErroNaoAutenticado('id_token sem sub');
     const { usuario } = await this.provisionar(
       p.issuer,
-      String(c.sub),
+      c.sub,
       'oidc',
       p.schoolId,
       p.defaultRole,

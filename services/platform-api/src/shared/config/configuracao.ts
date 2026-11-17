@@ -22,9 +22,10 @@ const segredo = (nome: string) =>
 
 export const esquemaConfiguracao = z
   .object({
-    NODE_ENV: z
-      .enum(['development', 'test', 'production'])
-      .default('development'),
+    // Obrigatório: sem ele, a proibição de fakes em produção falharia aberta (revisão, achado 13).
+    NODE_ENV: z.enum(['development', 'test', 'production'], {
+      message: 'NODE_ENV é obrigatório (development, test ou production)',
+    }),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
@@ -56,6 +57,14 @@ export const esquemaConfiguracao = z
       .int()
       .min(300)
       .default(7 * 24 * 3600),
+    /** Exigir texto de consentimento aprovado pelo DPO (padrão: true em produção). */
+    CONSENT_REQUIRE_APPROVED_TEXT: booleano.optional(),
+    /** Vida máxima absoluta da sessão, mesmo com refresh contínuo. */
+    REFRESH_ABSOLUTE_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(3600)
+      .default(30 * 24 * 3600),
     COOKIE_SECURE: booleano.optional(),
     /** Segredo das credenciais de serviço (ai-sim-service → platform-api). */
     SERVICE_TOKEN_SECRET: segredo('SERVICE_TOKEN_SECRET'),
@@ -102,7 +111,11 @@ export const esquemaConfiguracao = z
     RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().positive().default(5),
     RATE_LIMIT_IP_PER_MINUTE: z.coerce.number().int().positive().default(3000),
     // Por IP (escola atrás de NAT: 40+ alunos no mesmo IP, RNF-005). Força bruta é contida por conta.
-    RATE_LIMIT_AUTH_IP_PER_MINUTE: z.coerce.number().int().positive().default(300),
+    RATE_LIMIT_AUTH_IP_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(300),
 
     PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
     METRICS_TOKEN: z.string().min(16).optional(),
@@ -125,6 +138,18 @@ export const esquemaConfiguracao = z
     TICK_SYNC_MAX_STEPS: z.coerce.number().int().positive().default(10),
   })
   .superRefine((c, ctx) => {
+    for (const [nome, valor] of [
+      ['ADAPTER_SIMULATION', c.ADAPTER_SIMULATION],
+      ['ADAPTER_TUTOR', c.ADAPTER_TUTOR],
+    ] as const) {
+      if (valor === 'http' && !c.AI_SIM_BASE_URL) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['AI_SIM_BASE_URL'],
+          message: `AI_SIM_BASE_URL é obrigatória com ${nome}=http`,
+        });
+      }
+    }
     if (c.NODE_ENV !== 'production') return;
     // Princípio 6: fakes nunca em produção.
     const fakes = (
@@ -156,18 +181,13 @@ export const esquemaConfiguracao = z
         message: 'COOKIE_SECURE não pode ser false em produção',
       });
     }
-    if (c.ADAPTER_SIMULATION === 'http' && !c.AI_SIM_BASE_URL) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['AI_SIM_BASE_URL'],
-        message: 'AI_SIM_BASE_URL é obrigatória com ADAPTER_SIMULATION=http',
-      });
-    }
   })
   .transform((c) => ({
     ...c,
     REQUIRE_HTTPS: c.REQUIRE_HTTPS ?? c.NODE_ENV === 'production',
     COOKIE_SECURE: c.COOKIE_SECURE ?? c.NODE_ENV === 'production',
+    CONSENT_REQUIRE_APPROVED_TEXT:
+      c.CONSENT_REQUIRE_APPROVED_TEXT ?? c.NODE_ENV === 'production',
   }));
 
 export type Configuracao = z.infer<typeof esquemaConfiguracao>;

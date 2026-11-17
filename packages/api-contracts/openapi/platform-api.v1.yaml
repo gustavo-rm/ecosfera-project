@@ -27,6 +27,66 @@ tags:
   - name: schools
   - name: users
 paths:
+  /admin/consent-texts:
+    post:
+      operationId: publishConsentText
+      tags:
+        - consent
+      summary: Publica nova versão de texto de consentimento (após revisão do DPO)
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishConsentTextRequest"
+      responses:
+        "201":
+          description: Publicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentText"
+        "401":
+          description: Não autenticado (token ausente, expirado ou revogado)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Sem permissão para esta ação
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Versão já existe
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          description: Dados inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          description: Limite de requisições excedido
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500":
+          description: Erro interno (com traceId)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      x-authorization:
+        roles:
+          - platform_admin
   /admin/lti/platforms:
     post:
       operationId: registerLtiPlatform
@@ -5338,6 +5398,77 @@ paths:
           - platform_admin
         ownership: usuario:gerir
         ownershipParam: params.id
+  /users/{id}/status:
+    patch:
+      operationId: setUserStatus
+      tags:
+        - users
+      summary: Desativa ou reativa a conta (RF-002); desativar encerra as sessões
+      security:
+        - bearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUserStatusRequest"
+      responses:
+        "200":
+          description: Situação alterada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Não autenticado (token ausente, expirado ou revogado)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Sem permissão para esta ação
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Não encontrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          description: Dados inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          description: Limite de requisições excedido
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500":
+          description: Erro interno (com traceId)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      x-authorization:
+        roles:
+          - admin
+          - platform_admin
+        ownership: usuario:gerir
+        ownershipParam: params.id
 components:
   schemas:
     Adaptation:
@@ -6517,8 +6648,8 @@ components:
           pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
         contextRef:
           type: string
-          minLength: 1
-          maxLength: 200
+          pattern: ^[A-Za-z0-9:_./-]{1,200}$
+          description: "Identificador do contexto (ex.: indicador co2); texto livre não é aceito"
         question:
           type: string
           maxLength: 1000
@@ -7236,6 +7367,31 @@ components:
         - traceId
       additionalProperties: {}
       description: Erro no formato RFC 7807 (Problem Details)
+    PublishConsentTextRequest:
+      type: object
+      properties:
+        purpose:
+          $ref: "#/components/schemas/ConsentPurpose"
+        version:
+          type: string
+          minLength: 1
+          maxLength: 64
+        body:
+          type: string
+          minLength: 20
+          maxLength: 20000
+        reviewStatus:
+          type: string
+          enum:
+            - pending_legal_review
+            - approved
+          description: approved só depois da revisão do DPO/jurídico
+      required:
+        - purpose
+        - version
+        - body
+        - reviewStatus
+      additionalProperties: false
     PublishMissionRequest:
       type: object
       properties:
@@ -7377,9 +7533,9 @@ components:
           minLength: 1
           maxLength: 200
         clientSecretEnv:
-          description: NOME da variável de ambiente com o segredo; o segredo nunca vai ao banco
+          description: NOME da variável de ambiente (prefixo OIDC_CLIENT_SECRET_) com o segredo; o segredo nunca vai ao banco
           type: string
-          pattern: ^[A-Z][A-Z0-9_]{2,63}$
+          pattern: ^OIDC_CLIENT_SECRET_[A-Z0-9_]{1,40}$
         defaultRole:
           $ref: "#/components/schemas/Role"
         allowProvisioning:
@@ -7674,6 +7830,17 @@ components:
           $ref: "#/components/schemas/TrackLevel"
       required:
         - level
+      additionalProperties: false
+    SetUserStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - active
+            - disabled
+      required:
+        - status
       additionalProperties: false
     StudentSummary:
       type: object

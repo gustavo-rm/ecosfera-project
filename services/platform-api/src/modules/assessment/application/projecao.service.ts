@@ -20,6 +20,7 @@ import {
 } from '../../../shared/eventos/portas';
 import { LOGGER } from '../../../shared/observabilidade/logger';
 import { ServicoDeConsentimento } from '../../identity/application/consentimento.service';
+import { ConsentimentoEntity } from '../../identity/infrastructure/persistencia/consentimento.entity';
 import { UsuarioEntity } from '../../identity/infrastructure/persistencia/usuario.entity';
 import {
   CompetenciaEntity,
@@ -78,7 +79,13 @@ export class ProjecaoDeAvaliacao
     if (typeof studentId !== 'string') return 'ignored';
     const aluno = await this.ds.getRepository(UsuarioEntity).findOne({
       where: { id: studentId },
-      select: { id: true, schoolId: true, role: true, status: true },
+      select: {
+        id: true,
+        schoolId: true,
+        role: true,
+        status: true,
+        isMinor: true,
+      },
     });
 
     return this.ds.transaction(async (em) => {
@@ -109,8 +116,20 @@ export class ProjecaoDeAvaliacao
           ? 'skipped_no_consent'
           : 'duplicate';
       }
-      if (!(await registro('processed'))) return 'duplicate';
       const quando = new Date(e.occurredAt);
+      if (aluno.isMinor) {
+        // Evento anterior à concessão não pode ser projetado (revisão, achado 14).
+        const c = await em.getRepository(ConsentimentoEntity).findOne({
+          where: { studentUserId: aluno.id, purpose: 'learning_assessment' },
+          select: { grantedAt: true },
+        });
+        if (!c?.grantedAt || quando < c.grantedAt) {
+          return (await registro('skipped_no_consent'))
+            ? 'skipped_no_consent'
+            : 'duplicate';
+        }
+      }
+      if (!(await registro('processed'))) return 'duplicate';
       if (e.type === 'EvidenciaGerada')
         await this.evidencia(
           em,

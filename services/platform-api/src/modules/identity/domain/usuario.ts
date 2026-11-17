@@ -78,7 +78,8 @@ export class Usuario {
     if (this.situacao !== 'active')
       throw new ErroDeValidacao('Conta inativa não pode mudar de papel');
     this.papel = novo;
-    if (novo !== 'student') this.menor = false;
+    // Voltar a ser aluno reativa a proteção de menor (revisão, achado 3); maioridade só por decisão explícita do admin.
+    this.menor = novo === 'student';
   }
 
   /** Pseudonimização (direito de exclusão): o registro fica para manter a auditoria íntegra, sem PII. */

@@ -13,6 +13,11 @@ const usados = (chaveSessao: string) => `${chaveSessao}:used`;
  */
 const ROTACIONAR = `
 if redis.call('EXISTS', KEYS[1]) == 0 then return {'invalido', ''} end
+local criada = tonumber(redis.call('HGET', KEYS[1], 'criada') or '0')
+if tonumber(ARGV[4]) - criada > tonumber(ARGV[5]) then
+  redis.call('DEL', KEYS[1], KEYS[2])
+  return {'expirada', redis.call('HGET', KEYS[1], 'uid') or ''}
+end
 local atual = redis.call('HGET', KEYS[1], 'cur')
 local uid = redis.call('HGET', KEYS[1], 'uid')
 if atual == ARGV[1] then
@@ -33,6 +38,8 @@ export class SessoesRedis implements ArmazemDeSessoes {
   constructor(
     private readonly redis: Redis,
     private readonly chaves: ChavesRedis,
+    /** Vida máxima absoluta da sessão, mesmo com refresh contínuo. */
+    private readonly vidaMaximaMs = 30 * 24 * 3600 * 1000,
   ) {}
 
   async criar(
@@ -51,7 +58,8 @@ export class SessoesRedis implements ArmazemDeSessoes {
       })
       .expire(k, ttl)
       .sadd(this.chaves.sessoesDoUsuario(usuarioId), sessaoId)
-      .expire(this.chaves.sessoesDoUsuario(usuarioId), ttl)
+      .expire(this.chaves.sessoesDoUsuario(usuarioId), ttl, 'NX')
+      .expire(this.chaves.sessoesDoUsuario(usuarioId), ttl, 'GT')
       .exec();
   }
 
@@ -70,8 +78,14 @@ export class SessoesRedis implements ArmazemDeSessoes {
       h(apresentado),
       h(novo),
       ttl,
+      Date.now(),
+      this.vidaMaximaMs,
     )) as [string, string];
-    if (tipo === 'ok') return { tipo: 'ok', novoSegredo: novo, usuarioId: uid };
+    if (tipo === 'ok') {
+      // O conjunto acompanha a sessão; sem isto "revogar todas" deixaria passar sessões renovadas (revisão, achado 4).
+      await this.redis.expire(this.chaves.sessoesDoUsuario(uid), ttl, 'GT');
+      return { tipo: 'ok', novoSegredo: novo, usuarioId: uid };
+    }
     if (tipo === 'reuso') {
       await this.redis.srem(this.chaves.sessoesDoUsuario(uid), sessaoId);
       return { tipo: 'reuso', usuarioId: uid };
