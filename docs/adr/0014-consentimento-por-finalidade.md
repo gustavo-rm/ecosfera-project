@@ -15,6 +15,8 @@ RF-008/RNF-009: sem consentimento, sem coleta. O `ai-sim-service` também precis
 - Para outros serviços: `GET /internal/consent/{id}` (credencial de serviço, resposta sem PII) e evento `ConsentimentoRevogado`.
 - Textos legais são placeholders versionados em `platform.consent_text` (`pending_legal_review`).
 
+- Atualização (revisão independente): o cache do gate é versionado (contador incrementado a cada mudança; gravação atômica só se a versão não mudou), eliminando a janela de 60 s após a revogação. Em produção, o aceite exige texto `approved`. A projeção ignora eventos ocorridos antes da concessão. Maioridade só é declarada por admin.
+
 ## Consequências
 
 - Pedido P6 ao `ai-sim-service`: consultar o endpoint interno e assinar o evento de revogação.

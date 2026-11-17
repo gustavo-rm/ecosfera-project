@@ -14,7 +14,7 @@ Branch: `feature/platform-api-backend`, criada a partir da `develop`.
 - O compose de dev sobe PostgreSQL (pgvector), MongoDB, Redis, MinIO e Ollama. A imagem `minio/minio:latest` não baixa mais do Docker Hub neste ambiente.
 - O CI da raiz (`ci-node.yml`) roda `pnpm turbo run lint build test` em todos os pacotes.
 
-## Arquitetura escolhida (resumo; detalhes nos ADRs 0005 a 0016)
+## Arquitetura escolhida (resumo; detalhes nos ADRs 0005 a 0017)
 
 - Monólito modular NestJS com quatro contextos em `src/modules/`: `identity`, `education`, `assessment`, `orchestration`. Cada um com `domain/ application/ infrastructure/ interface/`.
 - `src/shared/` contém o que atravessa contextos: configuração, observabilidade, erros RFC 7807, contrato HTTP, autorização central, banco, Redis, auditoria, barramento de eventos, armazenamento de objetos.
@@ -26,13 +26,13 @@ Branch: `feature/platform-api-backend`, criada a partir da `develop`.
 | Fase | Conteúdo | Estado |
 |---|---|---|
 | 0 | Reconhecimento, branch, plano, divergências | feito |
-| 1 | Fundação: config validada, logs, RFC 7807, health/ready, migrações + drift, Redis, Testcontainers, CI do pacote, Dockerfile | em andamento |
-| 2 | Identidade e acesso | pendente |
-| 3 | Consentimento e LGPD | pendente |
-| 4 | Educação | pendente |
-| 5 | Gateway e tempo real | pendente |
-| 6 | Avaliação (leitura) e painel | pendente |
-| 7 | Federação OIDC e LTI 1.3 | pendente |
-| 8 | Acabamento: contratos, carga, smoke, relatórios, revisão independente | pendente |
+| 1 | Fundação: config validada, logs, RFC 7807, health/ready, migrações + drift, Redis, Testcontainers, CI do pacote (proposto), Dockerfile | feito |
+| 2 | Identidade e acesso | feito |
+| 3 | Consentimento e LGPD | feito |
+| 4 | Educação | feito |
+| 5 | Gateway e tempo real | feito |
+| 6 | Avaliação (leitura) e painel | feito |
+| 7 | Federação OIDC e LTI 1.3 | feito (verificado só contra provedor local) |
+| 8 | Acabamento: contratos, carga, smoke, relatórios, revisão independente e correções | feito |
 
-O estado detalhado por requisito está em `MATRIZ_DE_COBERTURA.md` (criada na fase 8).
+O estado por requisito está em `MATRIZ_DE_COBERTURA.md`; o resumo final, em `RELATORIO_FINAL.md`.

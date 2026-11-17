@@ -16,6 +16,8 @@ TASK-0026 pede JWT curto, refresh rotativo em cookie httpOnly e revogação em R
 - Limites: falhas por conta (5 em 15 min, contadas só em falha, zeradas no sucesso) e por IP (300/min em auth; 3000/min geral — escola atrás de NAT).
 - Mudança de papel, redefinição de senha e exclusão encerram todas as sessões do usuário.
 
+- Atualização (revisão independente): o conjunto de sessões do usuário tem o TTL renovado a cada rotação e a sessão tem vida máxima absoluta (`REFRESH_ABSOLUTE_TTL_SECONDS`, 30 dias). Troca de e-mail e desativação de conta também encerram as sessões.
+
 ## Consequências
 
 - HS256 exige o mesmo segredo nas réplicas (cofre). Se outro serviço precisar validar tokens de usuário, trocar por EdDSA com JWKS publicado.

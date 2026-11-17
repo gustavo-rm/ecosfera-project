@@ -14,6 +14,8 @@ RF-009/TASK-0028. Não há provedor OIDC nem LMS no ambiente; bibliotecas LTI di
 - Minimização: do LMS guardamos só o primeiro nome; o e-mail técnico é não roteável.
 - Implementado com `jose`, sem biblioteca LTI.
 
+- Atualização (revisão independente): `state` amarrado ao navegador por cookie de uso único; segredo de cliente só de variáveis `OIDC_CLIENT_SECRET_*`; em produção, URLs de IdP/LMS (inclusive as do documento de descoberta) precisam ser https e públicas (anti-SSRF); `id_token` sem `sub` é recusado.
+
 ## Consequências
 
 - **Verificado só contra um provedor local de teste.** Falta validar com Keycloak/Ory e com um LMS real (Moodle/Canvas). NRPS (importação da lista completa da turma) não implementado: os alunos entram à medida que lançam.

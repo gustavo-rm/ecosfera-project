@@ -7,7 +7,7 @@ Status: **FV** = feito e verificado (teste automatizado ou smoke), **FNV** = fei
 | ID | Status | Onde / como foi verificado | Observação |
 |---|---|---|---|
 | RF-001 | FV | `POST /schools` cria escola + admin inicial; `educacao.int-spec`, smoke 1 | Só o operador da plataforma cria escola |
-| RF-002 | FV | `POST /users` com regras por papel; matriz de acesso | Papéis ampliados (ADR 0008) |
+| RF-002 | FV | `POST /users` com regras por papel; desativar/reativar (`PATCH /users/{id}/status`); matriz de acesso | Papéis ampliados (ADR 0008). Sem mailer real em produção: contas novas precisam de senha inicial definida pelo admin |
 | RF-003 | FV | Login, falha negada e auditada; `autenticacao.int-spec` | |
 | RF-004 | FV | Guard central + reverificação; matriz (183 checagens) | |
 | RF-005 | FV | Turmas, matrícula, aluno vê só as suas; `educacao.int-spec` | |
@@ -65,7 +65,7 @@ Status: **FV** = feito e verificado (teste automatizado ou smoke), **FNV** = fei
 | RNF-012 | FV (mecanismo) | Acesso, correção, exclusão (pseudonimização, sessões encerradas, `TitularExcluido`) e retenção após revogação testados | Prazos são placeholder do DPO (P9) |
 | RNF-013 | FV | Filtros por escola, 404 entre escolas (41 rotas testadas), papéis de banco por schema |
 | RNF-021 | P | Ponto de entrada idempotente `POST /planets/{id}/sync` (testado); formato final depende do contrato com o simulador |
-| RNF-024 | FV | Lint e `tsc` estrito limpos, cobertura 82% linhas com gate, ADRs |
+| RNF-024 | FV | Lint e `tsc` estrito limpos, cobertura 86% linhas / 69% ramos com gate, ADRs |
 | RNF-025 | P | `/health`, `/ready`, `/metrics`, logs estruturados; painéis de saúde/engajamento não feitos (infra) |
 | RNF-026 | P | Mensagens de erro e validação em pt-BR; strings não externalizadas num catálogo i18n |
 

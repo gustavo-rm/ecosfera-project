@@ -13,17 +13,17 @@
    - 40 leituras do painel do professor (visão da turma e competências).
 3. Percentis calculados sobre as latências medidas no cliente.
 
-## Resultado
+## Resultado (execução de 2026-11-17, depois das correções da revisão)
 
 | Cenário | Requisições | Erros | p50 (ms) | p95 (ms) | p99 (ms) | máx (ms) |
 |---|---|---|---|---|---|---|
-| Login simultâneo (45) | 45 | 0 | 206 | 253 | 254 | 254 |
-| Criar planeta simultâneo (45) | 45 | 0 | 140 | 159 | 159 | 159 |
-| Ação → delta no WebSocket (45 conexões abertas) | 90 | 0 | 81 | 91 | 92 | 92 |
-| GET planeta (225 disparadas ao mesmo tempo) | 225 | 0 | 273 | 532 | 545 | 546 |
-| Painel do professor (40 em paralelo) | 40 | 0 | 548 | 566 | 570 | 570 |
+| Login simultâneo (45) | 45 | 0 | 187 | 236 | 241 | 241 |
+| Criar planeta simultâneo (45) | 45 | 0 | 160 | 177 | 177 | 177 |
+| Ação → delta no WebSocket (45 conexões abertas) | 90 | 0 | 126 | 140 | 140 | 140 |
+| GET planeta (225 disparadas ao mesmo tempo) | 225 | 0 | 336 | 648 | 664 | 666 |
+| Painel do professor (40 em paralelo) | 40 | 0 | 762 | 792 | 796 | 796 |
 
-Metas: RNF-005 (≥ 40 alunos simultâneos por instância, sem erro) **atingida**; RNF-002 (ação → feedback ≤ 1 s p95) **atingida** no caminho do gateway (91 ms p95 com o fake de simulação).
+Metas: RNF-005 (≥ 40 alunos simultâneos por instância, sem erro) **atingida**; RNF-002 (ação → feedback ≤ 1 s p95) **atingida** no caminho do gateway (140 ms p95 com o fake de simulação). Na primeira execução (antes das correções) os números foram da mesma ordem (ação→delta p95 91 ms, painel p95 566 ms); a variação entre execuções nesta máquina é de dezenas a centenas de ms.
 
 ## Limites e nível de confiança
 
@@ -35,15 +35,13 @@ Metas: RNF-005 (≥ 40 alunos simultâneos por instância, sem erro) **atingida*
 Saída bruta da execução:
 
 ```
-Preparação concluída.
-
 | Cenário | Requisições | Erros | p50 (ms) | p95 (ms) | p99 (ms) | máx (ms) |
 |---|---|---|---|---|---|---|
-| Login simultâneo (45) | 45 | 0 | 206 | 253 | 254 | 254 |
-| Criar planeta simultâneo (45) | 45 | 0 | 140 | 159 | 159 | 159 |
-| Ação → delta no WebSocket (45 conexões abertas) | 90 | 0 | 81 | 91 | 92 | 92 |
-| GET planeta (225 disparadas ao mesmo tempo) | 225 | 0 | 273 | 532 | 545 | 546 |
-| Painel do professor (40 em paralelo) | 40 | 0 | 548 | 566 | 570 | 570 |
+| Login simultâneo (45) | 45 | 0 | 187 | 236 | 241 | 241 |
+| Criar planeta simultâneo (45) | 45 | 0 | 160 | 177 | 177 | 177 |
+| Ação → delta no WebSocket (45 conexões abertas) | 90 | 0 | 126 | 140 | 140 | 140 |
+| GET planeta (225 disparadas ao mesmo tempo) | 225 | 0 | 336 | 648 | 664 | 666 |
+| Painel do professor (40 em paralelo) | 40 | 0 | 762 | 792 | 796 | 796 |
 
-Metas: login e painel sem erro; ação→delta p95 ≤ 1000 ms (RNF-002). Obtido: login p95=253 ms, ação→delta p95=91 ms, painel p95=566 ms.
+Metas: login e painel sem erro; ação→delta p95 ≤ 1000 ms (RNF-002). Obtido: login p95=236 ms, ação→delta p95=140 ms, painel p95=792 ms.
 ```

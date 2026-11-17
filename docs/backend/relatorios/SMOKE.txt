@@ -1,4 +1,4 @@
-Smoke ECOSFERA platform-api — 2026-11-16T23:19:52.899Z — alvo http://localhost:3000
+Smoke ECOSFERA platform-api — 2026-11-17T14:58:15.309Z — alvo http://localhost:3000
     GET   /ready → 200
   adaptadores falsos ativos: ["SimulationGateway","TutorGateway","Mailer","ObjectStorage"]
 
@@ -63,7 +63,7 @@ Smoke ECOSFERA platform-api — 2026-11-16T23:19:52.899Z — alvo http://localho
 ━━ 6. Evidências sintéticas projetadas; professor vê perfil, evidências, alertas e mapa BNCC
   ✔ perfil por competência projetado (sintético) — esperado true, obtido true
     GET   /assessment/students/{id}/evidence → 200
-  ✔ evidências rastreáveis ligadas ao planeta — esperado "97731f3e-76c9-4f18-bd3f-0cabdda7dd6c", obtido "97731f3e-76c9-4f18-bd3f-0cabdda7dd6c"
+  ✔ evidências rastreáveis ligadas ao planeta — esperado "df5c5760-a4ca-450e-8d05-10abb512c026", obtido "df5c5760-a4ca-450e-8d05-10abb512c026"
     GET   /dashboard/classes/{id}/alerts → 200
   ✔ alertas (limiares placeholder pedagógico) — esperado [200,"pending_pedagogical_review"], obtido [200,"pending_pedagogical_review"]
     GET   /assessment/students/{id}/bncc → 200
@@ -75,7 +75,7 @@ Smoke ECOSFERA platform-api — 2026-11-16T23:19:52.899Z — alvo http://localho
 
 ━━ 7. Exportação: URL assinada de curta duração que expira
     GET   /dashboard/reports/export?format=csv&classId={id} → 200
-  ✔ relatório CSV gerado — esperado 200, obtido 200 — expira em 2026-11-16T23:19:56.635Z
+  ✔ relatório CSV gerado — esperado 200, obtido 200 — expira em 2026-11-17T14:58:19.176Z
   ✔ download pela URL assinada — esperado 200, obtido 200
     aguardando 4 s para a URL expirar…
   ✔ URL expirada é recusada — esperado true, obtido true (status 403)
@@ -125,7 +125,7 @@ Smoke ECOSFERA platform-api — 2026-11-16T23:19:52.899Z — alvo http://localho
     GET   /research/dataset?anonymized=false → 422 /errors/validation
   ✔ anonymized=false recusado — esperado 422, obtido 422
     GET   /research/dataset?anonymized=true&format=csv → 200
-  ✔ dataset gerado e NÃO vazio — esperado [200,true], obtido [200,true] — k=5, linhas=32, grupos suprimidos=0
+  ✔ dataset gerado e NÃO vazio — esperado [200,true], obtido [200,true] — k=5, linhas=42, grupos suprimidos=0
     varredura de PII: 33 valores conhecidos (nomes, e-mails, ids) procurados; 0 achados; UUIDs: 0; e-mails: 0
   ✔ nenhuma PII no dataset — esperado [0,0,0], obtido [0,0,0]
 
@@ -173,13 +173,13 @@ Smoke ECOSFERA platform-api — 2026-11-16T23:19:52.899Z — alvo http://localho
   ✔ professor não lê mais dados pedagógicos do aluno — esperado 403, obtido 403 (antes: 2 evidências)
 
 ━━ 10. Auditoria imutável
-    audit_log: auth.login_failed (denied) × 15
-    audit_log: auth.refresh_reuse_detected (denied) × 3
-    audit_log: consent.granted (success) × 54
-    audit_log: consent.revoked (success) × 6
-    audit_log: export.created (success) × 4
-    audit_log: minor_data.accessed (success) × 15
-    audit_log: research.dataset_exported (success) × 3
+    audit_log: auth.login_failed (denied) × 5
+    audit_log: auth.refresh_reuse_detected (denied) × 1
+    audit_log: consent.granted (success) × 18
+    audit_log: consent.revoked (success) × 2
+    audit_log: export.created (success) × 1
+    audit_log: minor_data.accessed (success) × 4
+    audit_log: research.dataset_exported (success) × 1
   ✔ registrado: consent.granted — esperado true, obtido true
   ✔ registrado: consent.revoked — esperado true, obtido true
   ✔ registrado: export.created — esperado true, obtido true

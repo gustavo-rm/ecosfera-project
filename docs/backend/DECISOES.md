@@ -33,3 +33,12 @@ Cada decisão tem motivo. As de arquitetura têm ADR em `docs/adr/` (0005 a 0017
 | DEC-27 | `prom-client` substituído por `@prometheus-io/client` | O primeiro foi descontinuado em favor do segundo (mesma API) |
 | DEC-28 | NestJS mantido na major 11 (11.2.10), `express` 5.3 | Corrige avisos de segurança de `multer`, `proxy-addr`, `body-parser` sem subir de major |
 | DEC-29 | Cobertura mínima: linhas 80%, statements 78%, funções 70%, ramos 60% (unit + integração) | Medido 82/80/73/64; o gate evita regressão |
+| DEC-30 | Professor só matricula aluno que não está em turma de outro professor; coordenação e admin matriculam qualquer aluno da escola | Sem isso, matricular dava ao professor acesso a qualquer aluno (revisão, achado 2) |
+| DEC-31 | Maioridade de aluno só é declarada por admin da escola ou operador, e voltar ao papel de aluno marca menor de novo | O consentimento parental não pode ser contornado por quem lida com o aluno no dia a dia (achado 3). Data de nascimento não é coletada (minimização); se a escola precisar, é uma decisão do DPO |
+| DEC-32 | Vida máxima absoluta da sessão: 30 dias (`REFRESH_ABSOLUTE_TTL_SECONDS`) | Refresh contínuo não pode tornar a sessão eterna (achado 4) |
+| DEC-33 | O e-mail do responsável não é alterável pelo admin da escola | Protege a conta que decide o consentimento (achado 5) |
+| DEC-34 | Em produção, aceite só sobre texto `approved` (`CONSENT_REQUIRE_APPROVED_TEXT`); em dev/teste aceita placeholder | Consentimento sobre texto não aprovado é inválido (achado 7). Consequência: em produção nenhum menor usa a plataforma até o DPO aprovar os textos (P9) |
+| DEC-35 | Segredo de cliente OIDC só de variáveis `OIDC_CLIENT_SECRET_*` | Evita exfiltração de segredos do servidor (achado 1, crítico) |
+| DEC-36 | Em produção, URLs de IdP/LMS precisam ser https e não resolver para IP interno | SSRF (achado 8) |
+| DEC-37 | `NODE_ENV` obrigatório | A proibição de fakes não pode falhar aberta (achado 13) |
+| DEC-38 | Login federado amarrado ao navegador por cookie de uso único (`SameSite=None; Secure` no LTI) | CSRF de login |

@@ -1,13 +1,13 @@
 # Relatório de segurança — platform-api
 
-**Data:** 2026-11-16. **Escopo:** só a aplicação local e o ambiente de teste (Testcontainers). Testes defensivos e negativos; nenhuma ferramenta de ataque, nenhum sistema de terceiros.
+**Data:** 2026-11-16, atualizado em 2026-11-17 após a revisão independente. **Escopo:** só a aplicação local e o ambiente de teste (Testcontainers). Testes defensivos e negativos; nenhuma ferramenta de ataque, nenhum sistema de terceiros.
 
 ## Resumo
 
 | Verificação | Método | Resultado |
 |---|---|---|
-| Toda rota declara autorização e contrato; rotas públicas numa lista fechada (12) | `test/arquitetura/contrato-e-rotas.int-spec.ts` (reflexão sobre os decoradores + comparação com o app) | ✔ 85 rotas |
-| Matriz de acesso indevido gerada das declarações | `test/seguranca/matriz-de-acesso.int-spec.ts` | ✔ 183 verificações (74 × 401 sem token, 68 × 403 papel fora da lista, 41 × 404 recurso de outra escola) + credencial de serviço |
+| Toda rota declara autorização e contrato; rotas públicas numa lista fechada (12) | `test/arquitetura/contrato-e-rotas.int-spec.ts` (reflexão sobre os decoradores + comparação com o app) | ✔ 87 rotas |
+| Matriz de acesso indevido gerada das declarações | `test/seguranca/matriz-de-acesso.int-spec.ts` | ✔ 188 verificações (76 × 401 sem token, 70 × 403 papel fora da lista, 42 × 404 recurso de outra escola) + credencial de serviço |
 | Posse do planeta, turma, missão; aluno × aluno; professor de outra turma | `fluxo-planeta-avaliacao`, `educacao`, testes unitários de política | ✔ |
 | Token expirado, assinado com outro segredo, `alg: none` | `autenticacao.int-spec.ts` | ✔ 401 |
 | Refresh reutilizado revoga a família (refresh novo e access token da sessão também morrem) | idem | ✔ |
@@ -30,9 +30,34 @@
 | Cabeçalhos de segurança (helmet: CSP, HSTS em produção, nosniff, frame) e CORS restrito à lista | inspeção da resposta no boot | ✔ |
 | Dependências: `pnpm audit --prod` (alta/crítica nas dependências do platform-api) | auditoria | ✔ 0 (após subir @nestjs 11.2 e express 5.3) |
 
-## Revisão independente
+## Revisão independente (2026-11-16)
 
-Ver seção "Revisão independente" no `RELATORIO_FINAL.md` (achados e o que foi corrigido).
+Um agente revisor, sem ter visto o trabalho, leu o diff de autorização, consentimento, federação e migrações. Achados confirmados e o que foi feito (regressões em `test/seguranca/regressoes-da-revisao.int-spec.ts`):
+
+| # | Severidade | Achado | Correção | Teste |
+|---|---|---|---|---|
+| 1 | Crítica | Admin de escola registrava provedor OIDC com `clientSecretEnv=JWT_ACCESS_SECRET` (ou outro segredo do processo) e o servidor enviava o segredo ao IdP do atacante → forjar token de operador | Só variáveis `OIDC_CLIENT_SECRET_*` (no registro e na leitura) | ✔ |
+| 2 | Alta | Professor matriculava aluno de outro professor na própria turma e ganhava acesso aos dados dele | Professor só matricula aluno que não está em turma de outro professor; coordenação/admin sem restrição | ✔ |
+| 3 | Alta | `isMinor=false` declarado por professor, ou troca de papel ida e volta, contornava o consentimento parental | Só admin/operador declara maioridade; voltar a aluno marca menor de novo | ✔ |
+| 4 | Alta | Conjunto de sessões do usuário expirava antes das sessões renovadas → "revogar todas" falhava | TTL do conjunto renovado na rotação (`EXPIRE NX/GT`) + vida máxima absoluta de 30 dias | ✔ |
+| 5 | Média | Admin trocava o e-mail do responsável e assumia a conta que consente | Admin não troca e-mail de responsável; troca de e-mail encerra sessões | ✔ |
+| 6 | Média | Corrida no cache do consentimento podia manter "concedido" por até 60 s após a revogação | Cache versionado: gravação atômica só se a versão não mudou | ✔ (lógica); corrida em si não é reproduzida em teste |
+| 7 | Média | Aceite sobre texto placeholder não aprovado | Em produção exige texto `approved`; rota para o operador publicar a versão aprovada | ✔ |
+| 8 | Média | SSRF por URLs de IdP/LMS definidas pelo admin | Em produção: só https e host que não resolve para IP interno; checado no registro e antes de cada requisição | ✔ unitário |
+| 9 | Média/baixa | `assessmentId` do feedback não era conferido | Precisa ser avaliação do mesmo aluno | revisão de código |
+| 10 | Baixa | Ações de sincronização sem validação; mensagem interna devolvida | Mesmo schema das rotas; erro só com o tipo | ✔ |
+| 11 | Baixa | Baseline reformatada pelo Prettier | Revertida byte a byte; excluída do lint/format | `git diff develop` vazio |
+| 12 | Baixa | `down` da migração transformaria aceites de outras finalidades em genéricos | `down` remove as linhas que o schema antigo não representa | revisão de código |
+| 13 | Baixa | Sem `NODE_ENV`, a proibição de fakes falhava aberta | `NODE_ENV` obrigatório; `http` exige `AI_SIM_BASE_URL` | ✔ unitário |
+| 14 | Baixa | Evento anterior à concessão era projetado | Compara `occurredAt` com `granted_at` | ✔ |
+| 15 | Baixa | `contextRef` livre ia sem redação à IA | Restrito a identificador | ✔ |
+| S1 | Suspeita confirmada | CSRF de login federado (estado não amarrado ao navegador) | Cookie de vínculo de uso único | ✔ |
+| S2 | Suspeita confirmada | OIDC sem `sub` colidiria identidades | Recusado | revisão de código |
+| S3 | Suspeita confirmada | `ALTER DEFAULT PRIVILEGES` só para o papel que roda o script | Acrescentado `FOR ROLE platform_migrator` | revisão de código |
+| S4 | Suspeita confirmada | Professor lia rascunhos de missões de colegas | Só publicadas ou próprias | ✔ unitário |
+| — | Lacuna RF-002 | Sem rota para desativar/reativar conta | `PATCH /users/{id}/status` | ✔ |
+
+Não corrigido (risco residual aceito e registrado): o admin da escola ainda pode criar um responsável e vinculá-lo a um aluno (a escola é controladora dos dados e a ação é auditada); exportações já geradas não são apagadas na exclusão do titular (saem pela retenção em 7 dias).
 
 ## O que NÃO foi verificado
 
@@ -41,10 +66,10 @@ Ver seção "Revisão independente" no `RELATORIO_FINAL.md` (achados e o que foi
 - TLS fim a fim (o TLS é terminado no proxy reverso, fora do pacote).
 - Teste de intrusão externo.
 
-## Saída da matriz de acesso (execução de 2026-11-16)
+## Saída da matriz de acesso (execução de 2026-11-17)
 
 ```
-[matriz-de-acesso] 184 verificações:
+[matriz-de-acesso] 189 verificações:
 sem token        POST   /auth/logout → 401
 sem token        GET    /auth/me → 401
 sem token        POST   /users → 401
@@ -54,6 +79,7 @@ sem token        GET    /users/{id} → 401
 sem token        PATCH  /users/{id} → 401
 sem token        PATCH  /users/{id}/preferences → 401
 sem token        PATCH  /users/{id}/role → 401
+sem token        PATCH  /users/{id}/status → 401
 sem token        POST   /users/{id}/password-reset → 401
 sem token        POST   /users/{id}/guardians → 401
 sem token        POST   /users/{id}/consent → 401
@@ -61,6 +87,7 @@ sem token        POST   /users/{id}/consent/revoke → 401
 sem token        GET    /users/{id}/consent → 401
 sem token        GET    /consent-texts → 401
 sem token        GET    /internal/consent/{id} → 401
+sem token        POST   /admin/consent-texts → 401
 sem token        POST   /admin/lti/platforms → 401
 sem token        POST   /admin/oidc/providers → 401
 sem token        POST   /schools → 401
@@ -125,11 +152,13 @@ papel student        GET    /guardians/me/students → 403
 papel researcher     GET    /users/{id} → 403
 papel student        PATCH  /users/{id} → 403
 papel student        PATCH  /users/{id}/role → 403
+papel student        PATCH  /users/{id}/status → 403
 papel student        POST   /users/{id}/password-reset → 403
 papel student        POST   /users/{id}/guardians → 403
 papel student        POST   /users/{id}/consent → 403
 papel student        POST   /users/{id}/consent/revoke → 403
 papel researcher     GET    /users/{id}/consent → 403
+papel student        POST   /admin/consent-texts → 403
 papel student        POST   /admin/lti/platforms → 403
 papel student        POST   /admin/oidc/providers → 403
 papel student        POST   /schools → 403
@@ -191,6 +220,7 @@ outra escola student     GET    /users/{id} (usuario:ler) → 404
 outra escola admin       PATCH  /users/{id} (usuario:gerir) → 404
 outra escola student     PATCH  /users/{id}/preferences (usuario:proprio) → 404
 outra escola admin       PATCH  /users/{id}/role (usuario:gerir) → 404
+outra escola admin       PATCH  /users/{id}/status (usuario:gerir) → 404
 outra escola admin       POST   /users/{id}/password-reset (usuario:gerir) → 404
 outra escola admin       POST   /users/{id}/guardians (usuario:gerir) → 404
 outra escola guardian    POST   /users/{id}/consent (usuario:ler) → 404
