@@ -1,0 +1,12 @@
+{
+  "name": "ECOSFERA",
+  "short_name": "ECOSFERA",
+  "description": "Crie e evolua um planeta e aprenda ciências por causa e efeito.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070b16",
+  "theme_color": "#070b16",
+  "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

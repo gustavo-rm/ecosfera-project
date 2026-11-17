@@ -1,0 +1,61 @@
+/*
+ * ECOSFERA design tokens (prefix ec). Source of truth for color, type, spacing, radius, shadow and touch targets.
+ * Documented in docs/frontend/DESIGN_TOKENS.md. Contrast pairs are checked by src/ui/__tests__/tokens.test.ts.
+ * Brand colors are a PROPOSAL, subject to review by the product designer.
+ */
+:root, .ec-theme-dark {
+  --ec-bg: #070b16; --ec-surface: #101726; --ec-surface-2: #182135; --ec-surface-3: #24304a; --ec-scrim: rgba(4, 6, 13, 0.72);
+  --ec-border: #62759a; --ec-border-subtle: #2c3a55;
+  --ec-text: #eef2fa; --ec-text-muted: #aebad0; --ec-text-inverse: #071a14;
+  --ec-primary: #3ddc97; --ec-primary-hover: #63e6ad; --ec-on-primary: #04231a;
+  --ec-accent: #ffb454; --ec-on-accent: #2b1700;
+  --ec-info: #6cb6ff; --ec-success: #3ddc97; --ec-warning: #f2cc60; --ec-danger: #ff8078; --ec-on-danger: #2a0503;
+  --ec-focus: #ffd866;
+  --ec-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5); --ec-shadow-2: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --ec-chart-grid: #33425f; --ec-synthetic: #f2cc60;
+  color-scheme: dark;
+}
+.ec-theme-light {
+  --ec-bg: #f3f5fa; --ec-surface: #ffffff; --ec-surface-2: #e9edf5; --ec-surface-3: #d9e0ec; --ec-scrim: rgba(16, 23, 38, 0.5);
+  --ec-border: #66758f; --ec-border-subtle: #c3ccdb;
+  --ec-text: #0f1626; --ec-text-muted: #45526b; --ec-text-inverse: #ffffff;
+  --ec-primary: #08714e; --ec-primary-hover: #065a3e; --ec-on-primary: #ffffff;
+  --ec-accent: #8f5200; --ec-on-accent: #ffffff;
+  --ec-info: #0b5cad; --ec-success: #08714e; --ec-warning: #7a5600; --ec-danger: #b3261e; --ec-on-danger: #ffffff;
+  --ec-focus: #0b3fbf;
+  --ec-shadow-1: 0 1px 2px rgba(16, 23, 38, 0.18); --ec-shadow-2: 0 8px 28px rgba(16, 23, 38, 0.2);
+  --ec-chart-grid: #c3ccdb; --ec-synthetic: #7a5600;
+  color-scheme: light;
+}
+.ec-contrast-high, .ec-contrast-high.ec-theme-dark {
+  --ec-bg: #000000; --ec-surface: #000000; --ec-surface-2: #0d0d0d; --ec-surface-3: #1c1c1c; --ec-scrim: rgba(0, 0, 0, 0.9);
+  --ec-border: #ffffff; --ec-border-subtle: #b8b8b8;
+  --ec-text: #ffffff; --ec-text-muted: #e6e6e6; --ec-text-inverse: #000000;
+  --ec-primary: #5fffb0; --ec-primary-hover: #a6ffd3; --ec-on-primary: #000000;
+  --ec-accent: #ffd27a; --ec-on-accent: #000000;
+  --ec-info: #9fd0ff; --ec-success: #5fffb0; --ec-warning: #ffe27a; --ec-danger: #ffb0aa; --ec-on-danger: #000000;
+  --ec-focus: #ffff00; --ec-chart-grid: #8c8c8c; --ec-synthetic: #ffe27a;
+}
+.ec-contrast-high.ec-theme-light {
+  --ec-bg: #ffffff; --ec-surface: #ffffff; --ec-surface-2: #f2f2f2; --ec-surface-3: #e0e0e0; --ec-scrim: rgba(255, 255, 255, 0.92);
+  --ec-border: #000000; --ec-border-subtle: #4d4d4d;
+  --ec-text: #000000; --ec-text-muted: #1f1f1f; --ec-text-inverse: #ffffff;
+  --ec-primary: #004d33; --ec-primary-hover: #00331f; --ec-on-primary: #ffffff;
+  --ec-accent: #5c3400; --ec-on-accent: #ffffff;
+  --ec-info: #003a75; --ec-success: #004d33; --ec-warning: #4d3600; --ec-danger: #8a0f08; --ec-on-danger: #ffffff;
+  --ec-focus: #0000d6; --ec-chart-grid: #4d4d4d; --ec-synthetic: #4d3600;
+}
+:root {
+  --ec-font-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+  --ec-font-body: "Inter Variable", "Inter", system-ui, sans-serif;
+  --ec-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --ec-font-scale: 1;
+  --ec-text-xs: 0.75rem; --ec-text-sm: 0.875rem; --ec-text-md: 1rem; --ec-text-lg: 1.125rem; --ec-text-xl: 1.375rem; --ec-text-2xl: 1.75rem; --ec-text-3xl: 2.25rem;
+  --ec-space-1: 0.25rem; --ec-space-2: 0.5rem; --ec-space-3: 0.75rem; --ec-space-4: 1rem; --ec-space-5: 1.5rem; --ec-space-6: 2rem; --ec-space-7: 3rem; --ec-space-8: 4rem;
+  --ec-radius-sm: 6px; --ec-radius-md: 10px; --ec-radius-lg: 16px; --ec-radius-pill: 999px;
+  /* WCAG 2.5.5 target size; the HUD uses the larger one for touch on school Chromebooks and tablets. */
+  --ec-target: 44px; --ec-target-lg: 52px;
+  --ec-focus-width: 3px;
+  --ec-duration-fast: 120ms; --ec-duration: 220ms;
+}
+.ec-motion-reduced { --ec-duration-fast: 0ms; --ec-duration: 0ms; }
