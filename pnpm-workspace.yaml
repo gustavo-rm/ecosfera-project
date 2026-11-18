@@ -3,6 +3,7 @@ packages:
   - "services/*"
   - "packages/*"
 allowBuilds:
+  esbuild: true
   sharp: true
   unrs-resolver: true
   # Binários opcionais de dependências do platform-api (Testcontainers e exportador OTLP).
