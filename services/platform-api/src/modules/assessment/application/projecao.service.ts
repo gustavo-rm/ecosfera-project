@@ -2,7 +2,7 @@ import {
   Inject,
   Injectable,
   type OnApplicationBootstrap,
-  type OnApplicationShutdown,
+  type BeforeApplicationShutdown,
 } from '@nestjs/common';
 import type { Logger } from 'pino';
 import { DataSource, type EntityManager } from 'typeorm';
@@ -45,7 +45,7 @@ import {
  */
 @Injectable()
 export class ProjecaoDeAvaliacao
-  implements OnApplicationBootstrap, OnApplicationShutdown
+  implements OnApplicationBootstrap, BeforeApplicationShutdown
 {
   constructor(
     private readonly ds: DataSource,
@@ -61,7 +61,8 @@ export class ProjecaoDeAvaliacao
       await this.fonte.iniciar((e) => this.tratar(e));
   }
 
-  async onApplicationShutdown(): Promise<void> {
+  /** Antes do fechamento das conexões: termina o evento em curso e para de ler o stream. */
+  async beforeApplicationShutdown(): Promise<void> {
     await this.fonte.parar();
   }
 

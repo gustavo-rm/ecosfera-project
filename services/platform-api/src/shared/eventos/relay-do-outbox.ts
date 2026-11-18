@@ -2,7 +2,7 @@ import {
   Inject,
   Injectable,
   type OnApplicationBootstrap,
-  type OnApplicationShutdown,
+  type BeforeApplicationShutdown,
 } from '@nestjs/common';
 import type { Logger } from 'pino';
 import { DataSource, IsNull } from 'typeorm';
@@ -20,10 +20,12 @@ import { EVENT_PUBLISHER, type EventPublisher } from './portas';
  */
 @Injectable()
 export class RelayDoOutbox
-  implements OnApplicationBootstrap, OnApplicationShutdown
+  implements OnApplicationBootstrap, BeforeApplicationShutdown
 {
   private timer?: NodeJS.Timeout;
   private rodando = false;
+  private encerrando = false;
+  private emAndamento?: Promise<number>;
 
   constructor(
     private readonly ds: DataSource,
@@ -39,12 +41,23 @@ export class RelayDoOutbox
     this.timer.unref();
   }
 
-  onApplicationShutdown(): void {
+  /**
+   * Roda ANTES do fechamento das conexões (onApplicationShutdown): para o timer e espera
+   * o lote em curso terminar, para não cortar uma transação no meio do desligamento.
+   */
+  async beforeApplicationShutdown(): Promise<void> {
+    this.encerrando = true;
     if (this.timer) clearInterval(this.timer);
+    await this.emAndamento?.catch(() => undefined);
   }
 
-  async drenar(): Promise<number> {
-    if (this.rodando) return 0;
+  drenar(): Promise<number> {
+    if (this.encerrando || this.rodando) return Promise.resolve(0);
+    this.emAndamento = this.executar();
+    return this.emAndamento;
+  }
+
+  private async executar(): Promise<number> {
     this.rodando = true;
     try {
       return await this.ds.transaction(async (em) => {
