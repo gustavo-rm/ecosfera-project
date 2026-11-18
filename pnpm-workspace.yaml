@@ -5,3 +5,8 @@ packages:
 allowBuilds:
   sharp: true
   unrs-resolver: true
+  # Binários opcionais de dependências do platform-api (Testcontainers e exportador OTLP).
+  # Nenhum é necessário; false nega a execução dos scripts de build.
+  cpu-features: false
+  ssh2: false
+  protobufjs: false

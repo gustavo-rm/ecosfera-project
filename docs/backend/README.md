@@ -38,8 +38,6 @@ pnpm --filter platform-api dev
 
 A API fica em `http://localhost:3000/platform/api/v1` (`/health`, `/ready`). O WebSocket do planeta é `ws://localhost:3000/platform/api/v1/planets/{id}/stream` com subprotocolos `ecosfera.v1` e `bearer.<accessToken>`.
 
-> Observação: neste momento o pnpm 11 recusa `pnpm install --frozen-lockfile` enquanto o pedido P3 (`allowBuilds` na raiz) não for aprovado. Localmente, `npm_config_verify_deps_before_run=false` permite rodar os scripts.
-
 ### Credenciais locais
 
 O seed **gera** as senhas a cada execução e grava em `services/platform-api/.credenciais-dev.json` (permissão 600, ignorado pelo git). Lá estão o operador da plataforma, admin, professores (Marina, Rafael), coordenadora (Beatriz), alunos (Lucas, Sofia), responsável (Helena) e pesquisador. Lucas começa **sem consentimento**: entre como Helena e registre o consentimento (`POST /users/{id}/consent`).
