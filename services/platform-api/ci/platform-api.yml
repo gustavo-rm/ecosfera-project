@@ -1,0 +1,31 @@
+# PROPOSTA de job de CI do platform-api (copiar para .github/workflows/ — pedido P5, precisa de aprovação).
+name: CI (platform-api)
+on:
+  push: { branches: [develop, main] }
+  pull_request:
+    paths: ['services/platform-api/**', 'packages/api-contracts/**', 'pnpm-lock.yaml']
+jobs:
+  platform-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: corepack enable
+      - uses: pnpm/action-setup@v4
+        with: { package_json_file: package.json }
+      - run: pnpm install --frozen-lockfile
+      - name: Lint, tipos, contrato congelado, testes (Testcontainers) e gate de cobertura
+        run: pnpm --filter platform-api ci
+      - name: Drift entre entidades e migrações (banco efêmero)
+        run: |
+          docker run -d --name pg -e POSTGRES_PASSWORD=ci -p 5432:5432 pgvector/pgvector:pg16
+          until docker exec pg pg_isready -U postgres; do sleep 1; done
+          docker exec pg psql -U postgres -c 'CREATE SCHEMA platform; CREATE SCHEMA rag;'
+          DATABASE_URL=postgresql://postgres:ci@localhost:5432/postgres pnpm --filter platform-api db:drift --aplicar-migracoes
+      - name: Auditoria de dependências (falha em alta/crítica)
+        run: pnpm --filter platform-api audit --prod --audit-level high
+      - name: Imagem Docker
+        run: docker build -f services/platform-api/Dockerfile -t ecosfera/platform-api:ci .
+      - uses: actions/upload-artifact@v4
+        with: { name: cobertura-platform-api, path: services/platform-api/coverage }

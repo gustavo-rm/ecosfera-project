@@ -1,0 +1,3619 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ECOSFERA platform-api</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;max-width:1100px;margin:auto;padding:16px;color:#1b1b1b;background:#fff}code,pre{font-family:ui-monospace,monospace}pre{background:#f4f4f4;padding:8px;overflow:auto;font-size:12px}details{border:1px solid #ddd;border-radius:6px;margin:6px 0;padding:6px 10px}summary{cursor:pointer}.m{display:inline-block;min-width:56px;font-weight:700;font-size:12px}.get{color:#0a6}.post{color:#06c}.patch,.put{color:#a60}.delete{color:#c22}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}pre{background:#222}details{border-color:#333}}</style></head>
+<body><h1>ECOSFERA platform-api <small>v1.0.0</small></h1><p>API da plataforma educacional ECOSFERA (identidade, educação, avaliação em modo leitura e gateway de simulação/tutor). Erros em RFC 7807 com traceId. A extensão x-authorization descreve, por operação, papéis, regra de posse e consentimento exigidos. WebSocket: GET /planets/{id}/stream (subprotocolos &quot;ecosfera.v1&quot; e &quot;bearer.&lt;jwt&gt;&quot;), mensagens {type: delta|event|tutor|alert, payload, tickId}.</p><p>Base: <code>/platform/api/v1</code>. Gerado do código; a fonte é <code>packages/api-contracts/openapi/platform-api.v1.yaml</code>.</p><nav><a href="#tag-consent">consent</a> · <a href="#tag-federation">federation</a> · <a href="#tag-lgpd">lgpd</a> · <a href="#tag-ai">ai</a> · <a href="#tag-assessment">assessment</a> · <a href="#tag-auth">auth</a> · <a href="#tag-classes">classes</a> · <a href="#tag-curriculum">curriculum</a> · <a href="#tag-dashboard">dashboard</a> · <a href="#tag-users">users</a> · <a href="#tag-operacao">operacao</a> · <a href="#tag-internal">internal</a> · <a href="#tag-missions">missions</a> · <a href="#tag-planets">planets</a> · <a href="#tag-research">research</a> · <a href="#tag-schools">schools</a></nav><section><h2 id="tag-consent">consent</h2><details id="publishConsentText"><summary><span class="m post">POST</span> <code>/admin/consent-texts</code> — Publica nova versão de texto de consentimento (após revisão do DPO)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/PublishConsentTextRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Publicado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>409</code> Versão já existe</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;platform_admin&quot;]}</pre></details><details id="listConsentTexts"><summary><span class="m get">GET</span> <code>/consent-texts</code> — Textos de consentimento vigentes (placeholders versionados)</summary><p><code>query:version</code></p><h4>Respostas</h4><ul><li><code>200</code> Textos</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;guardian&quot;,&quot;researcher&quot;,&quot;platform_admin&quot;]}</pre></details><details id="getConsent"><summary><span class="m get">GET</span> <code>/users/{id}/consent</code> — Status LGPD do aluno</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Status por finalidade</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;guardian&quot;],&quot;ownership&quot;:&quot;usuario:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="grantConsent"><summary><span class="m post">POST</span> <code>/users/{id}/consent</code> — Responsável registra consentimento (RF-008)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/GrantConsentRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Consentimento registrado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Aluno não vinculado</li><li><code>422</code> Versão de texto inexistente</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;guardian&quot;],&quot;ownership&quot;:&quot;usuario:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="revokeConsent"><summary><span class="m post">POST</span> <code>/users/{id}/consent/revoke</code> — Responsável revoga consentimento (efeito imediato)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RevokeConsentRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Revogado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Aluno não vinculado</li><li><code>409</code> Não havia consentimento ativo</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;guardian&quot;],&quot;ownership&quot;:&quot;usuario:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details></section><section><h2 id="tag-federation">federation</h2><details id="registerLtiPlatform"><summary><span class="m post">POST</span> <code>/admin/lti/platforms</code> — Registra plataforma LTI da escola</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RegisterLtiPlatformRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Registrada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>409</code> Já registrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;]}</pre></details><details id="registerOidcProvider"><summary><span class="m post">POST</span> <code>/admin/oidc/providers</code> — Registra provedor OIDC da escola (Keycloak/Ory/…)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RegisterOidcProviderRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Registrado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>409</code> Slug em uso</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;]}</pre></details></section><section><h2 id="tag-lgpd">lgpd</h2><details id="listRetentionPolicies"><summary><span class="m get">GET</span> <code>/admin/retention/policies</code> — Política de retenção (prazos placeholder do DPO)</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Políticas</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;platform_admin&quot;,&quot;admin&quot;]}</pre></details><details id="setRetentionPolicy"><summary><span class="m put">PUT</span> <code>/admin/retention/policies/{category}</code> — Ajusta prazo de retenção (sem novo deploy)</summary><p><code>path:category*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RetentionPolicyRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Ajustada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Categoria inexistente</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;platform_admin&quot;]}</pre></details><details id="runRetention"><summary><span class="m post">POST</span> <code>/admin/retention/run</code> — Executa o expurgo agora</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Contagem por categoria</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;platform_admin&quot;]}</pre></details><details id="dataSubjectAccess"><summary><span class="m get">GET</span> <code>/users/{id}/data-export</code> — Direito de acesso: todos os dados pessoais do titular (RNF-012)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Dados do titular</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;guardian&quot;,&quot;admin&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;researcher&quot;,&quot;platform_admin&quot;]}</pre></details><details id="dataSubjectDeletion"><summary><span class="m post">POST</span> <code>/users/{id}/deletion</code> — Direito de exclusão: apaga dados e pseudonimiza a conta</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Concluído</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;guardian&quot;,&quot;admin&quot;]}</pre></details></section><section><h2 id="tag-ai">ai</h2><details id="adaptation"><summary><span class="m get">GET</span> <code>/ai/adaptation/{studentId}</code> — Parâmetros adaptativos (equipe da escola)</summary><p><code>path:studentId*</code></p><h4>Respostas</h4><ul><li><code>200</code> Parâmetros</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Aluno não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;usuario:pedagogico&quot;,&quot;ownershipParam&quot;:&quot;params.studentId&quot;}</pre></details><details id="advisor"><summary><span class="m post">POST</span> <code>/ai/advisor</code> — Conselheiro-agente (RF-036)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/AdvisorRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Conselho</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="explain"><summary><span class="m post">POST</span> <code>/ai/explain</code> — Explicação causal em fluxo SSE (RF-033/039)</summary><p>Cada evento SSE `data` é JSON {&quot;text&quot;: &quot;...&quot;}; termina com `event: end`.</p><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/ExplainRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Fluxo de texto</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;body.planetId&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="hint"><summary><span class="m post">POST</span> <code>/ai/hint</code> — Dica personalizada (RF-035)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/HintRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Dica</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;body.planetId&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details></section><section><h2 id="tag-assessment">assessment</h2><details id="ingestAssessmentEvent"><summary><span class="m post">POST</span> <code>/assessment/events</code> — Ingesta de evidência/competência pelo serviço de IA (RF-071)</summary><p>Alternativa síncrona ao Redis Streams. Gate de consentimento aplicado.</p><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/AssessmentEventEnvelope&quot;}</pre><h4>Respostas</h4><ul><li><code>202</code> Aceito (processado, duplicado ou descartado por falta de consentimento)</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;service&quot;:true,&quot;services&quot;:[&quot;ai-sim-service&quot;]}</pre></details><details id="listAssessments"><summary><span class="m get">GET</span> <code>/assessment/students/{id}/assessments</code> — Pré/pós-testes e rubricas do aluno</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Lista</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;usuario:pedagogico&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="recordAssessment"><summary><span class="m post">POST</span> <code>/assessment/students/{id}/assessments</code> — Registra pré/pós-teste ou rubrica (RF-074/075)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RecordAssessmentRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Registrado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;],&quot;ownership&quot;:&quot;usuario:pedagogico&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="getBnccMastery"><summary><span class="m get">GET</span> <code>/assessment/students/{id}/bncc</code> — Domínio mapeado à BNCC</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Mapa</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;usuario:pedagogico&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="listEvidence"><summary><span class="m get">GET</span> <code>/assessment/students/{id}/evidence</code> — Evidências rastreáveis (RF-076)</summary><p><code>path:id*</code> <code>query:page</code> <code>query:pageSize</code> <code>query:competency</code></p><h4>Respostas</h4><ul><li><code>200</code> Evidências</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;usuario:pedagogico&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="getCognitiveProfile"><summary><span class="m get">GET</span> <code>/assessment/students/{id}/profile</code> — Perfil por competência (RF-072/073) — só equipe da escola</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Perfil</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;usuario:pedagogico&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details></section><section><h2 id="tag-auth">auth</h2><details id="login"><summary><span class="m post">POST</span> <code>/auth/login</code> — Autentica e emite JWT (RF-003)</summary><p><code>header:X-Refresh-Transport</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/LoginRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Autenticado</li><li><code>401</code> Credenciais inválidas (mensagem não revela se o e-mail existe)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;login&quot;}</pre></details><details id="logout"><summary><span class="m post">POST</span> <code>/auth/logout</code> — Encerra a sessão (revoga access e refresh)</summary><p></p><h4>Respostas</h4><ul><li><code>204</code> Sessão encerrada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;guardian&quot;,&quot;researcher&quot;,&quot;platform_admin&quot;]}</pre></details><details id="ltiLaunch"><summary><span class="m post">POST</span> <code>/auth/lti/launch</code> — SSO via LTI 1.3 e importação da turma (RF-009)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/LtiLaunchRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Sessão aberta</li><li><code>401</code> id_token, estado ou nonce inválido</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;launch LTI autenticado pelo id_token assinado do LMS&quot;}</pre></details><details id="ltiLoginInitiation"><summary><span class="m get">GET</span> <code>/auth/lti/login</code> — Iniciação de login LTI 1.3 (redireciona ao LMS)</summary><p><code>query:iss*</code> <code>query:login_hint*</code> <code>query:target_link_uri</code> <code>query:lti_message_hint</code> <code>query:client_id</code> <code>query:lti_deployment_id</code></p><h4>Respostas</h4><ul><li><code>302</code> Redireciona ao endpoint de autorização do LMS</li><li><code>404</code> Plataforma não registrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;iniciação de login LTI (o LMS chama)&quot;}</pre></details><details id="me"><summary><span class="m get">GET</span> <code>/auth/me</code> — Perfil do usuário autenticado</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Perfil</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;guardian&quot;,&quot;researcher&quot;,&quot;platform_admin&quot;]}</pre></details><details id="oidcAuthorize"><summary><span class="m get">GET</span> <code>/auth/oidc/{slug}/authorize</code> — Início do login OIDC (código + PKCE)</summary><p><code>path:slug*</code></p><h4>Respostas</h4><ul><li><code>302</code> Redireciona ao provedor</li><li><code>404</code> Provedor não registrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li><li><code>503</code> Provedor indisponível</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;início do login federado&quot;}</pre></details><details id="oidcCallback"><summary><span class="m get">GET</span> <code>/auth/oidc/{slug}/callback</code> — Retorno do provedor OIDC</summary><p><code>path:slug*</code> <code>query:code*</code> <code>query:state*</code></p><h4>Respostas</h4><ul><li><code>200</code> Sessão aberta</li><li><code>401</code> Login recusado</li><li><code>403</code> Conta não vinculada</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;retorno do provedor, autenticado por code + state + PKCE&quot;}</pre></details><details id="forgotPassword"><summary><span class="m post">POST</span> <code>/auth/password/forgot</code> — Pede link de redefinição de senha (RF-006)</summary><p>Sempre 202, exista ou não o e-mail.</p><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/ForgotPasswordRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>202</code> Pedido aceito</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;recuperação de senha (sem enumeração)&quot;}</pre></details><details id="resetPassword"><summary><span class="m post">POST</span> <code>/auth/password/reset</code> — Define nova senha com o código recebido (RF-006)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/ResetPasswordRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>204</code> Senha alterada; todas as sessões foram encerradas</li><li><code>400</code> Código inválido ou expirado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;redefinição com código de uso único&quot;}</pre></details><details id="refreshToken"><summary><span class="m post">POST</span> <code>/auth/refresh</code> — Renova o access token com refresh rotativo</summary><p>Refresh vem do cookie ecosfera_refresh ou do corpo. Reuso de um refresh já usado revoga a sessão inteira.</p><p><code>header:X-Refresh-Transport</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RefreshRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Novo access token (e novo refresh)</li><li><code>401</code> Refresh inválido, expirado ou reutilizado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;renovação por refresh token (autenticado pelo próprio refresh)&quot;}</pre></details></section><section><h2 id="tag-classes">classes</h2><details id="listClasses"><summary><span class="m get">GET</span> <code>/classes</code> — Turmas visíveis ao ator (aluno vê só as suas)</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Turmas</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;]}</pre></details><details id="createClass"><summary><span class="m post">POST</span> <code>/classes</code> — Cria turma (RF-005)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/CreateClassRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Turma criada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Professor não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;]}</pre></details><details id="getClass"><summary><span class="m get">GET</span> <code>/classes/{id}</code> — Dados da turma</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Turma</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="listClassStudents"><summary><span class="m get">GET</span> <code>/classes/{id}/students</code> — Alunos da turma</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Alunos</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="enrollStudents"><summary><span class="m post">POST</span> <code>/classes/{id}/students</code> — Vincula alunos à turma (RF-005)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/EnrollStudentsRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Matrículas</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Turma não encontrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="removeStudent"><summary><span class="m delete">DELETE</span> <code>/classes/{id}/students/{studentId}</code> — Remove aluno da turma</summary><p><code>path:id*</code> <code>path:studentId*</code></p><h4>Respostas</h4><ul><li><code>204</code> Removido</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="setClassTrack"><summary><span class="m patch">PATCH</span> <code>/classes/{id}/track</code> — Define trilha EF/Médio/Técnico (RF-061)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/SetTrackRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Turma atualizada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="listTracks"><summary><span class="m get">GET</span> <code>/tracks</code> — Trilhas disponíveis</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Trilhas</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;]}</pre></details></section><section><h2 id="tag-curriculum">curriculum</h2><details id="listBnccSkills"><summary><span class="m get">GET</span> <code>/curriculum/bncc-skills</code> — Catálogo BNCC (dado versionado)</summary><p><code>query:stage</code> <code>query:competency</code></p><h4>Respostas</h4><ul><li><code>200</code> Habilidades</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;researcher&quot;,&quot;platform_admin&quot;]}</pre></details><details id="createBnccSkill"><summary><span class="m post">POST</span> <code>/curriculum/bncc-skills</code> — Inclui habilidade no catálogo (sem novo deploy)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/CreateBnccSkillRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Criada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>409</code> Já existe</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;platform_admin&quot;]}</pre></details><details id="reviewBnccSkill"><summary><span class="m patch">PATCH</span> <code>/curriculum/bncc-skills/{code}</code> — Revisa habilidade (validação por especialista, RSK-06)</summary><p><code>path:code*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/ReviewBnccSkillRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Revisada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;platform_admin&quot;]}</pre></details><details id="listCompetencies"><summary><span class="m get">GET</span> <code>/curriculum/competencies</code> — Competências do modelo pedagógico</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Competências</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;researcher&quot;,&quot;platform_admin&quot;]}</pre></details></section><section><h2 id="tag-dashboard">dashboard</h2><details id="classAlerts"><summary><span class="m get">GET</span> <code>/dashboard/classes/{id}/alerts</code> — Alertas de dificuldade (RF-077)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Alertas</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="classCompetencies"><summary><span class="m get">GET</span> <code>/dashboard/classes/{id}/competencies</code> — Progresso por competência</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Competências</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="classConsents"><summary><span class="m get">GET</span> <code>/dashboard/classes/{id}/consents</code> — Status de consentimento da turma (RF-068)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Status</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="classOverview"><summary><span class="m get">GET</span> <code>/dashboard/classes/{id}/overview</code> — Visão da turma (RF-063)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Visão</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="exportReport"><summary><span class="m get">GET</span> <code>/dashboard/reports/export</code> — Exporta relatório da turma em PDF/CSV (RF-066) — devolve URL assinada de curta duração</summary><p><code>query:format*</code> <code>query:classId*</code></p><h4>Respostas</h4><ul><li><code>200</code> Link</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:gerir&quot;,&quot;ownershipParam&quot;:&quot;query.classId&quot;}</pre></details><details id="getAlertConfig"><summary><span class="m get">GET</span> <code>/dashboard/schools/{id}/alert-config</code> — Limiares de alerta (placeholder pedagógico)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Configuração</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;coordinator&quot;,&quot;admin&quot;,&quot;teacher&quot;]}</pre></details><details id="setAlertConfig"><summary><span class="m put">PUT</span> <code>/dashboard/schools/{id}/alert-config</code> — Define limiares de alerta</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/AlertConfigRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Salvo</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;coordinator&quot;,&quot;admin&quot;]}</pre></details><details id="schoolCompetencies"><summary><span class="m get">GET</span> <code>/dashboard/schools/{id}/competencies</code> — Agregado por competência entre turmas (US-09)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Agregado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;coordinator&quot;,&quot;admin&quot;]}</pre></details><details id="sendFeedback"><summary><span class="m post">POST</span> <code>/dashboard/students/{id}/feedback</code> — Professor envia feedback ao aluno (RF-067)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/FeedbackRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Enviado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;],&quot;ownership&quot;:&quot;usuario:pedagogico&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="markFeedbackRead"><summary><span class="m post">POST</span> <code>/feedback/{id}/read</code> — Marca feedback como lido</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>204</code> Marcado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;]}</pre></details><details id="myFeedback"><summary><span class="m get">GET</span> <code>/feedback/me</code> — Aluno vê o feedback recebido (sem notas)</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Feedback</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;]}</pre></details></section><section><h2 id="tag-users">users</h2><details id="myStudents"><summary><span class="m get">GET</span> <code>/guardians/me/students</code> — Alunos vinculados ao responsável autenticado</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Alunos</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;guardian&quot;]}</pre></details><details id="listUsers"><summary><span class="m get">GET</span> <code>/users</code> — Lista usuários da escola do ator</summary><p><code>query:page</code> <code>query:pageSize</code> <code>query:role</code></p><h4>Respostas</h4><ul><li><code>200</code> Página de usuários</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;,&quot;coordinator&quot;]}</pre></details><details id="createUser"><summary><span class="m post">POST</span> <code>/users</code> — Cria usuário com papel (RF-002)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/CreateUserRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Usuário criado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>409</code> E-mail já cadastrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;,&quot;teacher&quot;,&quot;platform_admin&quot;]}</pre></details><details id="getUser"><summary><span class="m get">GET</span> <code>/users/{id}</code> — Perfil de um usuário</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Perfil</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (ou de outra escola)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;guardian&quot;,&quot;platform_admin&quot;],&quot;ownership&quot;:&quot;usuario:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="rectifyUser"><summary><span class="m patch">PATCH</span> <code>/users/{id}</code> — Corrige nome/e-mail (direito do titular, RNF-012)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RectifyUserRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Corrigido</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>409</code> E-mail em uso</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;,&quot;platform_admin&quot;],&quot;ownership&quot;:&quot;usuario:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="linkGuardian"><summary><span class="m post">POST</span> <code>/users/{id}/guardians</code> — Vincula responsável a aluno menor (RF-007)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/LinkGuardianRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Vínculo criado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Aluno ou responsável não encontrado</li><li><code>409</code> Já vinculado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;],&quot;ownership&quot;:&quot;usuario:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="adminPasswordReset"><summary><span class="m post">POST</span> <code>/users/{id}/password-reset</code> — Admin envia link de redefinição ao usuário (RF-006)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>202</code> Link enviado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li><li><code>501</code> E-mail não configurado</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;,&quot;platform_admin&quot;],&quot;ownership&quot;:&quot;usuario:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="updatePreferences"><summary><span class="m patch">PATCH</span> <code>/users/{id}/preferences</code> — Acessibilidade e idioma (RF-010)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/PreferencesPatch&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Preferências salvas</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;,&quot;guardian&quot;,&quot;researcher&quot;,&quot;platform_admin&quot;],&quot;ownership&quot;:&quot;usuario:proprio&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="changeUserRole"><summary><span class="m patch">PATCH</span> <code>/users/{id}/role</code> — Muda o papel (encerra as sessões do usuário; auditado)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/ChangeRoleRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Papel alterado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;,&quot;platform_admin&quot;],&quot;ownership&quot;:&quot;usuario:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="setUserStatus"><summary><span class="m patch">PATCH</span> <code>/users/{id}/status</code> — Desativa ou reativa a conta (RF-002); desativar encerra as sessões</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/SetUserStatusRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Situação alterada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;,&quot;platform_admin&quot;],&quot;ownership&quot;:&quot;usuario:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details></section><section><h2 id="tag-operacao">operacao</h2><details id="health"><summary><span class="m get">GET</span> <code>/health</code> — Liveness: o processo está de pé</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Processo vivo</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;sonda de liveness do orquestrador&quot;}</pre></details><details id="metrics"><summary><span class="m get">GET</span> <code>/metrics</code> — Métricas Prometheus (exige METRICS_TOKEN em produção)</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Métricas no formato texto do Prometheus</li><li><code>403</code> Token de métricas ausente ou inválido</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;raspagem do Prometheus; protegida por METRICS_TOKEN&quot;}</pre></details><details id="ready"><summary><span class="m get">GET</span> <code>/ready</code> — Readiness: banco e Redis respondem</summary><p></p><h4>Respostas</h4><ul><li><code>200</code> Pronto para receber tráfego</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li><li><code>503</code> Dependência indisponível</li></ul><h4>Autorização</h4><pre>{&quot;public&quot;:true,&quot;reason&quot;:&quot;sonda de readiness do orquestrador&quot;}</pre></details></section><section><h2 id="tag-internal">internal</h2><details id="internalConsentStatus"><summary><span class="m get">GET</span> <code>/internal/consent/{id}</code> — Consulta de consentimento para outros serviços (credencial de serviço)</summary><p>Usado pelo ai-sim-service antes de coletar telemetria. Resposta mínima, sem PII.</p><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Situação</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Usuário inexistente</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;service&quot;:true,&quot;services&quot;:&quot;allowed list (SERVICE_ALLOWED_NAMES)&quot;}</pre></details></section><section><h2 id="tag-missions">missions</h2><details id="listMissions"><summary><span class="m get">GET</span> <code>/missions</code> — Missões da turma (aluno vê só as publicadas)</summary><p><code>query:classId*</code></p><h4>Respostas</h4><ul><li><code>200</code> Missões</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Turma não encontrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;turma:ler&quot;,&quot;ownershipParam&quot;:&quot;query.classId&quot;}</pre></details><details id="createMission"><summary><span class="m post">POST</span> <code>/missions</code> — Cria missão ancorada à BNCC (RF-062, RP-001)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/CreateMissionRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Missão criada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>422</code> Código BNCC inexistente ou dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;]}</pre></details><details id="getMission"><summary><span class="m get">GET</span> <code>/missions/{id}</code> — Detalhe da missão</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Missão</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;missao:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details><details id="publishMission"><summary><span class="m post">POST</span> <code>/missions/{id}/publish</code> — Publica a missão para turmas</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/PublishMissionRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Publicada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrada</li><li><code>409</code> Missão arquivada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;missao:gerir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;}</pre></details></section><section><h2 id="tag-planets">planets</h2><details id="createPlanet"><summary><span class="m post">POST</span> <code>/planets</code> — Cria planeta (RF-011) — exige consentimento do responsável</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/CreatePlanetRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Planeta criado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem consentimento (consent-required) ou sem permissão</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li><li><code>503</code> Serviço de simulação indisponível</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="getPlanet"><summary><span class="m get">GET</span> <code>/planets/{id}</code> — Estado atual</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Estado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (ou não é seu)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;planeta:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="saveCheckpoint"><summary><span class="m post">POST</span> <code>/planets/{id}/checkpoints</code> — Salva checkpoint (RF-015)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>201</code> Salvo</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="listPlanetEvents"><summary><span class="m get">GET</span> <code>/planets/{id}/events</code> — Histórico de eventos</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Eventos</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;planeta:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="respondPlanetEvent"><summary><span class="m post">POST</span> <code>/planets/{id}/events/respond</code> — Responde a evento em curso</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/RespondEventRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Resultado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Evento não encontrado</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="applyIntervention"><summary><span class="m post">POST</span> <code>/planets/{id}/interventions</code> — Aplica intervenção/trade-off (RF-017/018)</summary><p><code>path:id*</code> <code>header:Idempotency-Key</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/InterventionRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Efeito</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Planeta não encontrado</li><li><code>409</code> Pontos de ação insuficientes</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="getSeries"><summary><span class="m get">GET</span> <code>/planets/{id}/series</code> — Séries temporais (RF-021)</summary><p><code>path:id*</code> <code>query:metric*</code></p><h4>Respostas</h4><ul><li><code>200</code> Série</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;planeta:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="syncOfflineActions"><summary><span class="m post">POST</span> <code>/planets/{id}/sync</code> — Sincroniza ações feitas offline (RNF-021) — idempotente por ação</summary><p>Ponto de entrada reservado. O formato definitivo depende do contrato com o serviço de simulação.</p><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/SyncRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Resultado por ação</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="tickPlanet"><summary><span class="m post">POST</span> <code>/planets/{id}/tick</code> — Avança o tempo (RF-013). Passos acima do limite viram job assíncrono (202).</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/TickRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Delta síncrono</li><li><code>202</code> Job aceito</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="getTimeline"><summary><span class="m get">GET</span> <code>/planets/{id}/timeline</code> — Linha do tempo e checkpoints (RF-015/016)</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Linha do tempo</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;,&quot;teacher&quot;,&quot;coordinator&quot;,&quot;admin&quot;],&quot;ownership&quot;:&quot;planeta:ler&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details><details id="validatePlanetParams"><summary><span class="m post">POST</span> <code>/planets/{id}/validate</code> — Valida parâmetros (RF-012)</summary><p><code>path:id*</code></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/ValidateParamsRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>200</code> Resultado</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrado (inclui recurso de outra escola, que não é revelado)</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;student&quot;],&quot;ownership&quot;:&quot;planeta:agir&quot;,&quot;ownershipParam&quot;:&quot;params.id&quot;,&quot;consentWhenActorIsMinor&quot;:&quot;platform_use&quot;}</pre></details></section><section><h2 id="tag-research">research</h2><details id="researchDataset"><summary><span class="m get">GET</span> <code>/research/dataset</code> — Dataset anonimizado para pesquisa (RF-078)</summary><p><code>query:anonymized*</code> <code>query:format</code></p><h4>Respostas</h4><ul><li><code>200</code> Link do dataset</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>422</code> anonymized=false não é permitido</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;researcher&quot;]}</pre></details></section><section><h2 id="tag-schools">schools</h2><details id="createSchool"><summary><span class="m post">POST</span> <code>/schools</code> — Cadastra escola e gera admin inicial (RF-001)</summary><p></p><h4>Corpo</h4><pre>{&quot;$ref&quot;:&quot;#/components/schemas/CreateSchoolRequest&quot;}</pre><h4>Respostas</h4><ul><li><code>201</code> Escola criada</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>409</code> E-mail do admin já existe</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;platform_admin&quot;]}</pre></details><details id="getSchool"><summary><span class="m get">GET</span> <code>/schools/{id}</code> — Dados da escola</summary><p><code>path:id*</code></p><h4>Respostas</h4><ul><li><code>200</code> Escola</li><li><code>401</code> Não autenticado (token ausente, expirado ou revogado)</li><li><code>403</code> Sem permissão para esta ação</li><li><code>404</code> Não encontrada</li><li><code>422</code> Dados inválidos</li><li><code>429</code> Limite de requisições excedido</li><li><code>500</code> Erro interno (com traceId)</li></ul><h4>Autorização</h4><pre>{&quot;roles&quot;:[&quot;admin&quot;,&quot;coordinator&quot;,&quot;teacher&quot;,&quot;platform_admin&quot;]}</pre></details></section><section><h2>Schemas</h2><details id="schema-Adaptation"><summary><code>Adaptation</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;difficulty&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;unlocks&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;difficulty&quot;,
+    &quot;unlocks&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Advice"><summary><code>Advice</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;advice&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;advice&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-AdvisorRequest"><summary><code>AdvisorRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;role&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;scientist&quot;,
+        &quot;economist&quot;,
+        &quot;ecologist&quot;,
+        &quot;citizen&quot;
+      ]
+    },
+    &quot;query&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 1000
+    }
+  },
+  &quot;required&quot;: [
+    &quot;role&quot;,
+    &quot;query&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-AlertConfig"><summary><code>AlertConfig</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;limiarDeDominio&quot;: {
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 1
+    },
+    &quot;incertezaMaxima&quot;: {
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 1
+    },
+    &quot;minimoDeEvidencias&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 1000
+    },
+    &quot;diasDeInatividade&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 365
+    },
+    &quot;situacaoDaRevisao&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;limiarDeDominio&quot;,
+    &quot;incertezaMaxima&quot;,
+    &quot;minimoDeEvidencias&quot;,
+    &quot;diasDeInatividade&quot;,
+    &quot;situacaoDaRevisao&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-AlertConfigRequest"><summary><code>AlertConfigRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;limiarDeDominio&quot;: {
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 1
+    },
+    &quot;incertezaMaxima&quot;: {
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 1
+    },
+    &quot;minimoDeEvidencias&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 1000
+    },
+    &quot;diasDeInatividade&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 365
+    }
+  },
+  &quot;required&quot;: [
+    &quot;limiarDeDominio&quot;,
+    &quot;incertezaMaxima&quot;,
+    &quot;minimoDeEvidencias&quot;,
+    &quot;diasDeInatividade&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Assessment"><summary><code>Assessment</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;kind&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;score&quot;: {
+      &quot;type&quot;: [
+        &quot;number&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;competencyCode&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;missionId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    },
+    &quot;createdAt&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;date-time&quot;,
+      &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;kind&quot;,
+    &quot;score&quot;,
+    &quot;competencyCode&quot;,
+    &quot;missionId&quot;,
+    &quot;createdAt&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-AssessmentEventEnvelope"><summary><code>AssessmentEventEnvelope</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;eventId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 8,
+      &quot;maxLength&quot;: 100
+    },
+    &quot;type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;EvidenciaGerada&quot;,
+        &quot;CompetenciaAtualizada&quot;,
+        &quot;RubricaAvaliada&quot;
+      ]
+    },
+    &quot;version&quot;: {
+      &quot;default&quot;: 1,
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;const&quot;: 1
+    },
+    &quot;occurredAt&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;date-time&quot;,
+      &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+    },
+    &quot;traceId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;producer&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    }
+  },
+  &quot;required&quot;: [
+    &quot;eventId&quot;,
+    &quot;type&quot;,
+    &quot;occurredAt&quot;,
+    &quot;data&quot;
+  ]
+}</pre></details><details id="schema-AssessmentList"><summary><code>AssessmentList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/Assessment&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-BnccMastery"><summary><code>BnccMastery</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;studentId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;skills&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;code&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;theme&quot;: {
+            &quot;type&quot;: [
+              &quot;string&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;component&quot;: {
+            &quot;type&quot;: [
+              &quot;string&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;validationStatus&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;competencyCode&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;mastery&quot;: {
+            &quot;type&quot;: [
+              &quot;number&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;uncertainty&quot;: {
+            &quot;type&quot;: [
+              &quot;number&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;evidenceCount&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          }
+        },
+        &quot;required&quot;: [
+          &quot;code&quot;,
+          &quot;theme&quot;,
+          &quot;component&quot;,
+          &quot;validationStatus&quot;,
+          &quot;competencyCode&quot;,
+          &quot;mastery&quot;,
+          &quot;uncertainty&quot;,
+          &quot;evidenceCount&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;studentId&quot;,
+    &quot;skills&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-BnccSkill"><summary><code>BnccSkill</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;description&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;component&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;theme&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;stage&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;competencyCode&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;validationStatus&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;pending_validation = aguardando especialista (RSK-06)&quot;
+    },
+    &quot;catalogVersion&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;active&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;description&quot;,
+    &quot;component&quot;,
+    &quot;theme&quot;,
+    &quot;stage&quot;,
+    &quot;competencyCode&quot;,
+    &quot;validationStatus&quot;,
+    &quot;catalogVersion&quot;,
+    &quot;active&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-BnccSkillList"><summary><code>BnccSkillList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/BnccSkill&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ChangeRoleRequest"><summary><code>ChangeRoleRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;role&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;role&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Checkpoint"><summary><code>Checkpoint</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;checkpointId&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;checkpointId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Class"><summary><code>Class</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;schoolId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;teacherUserId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;year&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    },
+    &quot;trackLevel&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;$ref&quot;: &quot;#/components/schemas/TrackLevel&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;schoolId&quot;,
+    &quot;teacherUserId&quot;,
+    &quot;name&quot;,
+    &quot;year&quot;,
+    &quot;trackLevel&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ClassAlerts"><summary><code>ClassAlerts</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;classId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;thresholds&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;limiarDeDominio&quot;: {
+          &quot;type&quot;: &quot;number&quot;
+        },
+        &quot;incertezaMaxima&quot;: {
+          &quot;type&quot;: &quot;number&quot;
+        },
+        &quot;minimoDeEvidencias&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;diasDeInatividade&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;situacaoDaRevisao&quot;: {
+          &quot;type&quot;: &quot;string&quot;
+        },
+        &quot;reviewStatus&quot;: {
+          &quot;type&quot;: &quot;string&quot;
+        }
+      },
+      &quot;required&quot;: [
+        &quot;limiarDeDominio&quot;,
+        &quot;incertezaMaxima&quot;,
+        &quot;minimoDeEvidencias&quot;,
+        &quot;diasDeInatividade&quot;,
+        &quot;situacaoDaRevisao&quot;,
+        &quot;reviewStatus&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    },
+    &quot;alerts&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;studentId&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;uuid&quot;,
+            &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+          },
+          &quot;kind&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;enum&quot;: [
+              &quot;low_mastery&quot;,
+              &quot;inactivity&quot;
+            ]
+          },
+          &quot;competencyCode&quot;: {
+            &quot;type&quot;: [
+              &quot;string&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;probability&quot;: {
+            &quot;type&quot;: [
+              &quot;number&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;uncertainty&quot;: {
+            &quot;type&quot;: [
+              &quot;number&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;evidenceCount&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;reason&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;evidenceRef&quot;: {
+            &quot;type&quot;: [
+              &quot;string&quot;,
+              &quot;null&quot;
+            ]
+          }
+        },
+        &quot;required&quot;: [
+          &quot;studentId&quot;,
+          &quot;kind&quot;,
+          &quot;competencyCode&quot;,
+          &quot;probability&quot;,
+          &quot;uncertainty&quot;,
+          &quot;evidenceCount&quot;,
+          &quot;reason&quot;,
+          &quot;evidenceRef&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    },
+    &quot;notice&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;classId&quot;,
+    &quot;thresholds&quot;,
+    &quot;alerts&quot;,
+    &quot;notice&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ClassCompetencies"><summary><code>ClassCompetencies</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;classId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;studentsIncluded&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;studentsExcludedForConsent&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;synthetic&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;competencies&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;code&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;name&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;students&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;avgMastery&quot;: {
+            &quot;type&quot;: [
+              &quot;number&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;distribution&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;properties&quot;: {
+              &quot;low&quot;: {
+                &quot;type&quot;: &quot;integer&quot;,
+                &quot;minimum&quot;: -9007199254740991,
+                &quot;maximum&quot;: 9007199254740991
+              },
+              &quot;medium&quot;: {
+                &quot;type&quot;: &quot;integer&quot;,
+                &quot;minimum&quot;: -9007199254740991,
+                &quot;maximum&quot;: 9007199254740991
+              },
+              &quot;high&quot;: {
+                &quot;type&quot;: &quot;integer&quot;,
+                &quot;minimum&quot;: -9007199254740991,
+                &quot;maximum&quot;: 9007199254740991
+              }
+            },
+            &quot;required&quot;: [
+              &quot;low&quot;,
+              &quot;medium&quot;,
+              &quot;high&quot;
+            ],
+            &quot;additionalProperties&quot;: false
+          }
+        },
+        &quot;required&quot;: [
+          &quot;code&quot;,
+          &quot;name&quot;,
+          &quot;students&quot;,
+          &quot;avgMastery&quot;,
+          &quot;distribution&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;classId&quot;,
+    &quot;studentsIncluded&quot;,
+    &quot;studentsExcludedForConsent&quot;,
+    &quot;synthetic&quot;,
+    &quot;competencies&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ClassConsents"><summary><code>ClassConsents</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;classId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;students&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;id&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;uuid&quot;,
+            &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+          },
+          &quot;name&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;isMinor&quot;: {
+            &quot;type&quot;: &quot;boolean&quot;
+          },
+          &quot;purposes&quot;: {
+            &quot;type&quot;: &quot;array&quot;,
+            &quot;items&quot;: {
+              &quot;type&quot;: &quot;object&quot;,
+              &quot;properties&quot;: {
+                &quot;purpose&quot;: {
+                  &quot;type&quot;: &quot;string&quot;
+                },
+                &quot;status&quot;: {
+                  &quot;type&quot;: &quot;string&quot;
+                }
+              },
+              &quot;required&quot;: [
+                &quot;purpose&quot;,
+                &quot;status&quot;
+              ],
+              &quot;additionalProperties&quot;: false
+            }
+          }
+        },
+        &quot;required&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;isMinor&quot;,
+          &quot;purposes&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;classId&quot;,
+    &quot;students&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ClassList"><summary><code>ClassList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/Class&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ClassOverview"><summary><code>ClassOverview</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;classId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;students&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;id&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;uuid&quot;,
+            &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+          },
+          &quot;name&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;consentPending&quot;: {
+            &quot;type&quot;: &quot;array&quot;,
+            &quot;items&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            }
+          },
+          &quot;planets&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;evidenceCount&quot;: {
+            &quot;anyOf&quot;: [
+              {
+                &quot;type&quot;: &quot;integer&quot;,
+                &quot;minimum&quot;: -9007199254740991,
+                &quot;maximum&quot;: 9007199254740991
+              },
+              {
+                &quot;type&quot;: &quot;null&quot;
+              }
+            ]
+          },
+          &quot;lastActivity&quot;: {
+            &quot;anyOf&quot;: [
+              {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;format&quot;: &quot;date-time&quot;,
+                &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+              },
+              {
+                &quot;type&quot;: &quot;null&quot;
+              }
+            ]
+          }
+        },
+        &quot;required&quot;: [
+          &quot;id&quot;,
+          &quot;name&quot;,
+          &quot;consentPending&quot;,
+          &quot;planets&quot;,
+          &quot;evidenceCount&quot;,
+          &quot;lastActivity&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    },
+    &quot;totals&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;students&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;consentPending&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;withAssessmentConsent&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        }
+      },
+      &quot;required&quot;: [
+        &quot;students&quot;,
+        &quot;consentPending&quot;,
+        &quot;withAssessmentConsent&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    }
+  },
+  &quot;required&quot;: [
+    &quot;classId&quot;,
+    &quot;students&quot;,
+    &quot;totals&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ClassStudent"><summary><code>ClassStudent</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;isMinor&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;isMinor&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ClassStudentList"><summary><code>ClassStudentList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/ClassStudent&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CognitiveProfile"><summary><code>CognitiveProfile</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;studentId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;competencies&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;code&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;name&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;probability&quot;: {
+            &quot;type&quot;: &quot;number&quot;
+          },
+          &quot;uncertainty&quot;: {
+            &quot;type&quot;: [
+              &quot;number&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;evidenceCount&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;updatedAt&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;date-time&quot;,
+            &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+          },
+          &quot;synthetic&quot;: {
+            &quot;type&quot;: &quot;boolean&quot;,
+            &quot;description&quot;: &quot;true = dado sintético do adaptador falso&quot;
+          },
+          &quot;lastEventId&quot;: {
+            &quot;type&quot;: [
+              &quot;string&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;evidenceRef&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;code&quot;,
+          &quot;name&quot;,
+          &quot;probability&quot;,
+          &quot;uncertainty&quot;,
+          &quot;evidenceCount&quot;,
+          &quot;updatedAt&quot;,
+          &quot;synthetic&quot;,
+          &quot;lastEventId&quot;,
+          &quot;evidenceRef&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    },
+    &quot;disclaimer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;studentId&quot;,
+    &quot;competencies&quot;,
+    &quot;disclaimer&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Competency"><summary><code>Competency</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;description&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;generalCompetencies&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;validationStatus&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;catalogVersion&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;name&quot;,
+    &quot;description&quot;,
+    &quot;generalCompetencies&quot;,
+    &quot;validationStatus&quot;,
+    &quot;catalogVersion&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CompetencyList"><summary><code>CompetencyList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/Competency&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ConsentPurpose"><summary><code>ConsentPurpose</code></summary><pre>{
+  &quot;type&quot;: &quot;string&quot;,
+  &quot;enum&quot;: [
+    &quot;platform_use&quot;,
+    &quot;learning_assessment&quot;,
+    &quot;research&quot;
+  ],
+  &quot;description&quot;: &quot;platform_use=usar a plataforma; learning_assessment=evidências e avaliação; research=dataset anonimizado&quot;
+}</pre></details><details id="schema-ConsentStatus"><summary><code>ConsentStatus</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;studentId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;isMinor&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;purposes&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;purpose&quot;: {
+            &quot;$ref&quot;: &quot;#/components/schemas/ConsentPurpose&quot;
+          },
+          &quot;status&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;enum&quot;: [
+              &quot;pending&quot;,
+              &quot;granted&quot;,
+              &quot;revoked&quot;,
+              &quot;not_required&quot;
+            ]
+          },
+          &quot;textVersion&quot;: {
+            &quot;type&quot;: [
+              &quot;string&quot;,
+              &quot;null&quot;
+            ]
+          },
+          &quot;grantedAt&quot;: {
+            &quot;anyOf&quot;: [
+              {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;format&quot;: &quot;date-time&quot;,
+                &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+              },
+              {
+                &quot;type&quot;: &quot;null&quot;
+              }
+            ]
+          },
+          &quot;revokedAt&quot;: {
+            &quot;anyOf&quot;: [
+              {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;format&quot;: &quot;date-time&quot;,
+                &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+              },
+              {
+                &quot;type&quot;: &quot;null&quot;
+              }
+            ]
+          }
+        },
+        &quot;required&quot;: [
+          &quot;purpose&quot;,
+          &quot;status&quot;,
+          &quot;textVersion&quot;,
+          &quot;grantedAt&quot;,
+          &quot;revokedAt&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;studentId&quot;,
+    &quot;isMinor&quot;,
+    &quot;purposes&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ConsentText"><summary><code>ConsentText</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;purpose&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;locale&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;body&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;reviewStatus&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;pending_legal_review = placeholder ainda não aprovado pelo DPO/jurídico&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;purpose&quot;,
+    &quot;version&quot;,
+    &quot;locale&quot;,
+    &quot;body&quot;,
+    &quot;reviewStatus&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ConsentTextList"><summary><code>ConsentTextList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/ConsentText&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CreateBnccSkillRequest"><summary><code>CreateBnccSkillRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;description&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 2000
+    },
+    &quot;component&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 100
+    },
+    &quot;theme&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;stage&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;fundamental&quot;,
+        &quot;medio&quot;,
+        &quot;tecnico&quot;
+      ]
+    },
+    &quot;competencyCode&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;validationStatus&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;pending_validation&quot;,
+        &quot;validated&quot;,
+        &quot;rejected&quot;
+      ]
+    },
+    &quot;catalogVersion&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 32
+    },
+    &quot;active&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^E[FM]\\d{2}[A-Z]{2,3}\\d{2,3}$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;description&quot;,
+    &quot;code&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CreateClassRequest"><summary><code>CreateClassRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 120
+    },
+    &quot;year&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 20
+    },
+    &quot;trackLevel&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/TrackLevel&quot;
+    },
+    &quot;teacherUserId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;name&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CreateMissionRequest"><summary><code>CreateMissionRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;title&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;description&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 4000
+    },
+    &quot;objective&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 2000,
+      &quot;description&quot;: &quot;Objetivo pedagógico&quot;
+    },
+    &quot;trackLevel&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/TrackLevel&quot;
+    },
+    &quot;bnccCodes&quot;: {
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 20,
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;minLength&quot;: 4,
+        &quot;maxLength&quot;: 20
+      },
+      &quot;description&quot;: &quot;Habilidades BNCC (RP-001: ao menos uma)&quot;
+    },
+    &quot;parameters&quot;: {
+      &quot;description&quot;: &quot;Parâmetros repassados ao serviço de simulação&quot;,
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    },
+    &quot;classIds&quot;: {
+      &quot;description&quot;: &quot;Publica já para estas turmas&quot;,
+      &quot;maxItems&quot;: 50,
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;format&quot;: &quot;uuid&quot;,
+        &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;title&quot;,
+    &quot;objective&quot;,
+    &quot;trackLevel&quot;,
+    &quot;bnccCodes&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CreatePlanetRequest"><summary><code>CreatePlanetRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;params&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    },
+    &quot;seed&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;missionId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;params&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CreateSchoolRequest"><summary><code>CreateSchoolRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 2,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;admin&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;name&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;minLength&quot;: 1,
+          &quot;maxLength&quot;: 200
+        },
+        &quot;email&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;maxLength&quot;: 254,
+          &quot;format&quot;: &quot;email&quot;,
+          &quot;pattern&quot;: &quot;^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$&quot;
+        },
+        &quot;password&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;minLength&quot;: 1,
+          &quot;maxLength&quot;: 256
+        }
+      },
+      &quot;required&quot;: [
+        &quot;name&quot;,
+        &quot;email&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    }
+  },
+  &quot;required&quot;: [
+    &quot;name&quot;,
+    &quot;admin&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-CreateUserRequest"><summary><code>CreateUserRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;pattern&quot;: &quot;^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$&quot;
+    },
+    &quot;role&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+    },
+    &quot;schoolId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;isMinor&quot;: {
+      &quot;description&quot;: &quot;Só para alunos. Padrão: true (menor de idade)&quot;,
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;password&quot;: {
+      &quot;description&quot;: &quot;Senha inicial. Se omitida, um link de ativação é enviado.&quot;,
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 256
+    }
+  },
+  &quot;required&quot;: [
+    &quot;name&quot;,
+    &quot;email&quot;,
+    &quot;role&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-DataSubjectExport"><summary><code>DataSubjectExport</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;propertyNames&quot;: {
+    &quot;type&quot;: &quot;string&quot;
+  },
+  &quot;additionalProperties&quot;: {}
+}</pre></details><details id="schema-DeletionResult"><summary><code>DeletionResult</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;requestId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;removed&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;number&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;requestId&quot;,
+    &quot;status&quot;,
+    &quot;removed&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-EnrollStudentsRequest"><summary><code>EnrollStudentsRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;studentIds&quot;: {
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 200,
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;format&quot;: &quot;uuid&quot;,
+        &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;studentIds&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-EnrollStudentsResult"><summary><code>EnrollStudentsResult</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;enrolled&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;format&quot;: &quot;uuid&quot;,
+        &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+      }
+    },
+    &quot;alreadyEnrolled&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;format&quot;: &quot;uuid&quot;,
+        &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;enrolled&quot;,
+    &quot;alreadyEnrolled&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-EventAccepted"><summary><code>EventAccepted</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;accepted&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;outcome&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;accepted&quot;,
+    &quot;outcome&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-EventOutcome"><summary><code>EventOutcome</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;outcome&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;delta&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;number&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;outcome&quot;,
+    &quot;delta&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Evidence"><summary><code>Evidence</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;eventId&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;competencyCode&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;bnccCode&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;type&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;payload&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    },
+    &quot;planetId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    },
+    &quot;occurredAt&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;date-time&quot;,
+      &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+    },
+    &quot;synthetic&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;source&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;eventId&quot;,
+    &quot;competencyCode&quot;,
+    &quot;bnccCode&quot;,
+    &quot;type&quot;,
+    &quot;payload&quot;,
+    &quot;planetId&quot;,
+    &quot;occurredAt&quot;,
+    &quot;synthetic&quot;,
+    &quot;source&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-EvidencePage"><summary><code>EvidencePage</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/Evidence&quot;
+      }
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;pageSize&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;page&quot;,
+    &quot;pageSize&quot;,
+    &quot;total&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ExplainRequest"><summary><code>ExplainRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;planetId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;contextRef&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[A-Za-z0-9:_./-]{1,200}$&quot;,
+      &quot;description&quot;: &quot;Identificador do contexto (ex.: indicador co2); texto livre não é aceito&quot;
+    },
+    &quot;question&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 1000
+    }
+  },
+  &quot;required&quot;: [
+    &quot;planetId&quot;,
+    &quot;contextRef&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ExportLink"><summary><code>ExportLink</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;exportId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;format&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;expiresAt&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;date-time&quot;,
+      &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+    },
+    &quot;sizeBytes&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  },
+  &quot;required&quot;: [
+    &quot;exportId&quot;,
+    &quot;format&quot;,
+    &quot;url&quot;,
+    &quot;expiresAt&quot;,
+    &quot;sizeBytes&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-FeedbackCreated"><summary><code>FeedbackCreated</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;studentId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;createdAt&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;date-time&quot;,
+      &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;studentId&quot;,
+    &quot;createdAt&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-FeedbackRequest"><summary><code>FeedbackRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;content&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 4000
+    },
+    &quot;assessmentId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;content&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ForgotPasswordRequest"><summary><code>ForgotPasswordRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;pattern&quot;: &quot;^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;email&quot;
+  ]
+}</pre></details><details id="schema-GrantConsentRequest"><summary><code>GrantConsentRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;purposes&quot;: {
+      &quot;minItems&quot;: 1,
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/ConsentPurpose&quot;
+      }
+    },
+    &quot;textVersion&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;accepted&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;,
+      &quot;const&quot;: true,
+      &quot;description&quot;: &quot;Confirmação explícita do responsável&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;purposes&quot;,
+    &quot;textVersion&quot;,
+    &quot;accepted&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Health"><summary><code>Health</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;const&quot;: &quot;ok&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;status&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Hint"><summary><code>Hint</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;hint&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;level&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  },
+  &quot;required&quot;: [
+    &quot;hint&quot;,
+    &quot;level&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-HintRequest"><summary><code>HintRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;planetId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;missionId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;planetId&quot;,
+    &quot;missionId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-InternalConsentStatus"><summary><code>InternalConsentStatus</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;userId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;consentRequired&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;purposes&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;platform_use&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;learning_assessment&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;research&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        }
+      },
+      &quot;required&quot;: [
+        &quot;platform_use&quot;,
+        &quot;learning_assessment&quot;,
+        &quot;research&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    }
+  },
+  &quot;required&quot;: [
+    &quot;userId&quot;,
+    &quot;consentRequired&quot;,
+    &quot;purposes&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;description&quot;: &quot;Resposta mínima, sem PII&quot;
+}</pre></details><details id="schema-InterventionRequest"><summary><code>InterventionRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;action&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[A-Z_]{2,40}$&quot;
+    },
+    &quot;target&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;cost&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;actionPoints&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: 0,
+          &quot;maximum&quot;: 10
+        },
+        &quot;energy&quot;: {
+          &quot;type&quot;: &quot;number&quot;,
+          &quot;minimum&quot;: 0,
+          &quot;maximum&quot;: 1000
+        }
+      },
+      &quot;required&quot;: [
+        &quot;actionPoints&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    }
+  },
+  &quot;required&quot;: [
+    &quot;action&quot;,
+    &quot;target&quot;,
+    &quot;cost&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-InterventionResult"><summary><code>InterventionResult</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;delta&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;number&quot;
+      }
+    },
+    &quot;tradeoffs&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;gain&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;cost&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;gain&quot;,
+          &quot;cost&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    },
+    &quot;actionPoints&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;remaining&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        }
+      },
+      &quot;required&quot;: [
+        &quot;remaining&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    },
+    &quot;tickId&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  },
+  &quot;required&quot;: [
+    &quot;delta&quot;,
+    &quot;tradeoffs&quot;,
+    &quot;actionPoints&quot;,
+    &quot;tickId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-LinkGuardianRequest"><summary><code>LinkGuardianRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;guardianUserId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;guardianUserId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-LoginRequest"><summary><code>LoginRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;pattern&quot;: &quot;^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$&quot;
+    },
+    &quot;senha&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 256
+    }
+  },
+  &quot;required&quot;: [
+    &quot;email&quot;,
+    &quot;senha&quot;
+  ]
+}</pre></details><details id="schema-LoginResponse"><summary><code>LoginResponse</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;accessToken&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;tokenType&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;const&quot;: &quot;Bearer&quot;
+    },
+    &quot;expiresIn&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991,
+      &quot;description&quot;: &quot;Validade do access token, em segundos&quot;
+    },
+    &quot;refreshToken&quot;: {
+      &quot;description&quot;: &quot;Só no corpo quando o cliente pede X-Refresh-Transport: body (apps sem navegador). Navegadores recebem cookie httpOnly.&quot;,
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;perfil&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UserProfile&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;accessToken&quot;,
+    &quot;tokenType&quot;,
+    &quot;expiresIn&quot;,
+    &quot;perfil&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-LtiLaunchRequest"><summary><code>LtiLaunchRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id_token&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 20,
+      &quot;maxLength&quot;: 20000
+    },
+    &quot;state&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 10,
+      &quot;maxLength&quot;: 200
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id_token&quot;,
+    &quot;state&quot;
+  ]
+}</pre></details><details id="schema-LtiLaunchResponse"><summary><code>LtiLaunchResponse</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;accessToken&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;tokenType&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;const&quot;: &quot;Bearer&quot;
+    },
+    &quot;expiresIn&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991,
+      &quot;description&quot;: &quot;Validade do access token, em segundos&quot;
+    },
+    &quot;refreshToken&quot;: {
+      &quot;description&quot;: &quot;Só no corpo quando o cliente pede X-Refresh-Transport: body (apps sem navegador). Navegadores recebem cookie httpOnly.&quot;,
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;turma&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;object&quot;,
+          &quot;properties&quot;: {
+            &quot;id&quot;: {
+              &quot;type&quot;: &quot;string&quot;,
+              &quot;format&quot;: &quot;uuid&quot;,
+              &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+            },
+            &quot;name&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            }
+          },
+          &quot;required&quot;: [
+            &quot;id&quot;,
+            &quot;name&quot;
+          ],
+          &quot;additionalProperties&quot;: false
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    }
+  },
+  &quot;required&quot;: [
+    &quot;accessToken&quot;,
+    &quot;tokenType&quot;,
+    &quot;expiresIn&quot;,
+    &quot;turma&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-LtiPlatform"><summary><code>LtiPlatform</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;issuer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;clientId&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;deploymentId&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;issuer&quot;,
+    &quot;clientId&quot;,
+    &quot;deploymentId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Mission"><summary><code>Mission</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;schoolId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    },
+    &quot;authorUserId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    },
+    &quot;title&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;description&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;objective&quot;: {
+      &quot;type&quot;: [
+        &quot;string&quot;,
+        &quot;null&quot;
+      ]
+    },
+    &quot;trackLevel&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/TrackLevel&quot;
+    },
+    &quot;bnccCodes&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;parameters&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;draft&quot;,
+        &quot;published&quot;,
+        &quot;archived&quot;
+      ]
+    },
+    &quot;classIds&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;format&quot;: &quot;uuid&quot;,
+        &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;schoolId&quot;,
+    &quot;authorUserId&quot;,
+    &quot;title&quot;,
+    &quot;description&quot;,
+    &quot;objective&quot;,
+    &quot;trackLevel&quot;,
+    &quot;bnccCodes&quot;,
+    &quot;parameters&quot;,
+    &quot;status&quot;,
+    &quot;classIds&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-MissionList"><summary><code>MissionList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/Mission&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-MyFeedback"><summary><code>MyFeedback</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;id&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;uuid&quot;,
+            &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+          },
+          &quot;content&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;authorUserId&quot;: {
+            &quot;anyOf&quot;: [
+              {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;format&quot;: &quot;uuid&quot;,
+                &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+              },
+              {
+                &quot;type&quot;: &quot;null&quot;
+              }
+            ]
+          },
+          &quot;createdAt&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;date-time&quot;,
+            &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+          },
+          &quot;readAt&quot;: {
+            &quot;anyOf&quot;: [
+              {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;format&quot;: &quot;date-time&quot;,
+                &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+              },
+              {
+                &quot;type&quot;: &quot;null&quot;
+              }
+            ]
+          }
+        },
+        &quot;required&quot;: [
+          &quot;id&quot;,
+          &quot;content&quot;,
+          &quot;authorUserId&quot;,
+          &quot;createdAt&quot;,
+          &quot;readAt&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-OidcProvider"><summary><code>OidcProvider</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;slug&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;issuer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;defaultRole&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+    },
+    &quot;allowProvisioning&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;slug&quot;,
+    &quot;issuer&quot;,
+    &quot;defaultRole&quot;,
+    &quot;allowProvisioning&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Planet"><summary><code>Planet</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;state&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    },
+    &quot;era&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;indicators&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;number&quot;
+      }
+    },
+    &quot;planetId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;ownerId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;missionId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    }
+  },
+  &quot;required&quot;: [
+    &quot;state&quot;,
+    &quot;era&quot;,
+    &quot;indicators&quot;,
+    &quot;planetId&quot;,
+    &quot;ownerId&quot;,
+    &quot;missionId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-PlanetCreated"><summary><code>PlanetCreated</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;planetId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;seed&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;state&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/PlanetState&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;planetId&quot;,
+    &quot;seed&quot;,
+    &quot;state&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-PlanetEvents"><summary><code>PlanetEvents</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;events&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;eventId&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;kind&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;tick&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;status&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;options&quot;: {
+            &quot;type&quot;: &quot;array&quot;,
+            &quot;items&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            }
+          }
+        },
+        &quot;required&quot;: [
+          &quot;eventId&quot;,
+          &quot;kind&quot;,
+          &quot;tick&quot;,
+          &quot;status&quot;,
+          &quot;options&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;events&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-PlanetState"><summary><code>PlanetState</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;state&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    },
+    &quot;era&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;indicators&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;number&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;state&quot;,
+    &quot;era&quot;,
+    &quot;indicators&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Preferences"><summary><code>Preferences</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;language&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;pt-BR&quot;,
+        &quot;en&quot;,
+        &quot;es&quot;
+      ]
+    },
+    &quot;accessibility&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;highContrast&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;fontScale&quot;: {
+          &quot;type&quot;: &quot;number&quot;,
+          &quot;minimum&quot;: 0.75,
+          &quot;maximum&quot;: 2
+        },
+        &quot;reducedMotion&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;screenReader&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;captions&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;colorBlindMode&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;enum&quot;: [
+            &quot;none&quot;,
+            &quot;protanopia&quot;,
+            &quot;deuteranopia&quot;,
+            &quot;tritanopia&quot;
+          ]
+        }
+      },
+      &quot;required&quot;: [
+        &quot;highContrast&quot;,
+        &quot;fontScale&quot;,
+        &quot;reducedMotion&quot;,
+        &quot;screenReader&quot;,
+        &quot;captions&quot;,
+        &quot;colorBlindMode&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    }
+  },
+  &quot;required&quot;: [
+    &quot;language&quot;,
+    &quot;accessibility&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-PreferencesPatch"><summary><code>PreferencesPatch</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;language&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;pt-BR&quot;,
+        &quot;en&quot;,
+        &quot;es&quot;
+      ]
+    },
+    &quot;accessibility&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;highContrast&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;fontScale&quot;: {
+          &quot;type&quot;: &quot;number&quot;,
+          &quot;minimum&quot;: 0.75,
+          &quot;maximum&quot;: 2
+        },
+        &quot;reducedMotion&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;screenReader&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;captions&quot;: {
+          &quot;type&quot;: &quot;boolean&quot;
+        },
+        &quot;colorBlindMode&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;enum&quot;: [
+            &quot;none&quot;,
+            &quot;protanopia&quot;,
+            &quot;deuteranopia&quot;,
+            &quot;tritanopia&quot;
+          ]
+        }
+      }
+    }
+  },
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Problem"><summary><code>Problem</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;URI relativa do tipo de erro (/errors/&lt;slug&gt;)&quot;
+    },
+    &quot;title&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;detail&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;instance&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;traceId&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;errors&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;field&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;message&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;field&quot;,
+          &quot;message&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;type&quot;,
+    &quot;title&quot;,
+    &quot;status&quot;,
+    &quot;detail&quot;,
+    &quot;instance&quot;,
+    &quot;traceId&quot;
+  ],
+  &quot;additionalProperties&quot;: {},
+  &quot;description&quot;: &quot;Erro no formato RFC 7807 (Problem Details)&quot;
+}</pre></details><details id="schema-PublishConsentTextRequest"><summary><code>PublishConsentTextRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;purpose&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/ConsentPurpose&quot;
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;body&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 20,
+      &quot;maxLength&quot;: 20000
+    },
+    &quot;reviewStatus&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;pending_legal_review&quot;,
+        &quot;approved&quot;
+      ],
+      &quot;description&quot;: &quot;approved só depois da revisão do DPO/jurídico&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;purpose&quot;,
+    &quot;version&quot;,
+    &quot;body&quot;,
+    &quot;reviewStatus&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-PublishMissionRequest"><summary><code>PublishMissionRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;classIds&quot;: {
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 50,
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;format&quot;: &quot;uuid&quot;,
+        &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;classIds&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Readiness"><summary><code>Readiness</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;const&quot;: &quot;ready&quot;
+    },
+    &quot;checks&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;database&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;const&quot;: &quot;ok&quot;
+        },
+        &quot;redis&quot;: {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;const&quot;: &quot;ok&quot;
+        }
+      },
+      &quot;required&quot;: [
+        &quot;database&quot;,
+        &quot;redis&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    },
+    &quot;fakeAdapters&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;description&quot;: &quot;Adaptadores falsos ativos (vazio em produção)&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;status&quot;,
+    &quot;checks&quot;,
+    &quot;fakeAdapters&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RecordAssessmentRequest"><summary><code>RecordAssessmentRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;kind&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;pre_test&quot;,
+        &quot;post_test&quot;,
+        &quot;rubric&quot;
+      ]
+    },
+    &quot;score&quot;: {
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 100
+    },
+    &quot;competencyCode&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;missionId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;details&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    }
+  },
+  &quot;required&quot;: [
+    &quot;kind&quot;,
+    &quot;score&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RectifyUserRequest"><summary><code>RectifyUserRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;pattern&quot;: &quot;^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$&quot;
+    }
+  },
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RefreshRequest"><summary><code>RefreshRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;refreshToken&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 10,
+      &quot;maxLength&quot;: 512
+    }
+  }
+}</pre></details><details id="schema-RegisterLtiPlatformRequest"><summary><code>RegisterLtiPlatformRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;issuer&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 500
+    },
+    &quot;clientId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;deploymentId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;authLoginUrl&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;format&quot;: &quot;uri&quot;
+    },
+    &quot;authTokenUrl&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;format&quot;: &quot;uri&quot;
+    },
+    &quot;jwksUrl&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;format&quot;: &quot;uri&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;issuer&quot;,
+    &quot;clientId&quot;,
+    &quot;deploymentId&quot;,
+    &quot;authLoginUrl&quot;,
+    &quot;jwksUrl&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RegisterOidcProviderRequest"><summary><code>RegisterOidcProviderRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;slug&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[a-z0-9-]{3,40}$&quot;
+    },
+    &quot;issuer&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;format&quot;: &quot;uri&quot;
+    },
+    &quot;clientId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;clientSecretEnv&quot;: {
+      &quot;description&quot;: &quot;NOME da variável de ambiente (prefixo OIDC_CLIENT_SECRET_) com o segredo; o segredo nunca vai ao banco&quot;,
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^OIDC_CLIENT_SECRET_[A-Z0-9_]{1,40}$&quot;
+    },
+    &quot;defaultRole&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+    },
+    &quot;allowProvisioning&quot;: {
+      &quot;default&quot;: false,
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;slug&quot;,
+    &quot;issuer&quot;,
+    &quot;clientId&quot;,
+    &quot;defaultRole&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ResearchDataset"><summary><code>ResearchDataset</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;exportId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;format&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;expiresAt&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;date-time&quot;,
+      &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+    },
+    &quot;sizeBytes&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;anonymization&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;properties&quot;: {
+        &quot;k&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;suppressedGroups&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;suppressedRows&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;rows&quot;: {
+          &quot;type&quot;: &quot;integer&quot;,
+          &quot;minimum&quot;: -9007199254740991,
+          &quot;maximum&quot;: 9007199254740991
+        },
+        &quot;technique&quot;: {
+          &quot;type&quot;: &quot;string&quot;
+        }
+      },
+      &quot;required&quot;: [
+        &quot;k&quot;,
+        &quot;suppressedGroups&quot;,
+        &quot;suppressedRows&quot;,
+        &quot;rows&quot;,
+        &quot;technique&quot;
+      ],
+      &quot;additionalProperties&quot;: false
+    }
+  },
+  &quot;required&quot;: [
+    &quot;exportId&quot;,
+    &quot;format&quot;,
+    &quot;url&quot;,
+    &quot;expiresAt&quot;,
+    &quot;sizeBytes&quot;,
+    &quot;anonymization&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ResetPasswordRequest"><summary><code>ResetPasswordRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;token&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 20,
+      &quot;maxLength&quot;: 256
+    },
+    &quot;newPassword&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 256
+    }
+  },
+  &quot;required&quot;: [
+    &quot;token&quot;,
+    &quot;newPassword&quot;
+  ]
+}</pre></details><details id="schema-RespondEventRequest"><summary><code>RespondEventRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;eventId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;choice&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 40
+    }
+  },
+  &quot;required&quot;: [
+    &quot;eventId&quot;,
+    &quot;choice&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RetentionPolicy"><summary><code>RetentionPolicy</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;dataCategory&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;retentionDays&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;action&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;reviewStatus&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;updatedAt&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;date-time&quot;,
+      &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;dataCategory&quot;,
+    &quot;retentionDays&quot;,
+    &quot;action&quot;,
+    &quot;reviewStatus&quot;,
+    &quot;updatedAt&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RetentionPolicyList"><summary><code>RetentionPolicyList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/RetentionPolicy&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RetentionPolicyRequest"><summary><code>RetentionPolicyRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;retentionDays&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 36500
+    }
+  },
+  &quot;required&quot;: [
+    &quot;retentionDays&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RetentionRunResult"><summary><code>RetentionRunResult</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;propertyNames&quot;: {
+    &quot;type&quot;: &quot;string&quot;
+  },
+  &quot;additionalProperties&quot;: {
+    &quot;type&quot;: &quot;number&quot;
+  }
+}</pre></details><details id="schema-ReviewBnccSkillRequest"><summary><code>ReviewBnccSkillRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;description&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 2000
+    },
+    &quot;component&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 100
+    },
+    &quot;theme&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 200
+    },
+    &quot;stage&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;fundamental&quot;,
+        &quot;medio&quot;,
+        &quot;tecnico&quot;
+      ]
+    },
+    &quot;competencyCode&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;validationStatus&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;pending_validation&quot;,
+        &quot;validated&quot;,
+        &quot;rejected&quot;
+      ]
+    },
+    &quot;catalogVersion&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 32
+    },
+    &quot;active&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  },
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-RevokeConsentRequest"><summary><code>RevokeConsentRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;purposes&quot;: {
+      &quot;minItems&quot;: 1,
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/ConsentPurpose&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;purposes&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Role"><summary><code>Role</code></summary><pre>{
+  &quot;type&quot;: &quot;string&quot;,
+  &quot;enum&quot;: [
+    &quot;student&quot;,
+    &quot;teacher&quot;,
+    &quot;coordinator&quot;,
+    &quot;admin&quot;,
+    &quot;guardian&quot;,
+    &quot;researcher&quot;,
+    &quot;platform_admin&quot;
+  ],
+  &quot;description&quot;: &quot;student=aluno, teacher=professor, coordinator=coordenador, admin=admin da escola, guardian=responsável, researcher=pesquisador, platform_admin=operador da plataforma&quot;
+}</pre></details><details id="schema-School"><summary><code>School</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-SchoolCompetencies"><summary><code>SchoolCompetencies</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;schoolId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;rows&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;classId&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;uuid&quot;,
+            &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+          },
+          &quot;className&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;competencyCode&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;students&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;avgMastery&quot;: {
+            &quot;type&quot;: &quot;number&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;classId&quot;,
+          &quot;className&quot;,
+          &quot;competencyCode&quot;,
+          &quot;students&quot;,
+          &quot;avgMastery&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;schoolId&quot;,
+    &quot;rows&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-SchoolCreated"><summary><code>SchoolCreated</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;school&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/School&quot;
+    },
+    &quot;admin&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UserProfile&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;school&quot;,
+    &quot;admin&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Series"><summary><code>Series</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;metric&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;points&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;tick&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;value&quot;: {
+            &quot;type&quot;: &quot;number&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;tick&quot;,
+          &quot;value&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;metric&quot;,
+    &quot;points&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-SetTrackRequest"><summary><code>SetTrackRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;level&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/TrackLevel&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;level&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-SetUserStatusRequest"><summary><code>SetUserStatusRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;active&quot;,
+        &quot;disabled&quot;
+      ]
+    }
+  },
+  &quot;required&quot;: [
+    &quot;status&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-StudentSummary"><summary><code>StudentSummary</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;schoolId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;schoolId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-StudentSummaryList"><summary><code>StudentSummaryList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/StudentSummary&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-SyncRequest"><summary><code>SyncRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;actions&quot;: {
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 100,
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;idempotencyKey&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;minLength&quot;: 8,
+            &quot;maxLength&quot;: 100
+          },
+          &quot;type&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;enum&quot;: [
+              &quot;intervention&quot;,
+              &quot;checkpoint&quot;,
+              &quot;tick&quot;
+            ]
+          },
+          &quot;payload&quot;: {
+            &quot;default&quot;: {},
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;propertyNames&quot;: {
+              &quot;type&quot;: &quot;string&quot;
+            },
+            &quot;additionalProperties&quot;: {}
+          },
+          &quot;clientTimestamp&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;format&quot;: &quot;date-time&quot;,
+            &quot;pattern&quot;: &quot;^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;idempotencyKey&quot;,
+          &quot;type&quot;,
+          &quot;clientTimestamp&quot;
+        ]
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;actions&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-SyncResult"><summary><code>SyncResult</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;results&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;idempotencyKey&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;status&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;enum&quot;: [
+              &quot;applied&quot;,
+              &quot;duplicate&quot;,
+              &quot;rejected&quot;
+            ]
+          },
+          &quot;result&quot;: {},
+          &quot;error&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;idempotencyKey&quot;,
+          &quot;status&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;results&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-TickJob"><summary><code>TickJob</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;jobId&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;jobId&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;description&quot;: &quot;Resultado chega pelo WebSocket /planets/{id}/stream&quot;
+}</pre></details><details id="schema-TickRequest"><summary><code>TickRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;steps&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 1000
+    },
+    &quot;speed&quot;: {
+      &quot;default&quot;: 1,
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;minimum&quot;: 0.1,
+      &quot;maximum&quot;: 10
+    }
+  },
+  &quot;required&quot;: [
+    &quot;steps&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-TickResult"><summary><code>TickResult</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;delta&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;number&quot;
+      }
+    },
+    &quot;era&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;tickId&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  },
+  &quot;required&quot;: [
+    &quot;delta&quot;,
+    &quot;era&quot;,
+    &quot;tickId&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Timeline"><summary><code>Timeline</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;eras&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;era&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;startedAtTick&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          }
+        },
+        &quot;required&quot;: [
+          &quot;era&quot;,
+          &quot;startedAtTick&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    },
+    &quot;checkpoints&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;checkpointId&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          },
+          &quot;tick&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          },
+          &quot;era&quot;: {
+            &quot;type&quot;: &quot;integer&quot;,
+            &quot;minimum&quot;: -9007199254740991,
+            &quot;maximum&quot;: 9007199254740991
+          }
+        },
+        &quot;required&quot;: [
+          &quot;checkpointId&quot;,
+          &quot;tick&quot;,
+          &quot;era&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;eras&quot;,
+    &quot;checkpoints&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-Tokens"><summary><code>Tokens</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;accessToken&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;tokenType&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;const&quot;: &quot;Bearer&quot;
+    },
+    &quot;expiresIn&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991,
+      &quot;description&quot;: &quot;Validade do access token, em segundos&quot;
+    },
+    &quot;refreshToken&quot;: {
+      &quot;description&quot;: &quot;Só no corpo quando o cliente pede X-Refresh-Transport: body (apps sem navegador). Navegadores recebem cookie httpOnly.&quot;,
+      &quot;type&quot;: &quot;string&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;accessToken&quot;,
+    &quot;tokenType&quot;,
+    &quot;expiresIn&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-TrackLevel"><summary><code>TrackLevel</code></summary><pre>{
+  &quot;type&quot;: &quot;string&quot;,
+  &quot;enum&quot;: [
+    &quot;fundamental_ii&quot;,
+    &quot;medio&quot;,
+    &quot;tecnico&quot;
+  ],
+  &quot;description&quot;: &quot;fundamental_ii | medio | tecnico&quot;
+}</pre></details><details id="schema-TrackList"><summary><code>TrackList</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;level&quot;: {
+            &quot;$ref&quot;: &quot;#/components/schemas/TrackLevel&quot;
+          },
+          &quot;name&quot;: {
+            &quot;type&quot;: &quot;string&quot;
+          }
+        },
+        &quot;required&quot;: [
+          &quot;level&quot;,
+          &quot;name&quot;
+        ],
+        &quot;additionalProperties&quot;: false
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-UserPage"><summary><code>UserPage</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/UserProfile&quot;
+      }
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;pageSize&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: -9007199254740991,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  },
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;page&quot;,
+    &quot;pageSize&quot;,
+    &quot;total&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-UserProfile"><summary><code>UserProfile</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;uuid&quot;,
+      &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;role&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+    },
+    &quot;schoolId&quot;: {
+      &quot;anyOf&quot;: [
+        {
+          &quot;type&quot;: &quot;string&quot;,
+          &quot;format&quot;: &quot;uuid&quot;,
+          &quot;pattern&quot;: &quot;^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$&quot;
+        },
+        {
+          &quot;type&quot;: &quot;null&quot;
+        }
+      ]
+    },
+    &quot;isMinor&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;active&quot;,
+        &quot;disabled&quot;,
+        &quot;pseudonymized&quot;
+      ]
+    },
+    &quot;preferences&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Preferences&quot;
+    }
+  },
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;email&quot;,
+    &quot;role&quot;,
+    &quot;schoolId&quot;,
+    &quot;isMinor&quot;,
+    &quot;status&quot;,
+    &quot;preferences&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ValidateParamsRequest"><summary><code>ValidateParamsRequest</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;params&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;propertyNames&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;additionalProperties&quot;: {}
+    }
+  },
+  &quot;required&quot;: [
+    &quot;params&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details><details id="schema-ValidateParamsResult"><summary><code>ValidateParamsResult</code></summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;ok&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;warnings&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;ok&quot;,
+    &quot;warnings&quot;
+  ],
+  &quot;additionalProperties&quot;: false
+}</pre></details></section></body></html>

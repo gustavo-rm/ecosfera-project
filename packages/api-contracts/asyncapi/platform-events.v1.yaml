@@ -1,0 +1,474 @@
+# GERADO por services/platform-api (pnpm openapi:gerar). Não edite à mão: mude o contrato no código.
+asyncapi: 3.0.0
+info:
+  title: ECOSFERA — eventos de domínio
+  version: 1.0.0
+  description: "Transporte: Redis Streams (campo `envelope` com o JSON). Trocável por NATS (ADR 0010). Entrega pelo menos uma vez: deduplique por eventId."
+channels:
+  platformEvents:
+    address: ecosfera.events.platform
+    description: Publicado pelo platform-api (outbox transacional)
+    messages:
+      PlanetaCriado:
+        name: PlanetaCriado
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              properties:
+                planetId:
+                  type: string
+                  format: uuid
+                studentId:
+                  type: string
+                  format: uuid
+                schoolId:
+                  type: string
+                  format: uuid
+                missionId:
+                  type:
+                    - string
+                    - "null"
+                seed:
+                  type: string
+        headers:
+          type: object
+          properties:
+            type:
+              const: PlanetaCriado
+      IntervencaoAplicada:
+        name: IntervencaoAplicada
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              properties:
+                planetId:
+                  type: string
+                  format: uuid
+                studentId:
+                  type: string
+                  format: uuid
+                action:
+                  type: string
+                target:
+                  type: string
+                cost:
+                  type: object
+                tickId:
+                  type: integer
+        headers:
+          type: object
+          properties:
+            type:
+              const: IntervencaoAplicada
+      ConsentimentoConcedido:
+        name: ConsentimentoConcedido
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              properties:
+                studentId:
+                  type: string
+                  format: uuid
+                purposes:
+                  type: array
+                  items:
+                    type: string
+                textVersion:
+                  type: string
+                at:
+                  type: string
+                  format: date-time
+        headers:
+          type: object
+          properties:
+            type:
+              const: ConsentimentoConcedido
+      ConsentimentoRevogado:
+        name: ConsentimentoRevogado
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              description: Ao receber, pare de coletar dados do aluno para as finalidades indicadas.
+              properties:
+                studentId:
+                  type: string
+                  format: uuid
+                purposes:
+                  type: array
+                  items:
+                    type: string
+                at:
+                  type: string
+                  format: date-time
+        headers:
+          type: object
+          properties:
+            type:
+              const: ConsentimentoRevogado
+      MissaoPublicada:
+        name: MissaoPublicada
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              properties:
+                missionId:
+                  type: string
+                  format: uuid
+                classIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                bnccCodes:
+                  type: array
+                  items:
+                    type: string
+        headers:
+          type: object
+          properties:
+            type:
+              const: MissaoPublicada
+      TitularExcluido:
+        name: TitularExcluido
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              description: "Direito de exclusão: apague estado e telemetria do titular."
+              properties:
+                subjectId:
+                  type: string
+                  format: uuid
+                planetIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+        headers:
+          type: object
+          properties:
+            type:
+              const: TitularExcluido
+  assessmentEvents:
+    address: ecosfera.events.assessment
+    description: Publicado pelo ai-sim-service; consumido pelo platform-api (grupo platform-api)
+    messages:
+      EvidenciaGerada:
+        name: EvidenciaGerada
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              properties:
+                studentId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                planetId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                competencyCode:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                bnccCode:
+                  type: string
+                  maxLength: 20
+                type:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                payload:
+                  default: {}
+                  type: object
+                  propertyNames:
+                    type: string
+                  additionalProperties: {}
+                synthetic:
+                  default: false
+                  type: boolean
+              required:
+                - studentId
+                - competencyCode
+                - type
+        headers:
+          type: object
+          properties:
+            type:
+              const: EvidenciaGerada
+      CompetenciaAtualizada:
+        name: CompetenciaAtualizada
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              properties:
+                studentId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                competencyCode:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                probability:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                uncertainty:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                synthetic:
+                  default: false
+                  type: boolean
+              required:
+                - studentId
+                - competencyCode
+                - probability
+        headers:
+          type: object
+          properties:
+            type:
+              const: CompetenciaAtualizada
+      RubricaAvaliada:
+        name: RubricaAvaliada
+        payload:
+          type: object
+          required:
+            - eventId
+            - type
+            - version
+            - occurredAt
+            - data
+          properties:
+            eventId:
+              type: string
+              description: Chave de idempotência do consumidor
+            type:
+              type: string
+            version:
+              const: 1
+            occurredAt:
+              type: string
+              format: date-time
+            traceId:
+              type: string
+            producer:
+              type: string
+            data:
+              type: object
+              properties:
+                studentId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                competencyCode:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                missionId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                score:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                details:
+                  default: {}
+                  type: object
+                  propertyNames:
+                    type: string
+                  additionalProperties: {}
+              required:
+                - studentId
+                - score
+        headers:
+          type: object
+          properties:
+            type:
+              const: RubricaAvaliada
+operations:
+  publicarEventosDaPlataforma:
+    action: send
+    channel:
+      $ref: "#/channels/platformEvents"
+  consumirEventosDeAvaliacao:
+    action: receive
+    channel:
+      $ref: "#/channels/assessmentEvents"
